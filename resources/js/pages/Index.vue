@@ -39,7 +39,6 @@
 // @ts-nocheck
 import { ref, onMounted, computed } from 'vue'
 
-// ✅ Use global `d3` from the CDN
 declare const d3: any
 
 let i = 0

@@ -18,9 +18,6 @@ class App extends Model
         return $this->belongsTo(Stream::class, 'stream_id');
     }
 
-    /**
-     * The apps that this app integrates with.
-     */
     public function integrations(): BelongsToMany
     {
         return $this->belongsToMany(App::class, 'appintegrations', 'source_app_id', 'target_app_id')
@@ -28,9 +25,6 @@ class App extends Model
                     ->withPivot('connection_type_id');
     }
 
-    /**
-     * The apps that integrate with this app.
-     */
     public function integratedBy(): BelongsToMany
     {
         return $this->belongsToMany(App::class, 'appintegrations', 'target_app_id', 'source_app_id')

@@ -248,7 +248,7 @@ function redraw() {
     const radius = Math.min(width, height) / 2 - 150;
 
 
-    tree = d3.layout.tree().size([360, radius]).separation((a,b) => (a.parent == b.parent ? 1:2)/a.depth);
+    tree = d3.layout.tree().size([360, radius]).separation((a,b) => (a.parent == b.parent ? 1:2)/1+a.depth);
 
     vis = d3
         .select('#body')

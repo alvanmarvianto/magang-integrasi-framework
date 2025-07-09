@@ -15,7 +15,6 @@ class AppController extends Controller
      */
     public function index(): Response
     {
-        // Eager load the apps for each stream to prevent N+1 query issues
         $streams = Stream::with('apps')
             ->orderBy('stream_id')
             ->take(5)
@@ -78,6 +77,7 @@ class AppController extends Controller
                 'name' => $integration->app_name,
                 'lingkup' => $integration->stream?->stream_name,
                 'link' => $integration->pivot?->connectionType?->type_name,
+                'id' => $integration->app_id,
             ];
         });
 
@@ -86,6 +86,7 @@ class AppController extends Controller
                 'name' => $integration->app_name,
                 'lingkup' => $integration->stream?->stream_name,
                 'link' => $integration->pivot?->connectionType?->type_name,
+                'id' => $integration->app_id,
             ];
         });
 
@@ -100,6 +101,8 @@ class AppController extends Controller
             'lingkup' => $app->stream?->stream_name,
             'children' => $allIntegrations->toArray(),
         ];
+
+        dd($integrationData);
 
         return Inertia::render('Integration', [
             'integrationData' => $this->cleanTree($integrationData),

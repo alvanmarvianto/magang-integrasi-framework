@@ -40,9 +40,6 @@ class ConnectionType extends Model
         'type_name',
     ];
 
-    /**
-     * Get the app integrations that use this connection type.
-     */
     public function appIntegrations(): HasMany
     {
         return $this->hasMany(AppIntegration::class, 'connection_type_id', 'connection_type_id');

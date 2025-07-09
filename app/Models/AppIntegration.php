@@ -28,9 +28,6 @@ class AppIntegration extends Pivot
      */
     public $timestamps = false;
 
-    /**
-     * Get the connection type for this integration.
-     */
     public function connectionType(): BelongsTo
     {
         return $this->belongsTo(ConnectionType::class, 'connection_type_id', 'connection_type_id');
