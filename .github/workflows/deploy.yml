@@ -1,0 +1,39 @@
+name: Deploy Laravel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_KEY }}
+
+      - name: Deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no -i private_key ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} << 'EOF'
+            cd ${{ secrets.DEPLOY_PATH }}
+            sudo git pull origin main
+            npm install && npm run build
+            sudo COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+            php artisan migrate --force
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan queue:restart
+            php artisan clear-compiled
+            php artisan optimize
+            sudo systemctl restart apache2
+          EOF
