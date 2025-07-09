@@ -2,7 +2,7 @@
   <div id="container">
     <aside id="sidebar">
       <header>
-        <h1>Integrasi Aplikasi DLDS</h1>
+        <h1>Aplikasi BI</h1>
       </header>
       <div class="sidebar-content">
         <div id="controls">

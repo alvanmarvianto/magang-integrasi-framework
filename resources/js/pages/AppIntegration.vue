@@ -12,7 +12,7 @@
           </a>
           <a @click.prevent="$inertia.visit(`/technology/${parentAppId}`)" class="nav-link">
             <i class="fas fa-project-diagram"></i>
-            <span>Teknologi App</span>
+            <span>Halaman Teknologi</span>
           </a>
         </div>
         <div class="notes">

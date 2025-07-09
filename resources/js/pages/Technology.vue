@@ -2,7 +2,7 @@
   <div id="container">
     <aside id="sidebar">
       <header>
-        <h1>Tech Stack - {{ appName }}</h1>
+        <h1>Spesifikasi Teknologi</h1>
       </header>
       <div class="sidebar-content">
         <div class="navigation">
@@ -29,8 +29,8 @@
       </div>
       <div id="technology-container">
         <div class="tech-header">
-          <h1>Tech Stack: {{ appName }}</h1>
-          <p v-if="streamName" class="stream-info">Stream: {{ streamName }}</p>
+          <h1>{{ appName }}</h1>
+          <p v-if="streamName" class="stream-info">{{ appDescription }}</p>
         </div>
 
         <div v-if="!technology" class="no-data">
@@ -142,12 +142,13 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
   app: any;
   technology: any;
   appName: string;
+  appDescription: string;
   streamName: string;
 }>()
 
@@ -155,6 +156,34 @@ function toggleSidebar() {
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.toggle('visible')
 }
+
+// Close sidebar when clicking outside on mobile
+function handleClickOutside(event: Event) {
+  const sidebar = document.getElementById('sidebar')
+  const menuToggle = document.getElementById('menu-toggle')
+  
+  if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+    sidebar.classList.remove('visible')
+  }
+}
+
+// Close sidebar on escape key
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    const sidebar = document.getElementById('sidebar')
+    sidebar?.classList.remove('visible')
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscapeKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscapeKey)
+})
 </script>
 
 <style scoped>
