@@ -5,15 +5,15 @@
                 <h1>Integrasi Stream {{ streamName }}</h1>
             </header>
             <div class="sidebar-content">
-                <div class="notes">
-                    <h3> About </h3>
-                    <p>
-                        Grafik ini menampilkan interkoneksi antar aplikasi
-                        di dalam stream {{ streamName }}.
-                    </p>
-                    <a @click.prevent="router.visit('/')" class="sidebar-link" style="cursor: pointer;">
-                        <i class="fas fa-arrow-left"></i> Kembali ke Halaman Utama
+                <div class="navigation">
+                    <a @click.prevent="$inertia.visit('/')" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Halaman Utama</span>
                     </a>
+                </div>
+                <div class="notes">
+                    <h3>About</h3>
+                    <p>Grafik ini menampilkan interkoneksi antar aplikasi di dalam stream {{ streamName }}.</p>
                 </div>
 
                 <div class="legend">
@@ -21,24 +21,14 @@
                     <ul>
                         <li><span class="legend-key circle sp"></span> Aplikasi SP</li>
                         <li><span class="legend-key circle mi"></span> Aplikasi MI</li>
-                        <li>
-                            <span class="legend-key circle ssk-mon"></span> Aplikasi SSK &
-                            Moneter
-                        </li>
-                        <li>
-                            <span class="legend-key circle market"></span> Aplikasi Market
-                        </li>
-                        <li>
-                            <span class="legend-key circle internal"></span> Aplikasi
-                            Internal BI di luar DLDS
-                        </li>
+                        <li><span class="legend-key circle ssk-mon"></span> Aplikasi SSK & Moneter</li>
+                        <li><span class="legend-key circle market"></span> Aplikasi Market</li>
+                        <li><span class="legend-key circle internal"></span> Aplikasi Internal BI di luar DLDS</li>
                         <li>
                             <span class="legend-key circle external"></span>
                             Aplikasi Eksternal BI
                         </li>
-                        <li>
-                            <span class="legend-key circle middleware"></span> Middleware
-                        </li>
+                        <li><span class="legend-key circle middleware"></span> Middleware</li>
                     </ul>
                 </div>
 
@@ -64,9 +54,8 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { onMounted, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
 import * as d3 from 'd3';
+import { onMounted } from 'vue';
 
 const props = defineProps<{
     streamName: string;
@@ -98,7 +87,7 @@ onMounted(() => {
     const { nodes, links } = props.graphData;
 
     const linkCount = {};
-    links.forEach(link => {
+    links.forEach((link) => {
         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
         const key = sourceId < targetId ? `${sourceId}-${targetId}` : `${targetId}-${sourceId}`;
@@ -106,7 +95,7 @@ onMounted(() => {
     });
 
     const linkNum = {};
-    links.forEach(link => {
+    links.forEach((link) => {
         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
         const key = sourceId < targetId ? `${sourceId}-${targetId}` : `${targetId}-${sourceId}`;
@@ -114,20 +103,31 @@ onMounted(() => {
         link.linktotal = linkCount[key];
     });
 
+    const svg = d3.select(container).append('svg').attr('width', width).attr('height', height);
 
-    const svg = d3
-        .select(container)
-        .append('svg')
-        .attr('width', width)
-        .attr('height', height);
-
-    const simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links).id(d => d.id).distance(150))
+    const simulation = d3
+        .forceSimulation(nodes)
+        .force(
+            'link',
+            d3
+                .forceLink(links)
+                .id((d) => d.id)
+                .distance(150),
+        )
         .force('charge', d3.forceManyBody().strength(-150))
         .force('collide', d3.forceCollide().radius(30).iterations(2))
-        .force('x', d3.forceX(centerX).strength(d => (d.lingkup === props.streamName ? 0.15 : 0)))
-        .force('y', d3.forceY(centerY).strength(d => (d.lingkup === props.streamName ? 0.15 : 0)))
-        .force('radial', d3.forceRadial(mainRadius, centerX, centerY).strength(d => (d.lingkup !== props.streamName ? 0.8 : 0)));
+        .force(
+            'x',
+            d3.forceX(centerX).strength((d) => (d.lingkup === props.streamName ? 0.15 : 0)),
+        )
+        .force(
+            'y',
+            d3.forceY(centerY).strength((d) => (d.lingkup === props.streamName ? 0.15 : 0)),
+        )
+        .force(
+            'radial',
+            d3.forceRadial(mainRadius, centerX, centerY).strength((d) => (d.lingkup !== props.streamName ? 0.8 : 0)),
+        );
 
     const link = svg
         .append('g')
@@ -138,28 +138,21 @@ onMounted(() => {
         .append('path')
         .attr('class', (d) => `link ${d.type}`);
 
-    const node = svg
-        .append('g')
-        .selectAll('g')
-        .data(nodes)
-        .enter()
-        .append('g')
-        .attr('class', 'node');
+    const node = svg.append('g').selectAll('g').data(nodes).enter().append('g').attr('class', 'node');
 
-    node
-        .append('circle')
+    node.append('circle')
         .attr('r', 10)
         .attr('class', (d) => `node-border ${d.lingkup}`)
         .attr('fill', '#fff');
 
-    node
-        .append('text')
+    node.append('text')
         .attr('class', 'node-label')
         .attr('dy', '0.35em')
         .attr('text-anchor', 'middle')
         .text((d) => d.name);
 
-    const drag = d3.drag()
+    const drag = d3
+        .drag()
         .on('start', function (event) {
             const d = d3.select(this).datum();
             if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -183,19 +176,19 @@ onMounted(() => {
         const dy = y2 - y1;
         const fx = x1 - cx;
         const fy = y1 - cy;
-        
+
         const a = dx * dx + dy * dy;
         const b = 2 * (fx * dx + fy * dy);
-        const c = (fx * fx + fy * fy) - r * r;
-        
+        const c = fx * fx + fy * fy - r * r;
+
         const discriminant = b * b - 4 * a * c;
-        
+
         if (discriminant < 0) return false;
-        
+
         const discriminantSqrt = Math.sqrt(discriminant);
         const t1 = (-b - discriminantSqrt) / (2 * a);
         const t2 = (-b + discriminantSqrt) / (2 * a);
-        
+
         return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1) || (t1 < 0 && t2 > 1);
     }
 
@@ -203,14 +196,14 @@ onMounted(() => {
         const dx = target.x - source.x;
         const dy = target.y - source.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance < 50) {
             return `M${source.x},${source.y} L${target.x},${target.y}`;
         }
-        
+
         const perpX = -dy / distance;
         const perpY = dx / distance;
-        
+
         const attempts = [
             { offset: 0, type: 'straight' },
             { offset: distance * 0.15, type: 'curve' },
@@ -218,22 +211,22 @@ onMounted(() => {
             { offset: distance * 0.3, type: 'curve' },
             { offset: -distance * 0.3, type: 'curve' },
             { offset: distance * 0.5, type: 'curve' },
-            { offset: -distance * 0.5, type: 'curve' }
+            { offset: -distance * 0.5, type: 'curve' },
         ];
-        
+
         for (let attempt of attempts) {
             let pathClear = true;
-            
+
             if (attempt.type === 'straight') {
                 for (let node of nodes) {
                     if (node.id === source.id || node.id === target.id) continue;
-                    
+
                     if (lineIntersectsCircle(source.x, source.y, target.x, target.y, node.x, node.y, nodeRadius)) {
                         pathClear = false;
                         break;
                     }
                 }
-                
+
                 if (pathClear) {
                     return `M${source.x},${source.y} L${target.x},${target.y}`;
                 }
@@ -242,68 +235,66 @@ onMounted(() => {
                 const midY = (source.y + target.y) / 2;
                 const controlX = midX + perpX * attempt.offset;
                 const controlY = midY + perpY * attempt.offset;
-                
+
                 for (let t = 0; t <= 1; t += 0.1) {
                     const curveX = (1 - t) * (1 - t) * source.x + 2 * (1 - t) * t * controlX + t * t * target.x;
                     const curveY = (1 - t) * (1 - t) * source.y + 2 * (1 - t) * t * controlY + t * t * target.y;
-                    
+
                     for (let node of nodes) {
                         if (node.id === source.id || node.id === target.id) continue;
-                        
+
                         const distToNode = Math.sqrt((curveX - node.x) ** 2 + (curveY - node.y) ** 2);
                         if (distToNode < nodeRadius) {
                             pathClear = false;
                             break;
                         }
                     }
-                    
+
                     if (!pathClear) break;
                 }
-                
+
                 if (pathClear) {
                     return `M${source.x},${source.y} Q${controlX},${controlY} ${target.x},${target.y}`;
                 }
             }
         }
-        
+
         const midX = (source.x + target.x) / 2;
         const midY = (source.y + target.y) / 2;
         const fallbackControlX = midX + perpX * distance * 0.6;
         const fallbackControlY = midY + perpY * distance * 0.6;
-        
+
         return `M${source.x},${source.y} Q${fallbackControlX},${fallbackControlY} ${target.x},${target.y}`;
     }
 
     node.call(drag);
     simulation.on('tick', () => {
-        link.attr('d', d => {
+        link.attr('d', (d) => {
             return findOptimalPath(d.source, d.target, nodes, 20);
         });
-        
+
         svg.selectAll('.node-label')
-        .attr('x', function(d) {
-            if (d.x > centerX) {
-                return 16;
-            }
-            return -16;
-        })
-        .attr('text-anchor', function(d) {
+            .attr('x', function (d) {
+                if (d.x > centerX) {
+                    return 16;
+                }
+                return -16;
+            })
+            .attr('text-anchor', function (d) {
+                if (d.x > centerX) {
+                    return 'start';
+                }
 
-            if (d.x > centerX) {
-                return 'start';
-            }
+                return 'end';
+            });
 
-            return 'end';
-        });
-
-    node.attr('transform', d => `translate(${d.x},${d.y})`);
+        node.attr('transform', (d) => `translate(${d.x},${d.y})`);
     });
 });
 </script>
 
 <style scoped>
 @import '../../css/app.css';
-
 
 :deep(.link) {
     stroke-opacity: 0.6;

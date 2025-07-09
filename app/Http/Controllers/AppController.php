@@ -34,6 +34,12 @@ class AppController extends Controller
                                     'type' => 'url',
                                     'url' => '/integration/app/' . $app->app_id,
                                     'stream' => $stream->stream_name,
+                                ],
+                                [
+                                    'name' => 'Teknologi',
+                                    'type' => 'url',
+                                    'url' => '/technology/' . $app->app_id,
+                                    'stream' => $stream->stream_name,
                                 ]
                             ]
                         ];
@@ -101,6 +107,7 @@ class AppController extends Controller
 
         return Inertia::render('AppIntegration', [
             'integrationData' => $this->cleanTree($integrationData),
+            'parentAppId' => $app->app_id,
             'appName' => $app->app_name,
             'streamName' => $app->stream?->stream_name,
         ]);
@@ -154,6 +161,19 @@ class AppController extends Controller
                 'nodes' => $nodes,
                 'links' => $links,
             ],
+        ]);
+    }
+
+    public function technology($appId): Response
+    {
+        $app = App::with(['stream', 'technology'])
+            ->findOrFail($appId);
+
+        return Inertia::render('Technology', [
+            'app' => $app,
+            'technology' => $app->technology,
+            'appName' => $app->app_name,
+            'streamName' => $app->stream?->stream_name,
         ]);
     }
 }

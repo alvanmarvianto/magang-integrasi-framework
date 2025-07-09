@@ -15,5 +15,6 @@ Route::get('dashboard', function () {
 
 Route::get('/', [AppController::class, 'index']);
 Route::get('/integration/app/{app_id}', [AppController::class, 'integration'])->name('integration');
+Route::get('/technology/{app_id}', [AppController::class, 'technology'])->name('technology');
 Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegrations'])
     ->name('stream.integrations');

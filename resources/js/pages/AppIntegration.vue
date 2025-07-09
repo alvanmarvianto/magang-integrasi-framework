@@ -5,14 +5,21 @@
         <h1>Integrasi Aplikasi {{ appName }}</h1>
       </header>
       <div class="sidebar-content">
+        <div class="navigation">
+          <a @click.prevent="$inertia.visit('/')" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Halaman Utama</span>
+          </a>
+          <a @click.prevent="$inertia.visit(`/technology/${parentAppId}`)" class="nav-link">
+            <i class="fas fa-project-diagram"></i>
+            <span>Teknologi App</span>
+          </a>
+        </div>
         <div class="notes">
           <h3>About</h3>
           <p>
             Halaman ini menampilkan integrasi untuk aplikasi {{ appName }}.
           </p>
-          <a @click.prevent="router.visit('/')" class="sidebar-link" style="cursor: pointer;">
-            <i class="fas fa-arrow-left"></i> Kembali ke Halaman Utama
-          </a>
         </div>
         <div class="legend">
           <h3>Node Legend</h3>
@@ -92,6 +99,7 @@ const props = defineProps<{
   integrationData: any;
   appName: string;
   streamName: string;
+  parentAppId: number;
 }>();
 
 const loading = ref(true);
