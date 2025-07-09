@@ -10,7 +10,7 @@
           <p>
             Halaman ini menampilkan integrasi untuk aplikasi {{ appName }}.
           </p>
-          <a @click.prevent="router.visit('/index')" class="sidebar-link" style="cursor: pointer;">
+          <a @click.prevent="router.visit('/')" class="sidebar-link" style="cursor: pointer;">
             <i class="fas fa-arrow-left"></i> Kembali ke Halaman Utama
           </a>
         </div>

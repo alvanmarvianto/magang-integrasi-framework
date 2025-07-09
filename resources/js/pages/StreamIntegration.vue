@@ -11,7 +11,7 @@
                         Grafik ini menampilkan interkoneksi antar aplikasi
                         di dalam stream {{ streamName }}.
                     </p>
-                    <a @click.prevent="router.visit('/index')" class="sidebar-link" style="cursor: pointer;">
+                    <a @click.prevent="router.visit('/')" class="sidebar-link" style="cursor: pointer;">
                         <i class="fas fa-arrow-left"></i> Kembali ke Halaman Utama
                     </a>
                 </div>
