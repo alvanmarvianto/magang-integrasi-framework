@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\App;
+use App\Models\AppIntegration;
 use App\Models\Stream;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,11 +17,10 @@ class AppController extends Controller
     {
         // Eager load the apps for each stream to prevent N+1 query issues
         $streams = Stream::with('apps')
-                         ->orderBy('stream_id')   // optional: define your own ordering
-                         ->take(5)
-                         ->get();
+            ->orderBy('stream_id')
+            ->take(5)
+            ->get();
 
-        // Build the hierarchical data structure required by the D3 tree layout
         $formattedData = [
             'name' => 'Bank Indonesia - DLDS',
             'type' => 'folder',
@@ -35,8 +36,7 @@ class AppController extends Controller
                                 [
                                     'name' => 'Integrasi',
                                     'type' => 'url',
-                                    // This URL will be used later for showing integrations
-                                    'url' => str_replace(' ', '_', strtolower($app->app_name)),
+                                    'url' => $app->app_id,
                                     'stream' => $stream->stream_name,
                                 ]
                             ]
@@ -48,6 +48,63 @@ class AppController extends Controller
 
         return Inertia::render('Index', [
             'appData' => $formattedData,
+        ]);
+    }
+
+    function cleanTree(array $node): array
+    {
+        if (!isset($node['children']))
+            return $node;
+
+        $node['children'] = array_map(fn($child) => $this->cleanTree($child), $node['children']);
+        return $node;
+    }
+
+
+    public function integration($appId): Response
+    {
+        $app = App::with(['stream', 'integrations.stream', 'integratedBy.stream'])
+            ->findOrFail($appId);
+
+        $pivots = $app->integrations->pluck('pivot')
+            ->concat($app->integratedBy->pluck('pivot'))
+            ->filter();
+
+        if ($pivots->isNotEmpty()) {
+            AppIntegration::hydrate($pivots->all())->load('connectionType');
+        }
+        $integrations = $app->integrations->map(function ($integration) {
+            return [
+                'name' => $integration->app_name,
+                'lingkup' => $integration->stream?->stream_name,
+                'link' => $integration->pivot?->connectionType?->type_name,
+            ];
+        });
+
+        $integratedBy = $app->integratedBy->map(function ($integration) {
+            return [
+                'name' => $integration->app_name,
+                'lingkup' => $integration->stream?->stream_name,
+                'link' => $integration->pivot?->connectionType?->type_name,
+            ];
+        });
+
+        $allIntegrations = $integrations
+            ->merge($integratedBy)
+            ->filter(fn($i) => !is_null($i['link']))
+            ->unique('name')
+            ->values();
+
+        $integrationData = [
+            'name' => $app->app_name,
+            'lingkup' => $app->stream?->stream_name,
+            'children' => $allIntegrations->toArray(),
+        ];
+
+        return Inertia::render('Integration', [
+            'integrationData' => $this->cleanTree($integrationData),
+            'appName' => $app->app_name,
+            'streamName' => $app->stream?->stream_name,
         ]);
     }
 }

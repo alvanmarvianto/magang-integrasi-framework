@@ -14,6 +14,7 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/index', [AppController::class, 'index']);
+Route::get('/integration/{app_id}', [AppController::class, 'integration'])->name('integration');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

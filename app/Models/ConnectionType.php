@@ -15,7 +15,7 @@ class ConnectionType extends Model
      *
      * @var string
      */
-    protected $table = 'connection_types';
+    protected $table = 'connectiontypes';
 
     /**
      * The primary key associated with the table.

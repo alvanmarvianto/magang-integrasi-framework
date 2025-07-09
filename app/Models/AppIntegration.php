@@ -12,7 +12,7 @@ class AppIntegration extends Pivot
      *
      * @var string
      */
-    protected $table = 'app_integrations';
+    protected $table = 'appintegrations';
 
     /**
      * The primary key associated with the table.

@@ -9,14 +9,8 @@
           <div class="control-group">
             <label for="search">Search:</label>
             <div class="search-wrapper">
-              <input
-                v-model="searchTerm"
-                @input="onSearchInput"
-                type="text"
-                id="search"
-                list="search-suggestions"
-                placeholder="Filter nodes..."
-              />
+              <input v-model="searchTerm" @input="onSearchInput" type="text" id="search" list="search-suggestions"
+                placeholder="Filter nodes..." />
               <i class="fas fa-times-circle" id="clear-search" @click="clearSearch"></i>
             </div>
             <datalist id="search-suggestions">
@@ -127,7 +121,7 @@ function update(source: any) {
     .on('click', function (d) {
       if (d.url) {
         d3.event.stopPropagation()
-        window.location.href = `integrasi.html?url=${encodeURIComponent(d.url)}&stream=${encodeURIComponent(d.stream || '')}`
+        window.location.href = `/integration/${d.url}`
       }
     })
 
@@ -137,6 +131,12 @@ function update(source: any) {
     .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
     .text(d => d.name)
     .style('fill-opacity', 1e-6)
+    .on('click', function (d) {
+      if (d.url) {
+        d3.event.stopPropagation()
+        window.location.href = `/integration/${d.url}`
+      }
+    })
 
   nodeEnter.append('title').text(d => d.description || '')
 
