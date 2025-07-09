@@ -17,6 +17,3 @@ Route::get('/index', [AppController::class, 'index']);
 Route::get('/integration/app/{app_id}', [AppController::class, 'integration'])->name('integration');
 Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegrations'])
     ->name('stream.integrations');
-    
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';

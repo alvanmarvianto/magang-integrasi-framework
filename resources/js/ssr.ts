@@ -16,10 +16,7 @@ createServer((page) =>
         setup: ({ App, props, plugin }) =>
             createSSRApp({ render: () => h(App, props) })
                 .use(plugin)
-                .use(ZiggyVue, {
-                    ...page.props.ziggy,
-                    location: new URL(page.props.ziggy.location),
-                }),
+                .use(ZiggyVue, page.props.ziggy as any),
     }),
     { cluster: true },
 );
