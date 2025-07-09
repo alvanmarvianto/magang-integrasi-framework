@@ -10,9 +10,6 @@ use Inertia\Response;
 
 class AppController extends Controller
 {
-    /**
-     * Display the main application integration graph.
-     */
     public function index(): Response
     {
         $streams = Stream::with('apps')
@@ -35,7 +32,7 @@ class AppController extends Controller
                                 [
                                     'name' => 'Integrasi',
                                     'type' => 'url',
-                                    'url' => $app->app_id,
+                                    'url' => '/integration/' . $app->app_id,
                                     'stream' => $stream->stream_name,
                                 ]
                             ]
@@ -77,7 +74,7 @@ class AppController extends Controller
                 'name' => $integration->app_name,
                 'lingkup' => $integration->stream?->stream_name,
                 'link' => $integration->pivot?->connectionType?->type_name,
-                'id' => $integration->app_id,
+                'app_id' => $integration->app_id,
             ];
         });
 
@@ -86,7 +83,7 @@ class AppController extends Controller
                 'name' => $integration->app_name,
                 'lingkup' => $integration->stream?->stream_name,
                 'link' => $integration->pivot?->connectionType?->type_name,
-                'id' => $integration->app_id,
+                'app_id' => $integration->app_id,
             ];
         });
 
@@ -102,12 +99,53 @@ class AppController extends Controller
             'children' => $allIntegrations->toArray(),
         ];
 
-        dd($integrationData);
-
-        return Inertia::render('Integration', [
+        return Inertia::render('AppIntegration', [
             'integrationData' => $this->cleanTree($integrationData),
             'appName' => $app->app_name,
             'streamName' => $app->stream?->stream_name,
+        ]);
+    }
+
+    public function streamIntegrations(Stream $stream): Response
+    {
+        $homeApps = $stream->apps;
+        $homeAppIds = $homeApps->pluck('app_id');
+
+        $outgoingAppIds = AppIntegration::whereIn('source_app_id', $homeAppIds)->pluck('target_app_id');
+        $incomingAppIds = AppIntegration::whereIn('target_app_id', $homeAppIds)->pluck('source_app_id');
+
+        $allAppIds = $homeAppIds->concat($outgoingAppIds)->concat($incomingAppIds)->unique();
+
+        $allAppsInGraph = App::with('stream')->whereIn('app_id', $allAppIds)->get();
+
+        $nodes = $allAppsInGraph->map(fn($app) => [
+            'id' => $app->app_id,
+            'stream_id' => $app->stream?->stream_id,
+            'name' => $app->app_name,
+            'lingkup' => $app->stream?->stream_name ?? 'external',
+        ]);
+
+        $links = AppIntegration::with('connectionType')
+            ->where(function ($query) use ($homeAppIds) {
+                $query->whereIn('source_app_id', $homeAppIds)
+                    ->orWhereIn('target_app_id', $homeAppIds);
+            })
+            ->whereIn('source_app_id', $allAppIds)
+            ->whereIn('target_app_id', $allAppIds)
+            ->get()
+            ->map(fn($integration) => [
+                'source' => $integration->source_app_id,
+                'target' => $integration->target_app_id,
+                'type' => $integration->connectionType?->type_name,
+            ])
+            ->values();
+
+        return Inertia::render('StreamIntegration', [
+            'streamName' => $stream->stream_name,
+            'graphData' => [
+                'nodes' => $nodes,
+                'links' => $links,
+            ],
         ]);
     }
 }

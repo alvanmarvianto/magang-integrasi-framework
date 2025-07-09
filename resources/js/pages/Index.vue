@@ -120,7 +120,7 @@ function update(source: any) {
     .on('click', function (d) {
       if (d.url) {
         d3.event.stopPropagation()
-        window.location.href = `/integration/${d.url}`
+        window.location.href = `${d.url}`
       }
     })
 
@@ -133,7 +133,7 @@ function update(source: any) {
     .on('click', function (d) {
       if (d.url) {
         d3.event.stopPropagation()
-        window.location.href = `/integration/${d.url}`
+        window.location.href = `${d.url}`
       }
     })
 
