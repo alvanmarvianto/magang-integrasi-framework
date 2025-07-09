@@ -64,7 +64,8 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 import * as d3 from 'd3';
 
 const props = defineProps<{
@@ -153,7 +154,8 @@ onMounted(() => {
 
     node
         .append('text')
-        .attr('dy', -15)
+        .attr('class', 'node-label')
+        .attr('dy', '0.35em')
         .attr('text-anchor', 'middle')
         .text((d) => d.name);
 
@@ -176,26 +178,125 @@ onMounted(() => {
             d.fy = null;
         });
 
+    function lineIntersectsCircle(x1, y1, x2, y2, cx, cy, r) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const fx = x1 - cx;
+        const fy = y1 - cy;
+        
+        const a = dx * dx + dy * dy;
+        const b = 2 * (fx * dx + fy * dy);
+        const c = (fx * fx + fy * fy) - r * r;
+        
+        const discriminant = b * b - 4 * a * c;
+        
+        if (discriminant < 0) return false;
+        
+        const discriminantSqrt = Math.sqrt(discriminant);
+        const t1 = (-b - discriminantSqrt) / (2 * a);
+        const t2 = (-b + discriminantSqrt) / (2 * a);
+        
+        return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1) || (t1 < 0 && t2 > 1);
+    }
+
+    function findOptimalPath(source, target, nodes, nodeRadius = 20) {
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 50) {
+            return `M${source.x},${source.y} L${target.x},${target.y}`;
+        }
+        
+        const perpX = -dy / distance;
+        const perpY = dx / distance;
+        
+        const attempts = [
+            { offset: 0, type: 'straight' },
+            { offset: distance * 0.15, type: 'curve' },
+            { offset: -distance * 0.15, type: 'curve' },
+            { offset: distance * 0.3, type: 'curve' },
+            { offset: -distance * 0.3, type: 'curve' },
+            { offset: distance * 0.5, type: 'curve' },
+            { offset: -distance * 0.5, type: 'curve' }
+        ];
+        
+        for (let attempt of attempts) {
+            let pathClear = true;
+            
+            if (attempt.type === 'straight') {
+                for (let node of nodes) {
+                    if (node.id === source.id || node.id === target.id) continue;
+                    
+                    if (lineIntersectsCircle(source.x, source.y, target.x, target.y, node.x, node.y, nodeRadius)) {
+                        pathClear = false;
+                        break;
+                    }
+                }
+                
+                if (pathClear) {
+                    return `M${source.x},${source.y} L${target.x},${target.y}`;
+                }
+            } else {
+                const midX = (source.x + target.x) / 2;
+                const midY = (source.y + target.y) / 2;
+                const controlX = midX + perpX * attempt.offset;
+                const controlY = midY + perpY * attempt.offset;
+                
+                for (let t = 0; t <= 1; t += 0.1) {
+                    const curveX = (1 - t) * (1 - t) * source.x + 2 * (1 - t) * t * controlX + t * t * target.x;
+                    const curveY = (1 - t) * (1 - t) * source.y + 2 * (1 - t) * t * controlY + t * t * target.y;
+                    
+                    for (let node of nodes) {
+                        if (node.id === source.id || node.id === target.id) continue;
+                        
+                        const distToNode = Math.sqrt((curveX - node.x) ** 2 + (curveY - node.y) ** 2);
+                        if (distToNode < nodeRadius) {
+                            pathClear = false;
+                            break;
+                        }
+                    }
+                    
+                    if (!pathClear) break;
+                }
+                
+                if (pathClear) {
+                    return `M${source.x},${source.y} Q${controlX},${controlY} ${target.x},${target.y}`;
+                }
+            }
+        }
+        
+        const midX = (source.x + target.x) / 2;
+        const midY = (source.y + target.y) / 2;
+        const fallbackControlX = midX + perpX * distance * 0.6;
+        const fallbackControlY = midY + perpY * distance * 0.6;
+        
+        return `M${source.x},${source.y} Q${fallbackControlX},${fallbackControlY} ${target.x},${target.y}`;
+    }
+
     node.call(drag);
     simulation.on('tick', () => {
         link.attr('d', d => {
-            if (d.linktotal === 1) {
-                return `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`;
+            return findOptimalPath(d.source, d.target, nodes, 20);
+        });
+        
+        svg.selectAll('.node-label')
+        .attr('x', function(d) {
+            if (d.x > centerX) {
+                return 16;
+            }
+            return -16;
+        })
+        .attr('text-anchor', function(d) {
+
+            if (d.x > centerX) {
+                return 'start';
             }
 
-            // For multiple links, calculate a curve
-            const dx = d.target.x - d.source.x;
-            const dy = d.target.y - d.source.y;
-            const dr = Math.sqrt(dx * dx + dy * dy);
-
-            const sweepFlag = d.linknum % 2 === 0 ? 1 : 0;
-
-            const arcFactor = 1.5 + (d.linknum / 2);
-
-            return `M${d.source.x},${d.source.y} A${dr * arcFactor},${dr * arcFactor} 0 0,${sweepFlag} ${d.target.x},${d.target.y}`;
+            return 'end';
         });
 
-        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
     });
 });
 </script>
@@ -217,6 +318,7 @@ onMounted(() => {
 }
 
 :deep(.node-border) {
+    stroke-opacity: 0.6;
     stroke-width: 3px;
 }
 </style>

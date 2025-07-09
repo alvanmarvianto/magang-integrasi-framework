@@ -14,8 +14,8 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/index', [AppController::class, 'index']);
-Route::get('/integration/{app_id}', [AppController::class, 'integration'])->name('integration');
-Route::get('/stream/{stream}/integrations', [AppController::class, 'streamIntegrations'])
+Route::get('/integration/app/{app_id}', [AppController::class, 'integration'])->name('integration');
+Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegrations'])
     ->name('stream.integrations');
     
 require __DIR__.'/settings.php';

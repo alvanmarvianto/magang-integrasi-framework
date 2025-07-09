@@ -32,7 +32,7 @@ class AppController extends Controller
                                 [
                                     'name' => 'Integrasi',
                                     'type' => 'url',
-                                    'url' => '/integration/' . $app->app_id,
+                                    'url' => '/integration/app/' . $app->app_id,
                                     'stream' => $stream->stream_name,
                                 ]
                             ]
@@ -106,8 +106,16 @@ class AppController extends Controller
         ]);
     }
 
-    public function streamIntegrations(Stream $stream): Response
+    public function streamIntegrations(string $streamName): Response
     {
+        // Only allow specific stream names
+        $allowedNames = ['ssk', 'moneter', 'mi', 'sp', 'market'];
+        if (!in_array(strtolower($streamName), $allowedNames)) {
+            abort(404, 'Stream not found');
+        }
+
+        $stream = Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->firstOrFail();
+
         $homeApps = $stream->apps;
         $homeAppIds = $homeApps->pluck('app_id');
 

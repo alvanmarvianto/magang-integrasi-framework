@@ -50,7 +50,7 @@ const searchTerm = ref('')
 let root: any = null
 const allNodes: any[] = []
 
-const uniqueNodeNames = computed(() => Array.from(new Set(allNodes.map(n => n.name))))
+const uniqueNodeNames = ref<string[]>([])
 
 const margin = [20, 120, 20, 140]
 let tree, diagonal, vis
@@ -193,12 +193,45 @@ function onSearchInput() {
   }
 }
 
-function search(term: string) {
-  const lower = term.toLowerCase()
-  const matched = allNodes.filter(
-    d => d.name?.toLowerCase().includes(lower) || d.description?.toLowerCase().includes(lower)
-  )
-  // TODO: implement highlight logic
+function search(searchTerm) {
+    var lowerCaseSearchTerm = searchTerm.toLowerCase();
+    
+    var matchedNodes = allNodes.filter(function(d) {
+        return d.name.toLowerCase().includes(lowerCaseSearchTerm) || 
+               (d.description && d.description.toLowerCase().includes(lowerCaseSearchTerm));
+    });
+
+    var nodesToExpand = new Set();
+    matchedNodes.forEach(function(d) {
+        var current = d.parent;
+        while(current) {
+            nodesToExpand.add(current);
+            current = current.parent;
+        }
+    });
+
+    nodesToExpand.forEach(function(d) {
+        if (d._children) {
+            toggle(d);
+        }
+    });
+    
+    update(root);
+
+    var nodesToHighlight = new Set(matchedNodes);
+    matchedNodes.forEach(function(d){
+        var current = d;
+        while(current){
+            nodesToHighlight.add(current);
+            current = current.parent;
+        }
+    });
+
+    vis.selectAll("g.node")
+        .style("display", d => nodesToHighlight.has(d) ? "block" : "none");
+        
+    vis.selectAll("path.link")
+        .style("display", d => (nodesToHighlight.has(d.source) && nodesToHighlight.has(d.target)) ? "block" : "none");
 }
 
 function clearSearch() {
@@ -218,6 +251,7 @@ onMounted(() => {
   root.x0 = 0
   root.y0 = 0
   processData(root, null)
+  uniqueNodeNames.value = Array.from(new Set(allNodes.map(n => n.name)))
   if (root.children) root.children.forEach(c => collapse(c))
   redraw()
   loading.value = false

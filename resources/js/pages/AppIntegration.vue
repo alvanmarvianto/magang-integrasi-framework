@@ -143,7 +143,7 @@ function update(source: NodeData) {
     .on('click', function (d) {
       if (d.id && d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter') {
         d3.event.stopPropagation()
-        window.location.href = `/integration/${d.app_id}`
+        window.location.href = `/integration/app/${d.app_id}`
       }
     })
 
