@@ -1,8 +1,14 @@
 <template>
   <div id="container">
     <aside id="sidebar">
+      <button id="sidebar-close" @click="closeSidebar">
+        <i class="fas fa-times"></i>
+      </button>
       <header>
-        <h1>Aplikasi BI</h1>
+        <h1>
+          <i class="fas fa-sitemap"></i>
+          Aplikasi BI
+        </h1>
       </header>
       <div class="sidebar-content">
         <div id="controls">
@@ -64,7 +70,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 declare const d3: any
 
@@ -118,20 +124,24 @@ function redraw() {
 
 function update(source: any) {
   const container = d3.select('#body').node()
-  const height = container.clientHeight
+  const containerWidth = container.clientWidth
+  const containerHeight = container.clientHeight
 
-  tree.size([height - margin[0] - margin[2], container.clientWidth - margin[3] - margin[1]])
+  tree.size([containerHeight - margin[0] - margin[2], containerWidth - margin[3] - margin[1]])
   const nodes = tree.nodes(root).reverse()
   const links = tree.links(nodes)
 
   let maxDepth = 0
   nodes.forEach(d => { if (d.depth > maxDepth) maxDepth = d.depth })
 
-  const requiredWidth = (maxDepth * 240) + margin[1] + margin[3] + 300
-  const newWidth = Math.max(container.clientWidth, requiredWidth)
-  d3.select('#body svg').attr('width', newWidth)
+  // Calculate available width for the tree
+  const availableWidth = containerWidth - margin[1] - margin[3]
+  const nodeSpacing = maxDepth > 0 ? Math.min(240, availableWidth / maxDepth) : 240
+  
+  // Constrain the SVG to container width
+  d3.select('#body svg').attr('width', containerWidth).attr('height', containerHeight)
 
-  nodes.forEach(d => d.y = d.depth * 240)
+  nodes.forEach(d => d.y = d.depth * nodeSpacing)
 
   const node = vis.selectAll('g.node').data(nodes, d => d.id || (d.id = ++i))
 
@@ -273,6 +283,29 @@ function toggleSidebar() {
   sidebar?.classList.toggle('visible')
 }
 
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar')
+  sidebar?.classList.remove('visible')
+}
+
+// Close sidebar when clicking outside on mobile
+function handleClickOutside(event: Event) {
+  const sidebar = document.getElementById('sidebar')
+  const menuToggle = document.getElementById('menu-toggle')
+  
+  if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+    sidebar.classList.remove('visible')
+  }
+}
+
+// Close sidebar on escape key
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    const sidebar = document.getElementById('sidebar')
+    sidebar?.classList.remove('visible')
+  }
+}
+
 onMounted(() => {
   root = props.appData
   root.x0 = 0
@@ -283,6 +316,16 @@ onMounted(() => {
   redraw()
   loading.value = false
   window.addEventListener('resize', redraw)
+  
+  // Add mobile sidebar event listeners
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscapeKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscapeKey)
+  window.removeEventListener('resize', redraw)
 })
 </script>
 

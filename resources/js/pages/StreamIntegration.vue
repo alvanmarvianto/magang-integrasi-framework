@@ -1,8 +1,14 @@
 <template>
     <div id="container">
         <aside id="sidebar">
+            <button id="sidebar-close" @click="closeSidebar">
+                <i class="fas fa-times"></i>
+            </button>
             <header>
-                <h1>Integrasi Stream {{ streamName }}</h1>
+                <h1>
+                    <i class="fas fa-stream"></i>
+                    Integrasi Stream {{ streamName }}
+                </h1>
             </header>
             <div class="sidebar-content">
                 <div class="navigation">
@@ -55,7 +61,7 @@
 <script setup lang="ts">
 // @ts-nocheck
 import * as d3 from 'd3';
-import { onMounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 
 const props = defineProps<{
     streamName: string;
@@ -74,9 +80,36 @@ function toggleSidebar() {
     sidebar?.classList.toggle('visible');
 }
 
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar?.classList.remove('visible');
+}
+
+// Close sidebar when clicking outside on mobile
+function handleClickOutside(event: Event) {
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menu-toggle');
+    
+    if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+        sidebar.classList.remove('visible');
+    }
+}
+
+// Close sidebar on escape key
+function handleEscapeKey(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+        const sidebar = document.getElementById('sidebar');
+        sidebar?.classList.remove('visible');
+    }
+}
+
 onMounted(() => {
     const container = document.getElementById('body');
     if (!container || !props.graphData.nodes.length) return;
+
+    // Add mobile sidebar event listeners
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleEscapeKey);
 
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -290,6 +323,11 @@ onMounted(() => {
 
         node.attr('transform', (d) => `translate(${d.x},${d.y})`);
     });
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+    document.removeEventListener('keydown', handleEscapeKey);
 });
 </script>
 

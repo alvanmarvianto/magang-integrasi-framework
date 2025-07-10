@@ -1,0 +1,23 @@
+/* D3 Graph Styles */
+.node {
+  cursor: pointer;
+  transition: opacity 0.4s ease;
+}
+
+.node circle {
+  stroke-width: 1.5px;
+  transition: stroke 0.5s ease, fill 0.3s ease;
+}
+
+.node text {
+  font: 12px sans-serif;
+  fill: #1c1c1e;
+  transition: fill 0.5s ease;
+}
+
+.link {
+  fill: none;
+  stroke: #8da4be;
+  stroke-width: 1.5px;
+  transition: stroke 0.5s ease;
+}

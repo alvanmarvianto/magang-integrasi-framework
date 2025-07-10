@@ -1,0 +1,21 @@
+/* CSS Variables */
+:root {
+  --bg-color-light: #eef2f7;
+  --text-color-light: #1c1c1e;
+  --primary-color: #0a74da;
+  --primary-color-light: #52afff;
+
+  --direct: #000000;
+  --soa: #02a330;
+  --sftp: #002ac0;
+
+  --eksternal: #0a74da;
+  --internal: #00ff48;
+  --middleware: #00ddff;
+  --sp: #000000;
+  --mi: #ff0000;
+  --ssk-mon: #fbff00;
+  --ssk: #fbff00;
+  --moneter: #fbff00;
+  --market: #dd00ff;
+}

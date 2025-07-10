@@ -1,6 +1,28 @@
 <template>
   <div id="container">
     <aside id="sidebar">
+      <button id="sidebar-close" @click="closeSidebar">
+        <i class="fas fa-times"></i>
+      </button>
+      <header>
+        <h1>
+          <i class="fas fa-microchip"></i>
+          Spesifikasi Teknologi
+        </h1>
+      </header>="sidebar">
+      <button id="sidebar-close" @click="closeSidebar">
+        <i class="fas fa-times"></i>
+      </button>
+      <header>
+        <h1>
+          <i class="fas fa-microchip"></i>
+          Spesifikasi Teknologi
+        </h1>
+      </header>ate>
+    </aside>
+    </div>
+  <div id="container">
+    <aside id="sidebar">
       <header>
         <h1>Spesifikasi Teknologi</h1>
       </header>
@@ -155,6 +177,11 @@ const props = defineProps<{
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.toggle('visible')
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar')
+  sidebar?.classList.remove('visible')
 }
 
 // Close sidebar when clicking outside on mobile

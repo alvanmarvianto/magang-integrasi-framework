@@ -101,6 +101,7 @@ class AppController extends Controller
 
         $integrationData = [
             'name' => $app->app_name,
+            'app_id' => $app->app_id,
             'lingkup' => $app->stream?->stream_name,
             'children' => $allIntegrations->toArray(),
         ];

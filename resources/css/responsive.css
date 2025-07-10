@@ -1,0 +1,82 @@
+/* Responsive Design */
+@media (max-width: 768px) {
+  #container {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  #sidebar {
+    position: fixed;
+    left: -320px;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    z-index: 1000;
+    width: 300px;
+    margin: 0;
+    border-radius: 0;
+    transition: left 0.3s ease-in-out;
+  }
+
+  #sidebar.visible {
+    left: 0;
+  }
+
+  #sidebar-close {
+    display: block;
+  }
+
+  #main-content {
+    margin-left: 0;
+    width: 100%;
+    overflow: hidden; /* Ensure no overflow on mobile */
+  }
+
+  #menu-toggle {
+    display: flex !important;
+  }
+
+  #body {
+    overflow: hidden;
+  }
+
+  .stream-buttons {
+    gap: 6px;
+  }
+  
+  .stream-link {
+    padding: 10px 12px;
+    font-size: 0.9em;
+  }
+  
+  .stream-link i {
+    font-size: 1em;
+  }
+
+  .nav-link {
+    padding: 10px 12px;
+    font-size: 0.9em;
+  }
+
+  .nav-link i {
+    font-size: 1em;
+  }
+
+  /* Technology Page Responsive */
+  #technology-container {
+    padding: 1rem;
+  }
+
+  .tech-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .tech-cards-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .tech-card {
+    padding: 1rem;
+  }
+}

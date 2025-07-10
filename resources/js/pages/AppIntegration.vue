@@ -1,8 +1,14 @@
 <template>
   <div id="container">
     <aside id="sidebar">
+      <button id="sidebar-close" @click="closeSidebar">
+        <i class="fas fa-times"></i>
+      </button>
       <header>
-        <h1>Integrasi Aplikasi {{ appName }}</h1>
+        <h1>
+          <i class="fas fa-project-diagram"></i>
+          Integrasi Aplikasi {{ appName }}
+        </h1>
       </header>
       <div class="sidebar-content">
         <div class="navigation">
@@ -71,7 +77,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 declare const d3: any;
@@ -149,7 +155,10 @@ function update(source: NodeData) {
     .attr('r', 1e-6)
     .attr('class', (d: NodeData) => `node-border ${d.lingkup || 'external'}`)
     .on('click', function (d) {
-      if (d.id && d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter') {
+      if(d.depth === 0){
+        d3.event.stopPropagation()
+        window.location.href = `/technology/${d.app_id}`
+      } else if (d.id && d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter') {
         d3.event.stopPropagation()
         window.location.href = `/integration/app/${d.app_id}`
       }
@@ -274,12 +283,49 @@ function deepCloneWithoutParent(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar')
+  sidebar?.classList.toggle('visible')
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar')
+  sidebar?.classList.remove('visible')
+}
+
+// Close sidebar when clicking outside on mobile
+function handleClickOutside(event: Event) {
+  const sidebar = document.getElementById('sidebar')
+  const menuToggle = document.getElementById('menu-toggle')
+  
+  if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+    sidebar.classList.remove('visible')
+  }
+}
+
+// Close sidebar on escape key
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    const sidebar = document.getElementById('sidebar')
+    sidebar?.classList.remove('visible')
+  }
+}
+
 onMounted(() => {
   root = deepCloneWithoutParent(props.integrationData)
   root.x0 = 0
   root.y0 = 0
   if (root.children) root.children.forEach(collapse)
   redraw()
+  
+  // Add mobile sidebar event listeners
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscapeKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscapeKey)
 })
 </script>
 
