@@ -96,7 +96,7 @@ const allNodes: any[] = []
 const uniqueNodeNames = ref<string[]>([])
 
 const margin = [20, 120, 20, 140]
-let tree: any, diagonal: any, vis: any
+let tree: any, diagonal: any, vis: any, svg: any, zoom: any
 
 function collapse(d: any) {
   if (d.children) {
@@ -121,15 +121,27 @@ function redraw() {
   const width = container.clientWidth
   const height = container.clientHeight
 
-  tree = d3.tree<any>().size([height - margin[0] - margin[2], width - margin[3] - margin[1]])
+  tree = d3.tree<any>()
+    .nodeSize([40, 180])
   diagonal = d3.linkHorizontal<any, any>().x((d: any) => d.y).y((d: any) => d.x)
 
-  vis = d3.select('#body')
+  zoom = d3.zoom()
+    .scaleExtent([0.2, 2])
+    .on('zoom', (event: any) => {
+      vis.attr('transform', event.transform)
+    })
+
+  svg = d3.select('#body')
     .append('svg')
     .attr('width', width)
     .attr('height', height)
-    .append('g')
-    .attr('transform', `translate(${margin[3]},${margin[0]})`)
+    .style('touch-action', 'none')
+    .call(zoom)
+    .on('contextmenu', (event: any) => event.preventDefault())
+
+  vis = svg.append('g')
+
+  svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2))
 
   update(root)
 }
@@ -141,8 +153,6 @@ function update(source: any) {
   const containerWidth = container.clientWidth
   const containerHeight = container.clientHeight
 
-  tree.size([containerHeight - margin[0] - margin[2], containerWidth - margin[3] - margin[1]])
-  
   const treeData = tree(d3.hierarchy(root))
   const nodes = treeData.descendants()
   const links = treeData.links()
@@ -150,20 +160,29 @@ function update(source: any) {
   let maxDepth = 0
   nodes.forEach((d: any) => { if (d.depth > maxDepth) maxDepth = d.depth })
 
-  const availableWidth = containerWidth - margin[1] - margin[3]
-  const nodeSpacing = maxDepth > 0 ? Math.min(240, availableWidth / maxDepth) : 240
-  
-  d3.select('#body svg').attr('width', containerWidth).attr('height', containerHeight)
+  nodes.forEach((d: any) => {
+    d.y = d.depth * 180
+    d.x = d.x
+  })
 
-  nodes.forEach((d: any) => d.y = d.depth * nodeSpacing)
-
-  const sourceNode = source === root ? treeData : nodes.find((n: any) => n.data === source) || treeData
+  nodes.forEach((d: any) => {
+    if (d.x0 === undefined || d.y0 === undefined) {
+      d.x0 = d.x;
+      d.y0 = d.y;
+    }
+  })
 
   const node = vis.selectAll('g.node').data(nodes, (d: any) => d.data.id || (d.data.id = ++i))
 
   const nodeEnter = node.enter().append('g')
     .attr('class', 'node')
-    .attr('transform', (d: any) => `translate(${sourceNode.y0 || sourceNode.y || 0},${sourceNode.x0 || sourceNode.x || 0})`)
+    .attr('transform', (d: any) => {
+      if (d.parent) {
+        return `translate(${d.parent.y0},${d.parent.x0})`
+      } else {
+        return `translate(${d.y0},${d.x0})`
+      }
+    })
     .on('click', (event: any, d: any) => { toggle(d); update(d.data) })
 
   nodeEnter.append('circle')
@@ -199,27 +218,26 @@ function update(source: any) {
   nodeUpdate.select('text').style('fill-opacity', 1)
 
   const nodeExit = node.exit().transition().duration(duration)
-    .attr('transform', (d: any) => `translate(${sourceNode.y},${sourceNode.x})`).remove()
+    .attr('transform', (d: any) => `translate(${d.y0},${d.x0})`).remove()
   nodeExit.select('circle').attr('r', 1e-6)
   nodeExit.select('text').style('fill-opacity', 1e-6)
 
   const link = vis.selectAll('path.link').data(links, (d: any) => d.target.data.id)
 
-  link.enter().insert('path', 'g')
+  const linkEnter = link.enter().insert('path', 'g')
     .attr('class', 'link')
     .attr('d', (d: any) => {
-      const o = { x: sourceNode.x0 || sourceNode.x || 0, y: sourceNode.y0 || sourceNode.y || 0 }
-      return diagonal({ source: o, target: o })
+      const p = { x: d.source.x0, y: d.source.y0 }
+      return diagonal({ source: p, target: p })
     })
-    .transition().duration(duration)
-    .attr('d', diagonal)
 
-  link.transition().duration(duration).attr('d', diagonal)
+  link.merge(linkEnter).transition().duration(duration)
+    .attr('d', diagonal)
 
   link.exit().transition().duration(duration)
     .attr('d', (d: any) => {
-      const o = { x: sourceNode.x, y: sourceNode.y }
-      return diagonal({ source: o, target: o })
+      const p = { x: d.source.x, y: d.source.y }
+      return diagonal({ source: p, target: p })
     }).remove()
 
   nodes.forEach((d: any) => {
