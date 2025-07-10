@@ -25,7 +25,8 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i private_key ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} << 'EOF'
             cd ${{ secrets.DEPLOY_PATH }}
-            sudo git pull
+            sudo git stash
+            sudo git pull origin master
             sudo npm install && sudo npm run build
             sudo COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --ignore-platform-reqs
             php artisan migrate --force
