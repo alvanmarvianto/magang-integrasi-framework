@@ -5,8 +5,6 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
-
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
             (function() {

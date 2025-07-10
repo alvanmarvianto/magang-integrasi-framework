@@ -1,28 +1,6 @@
 <template>
   <div id="container">
     <aside id="sidebar">
-      <button id="sidebar-close" @click="closeSidebar">
-        <i class="fas fa-times"></i>
-      </button>
-      <header>
-        <h1>
-          <i class="fas fa-microchip"></i>
-          Spesifikasi Teknologi
-        </h1>
-      </header>="sidebar">
-      <button id="sidebar-close" @click="closeSidebar">
-        <i class="fas fa-times"></i>
-      </button>
-      <header>
-        <h1>
-          <i class="fas fa-microchip"></i>
-          Spesifikasi Teknologi
-        </h1>
-      </header>ate>
-    </aside>
-    </div>
-  <div id="container">
-    <aside id="sidebar">
       <header>
         <h1>Spesifikasi Teknologi</h1>
       </header>
@@ -46,7 +24,7 @@
     </aside>
 
     <main id="main-content">
-      <div id="menu-toggle" @click.stop="toggleSidebar">
+      <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
         <i class="fas fa-bars"></i>
       </div>
       <div id="technology-container">
@@ -174,42 +152,59 @@ const props = defineProps<{
   streamName: string;
 }>()
 
+const visible = ref(false)
+const isMobile = ref(false)
+
+function checkScreenSize() {
+  isMobile.value = window.innerWidth <= 768
+  if (!isMobile.value) {
+    visible.value = false
+    const sidebar = document.getElementById('sidebar')
+    sidebar?.classList.remove('visible')
+  }
+}
+
 function toggleSidebar() {
+  visible.value = !visible.value
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.toggle('visible')
 }
 
 function closeSidebar() {
+  visible.value = false
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.remove('visible')
 }
 
-// Close sidebar when clicking outside on mobile
 function handleClickOutside(event: Event) {
   const sidebar = document.getElementById('sidebar')
   const menuToggle = document.getElementById('menu-toggle')
   
   if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+    visible.value = false
     sidebar.classList.remove('visible')
   }
 }
 
-// Close sidebar on escape key
 function handleEscapeKey(event: KeyboardEvent) {
   if (event.key === 'Escape') {
+    visible.value = false
     const sidebar = document.getElementById('sidebar')
     sidebar?.classList.remove('visible')
   }
 }
 
 onMounted(() => {
+  checkScreenSize()
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscapeKey)
+  window.addEventListener('resize', checkScreenSize)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleEscapeKey)
+  window.removeEventListener('resize', checkScreenSize)
 })
 </script>
 

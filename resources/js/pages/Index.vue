@@ -59,7 +59,7 @@
     </aside>
 
     <main id="main-content">
-      <div id="menu-toggle" @click.stop="toggleSidebar">
+      <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
         <i class="fas fa-bars"></i>
       </div>
       <div id="loader" v-if="loading"></div>
@@ -69,10 +69,8 @@
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-
-declare const d3: any
+import * as d3 from 'd3'
 
 let i = 0
 const duration = 750
@@ -80,18 +78,30 @@ const duration = 750
 const props = defineProps<{ appData: any }>()
 const loading = ref(true)
 const searchTerm = ref('')
+const visible = ref(false)
+const isMobile = ref(false)
+
+function checkScreenSize() {
+  isMobile.value = window.innerWidth <= 768
+  if (!isMobile.value) {
+    visible.value = false
+    const sidebar = document.getElementById('sidebar')
+    sidebar?.classList.remove('visible')
+  }
+}
+
 let root: any = null
 const allNodes: any[] = []
 
 const uniqueNodeNames = ref<string[]>([])
 
 const margin = [20, 120, 20, 140]
-let tree, diagonal, vis
+let tree: any, diagonal: any, vis: any
 
 function collapse(d: any) {
   if (d.children) {
     d._children = d.children
-    d._children.forEach(c => collapse(c))
+    d._children.forEach((c: any) => collapse(c))
     d.children = null
   }
 }
@@ -105,12 +115,14 @@ function processData(node: any, parent: any) {
 
 function redraw() {
   d3.select('#body svg').remove()
-  const container = d3.select('#body').node()
+  const container = d3.select('#body').node() as HTMLElement
+  if (!container) return
+  
   const width = container.clientWidth
   const height = container.clientHeight
 
-  tree = d3.layout.tree().size([height - margin[0] - margin[2], width - margin[3] - margin[1]])
-  diagonal = d3.svg.diagonal().projection(d => [d.y, d.x])
+  tree = d3.tree<any>().size([height - margin[0] - margin[2], width - margin[3] - margin[1]])
+  diagonal = d3.linkHorizontal<any, any>().x((d: any) => d.y).y((d: any) => d.x)
 
   vis = d3.select('#body')
     .append('svg')
@@ -123,76 +135,80 @@ function redraw() {
 }
 
 function update(source: any) {
-  const container = d3.select('#body').node()
+  const container = d3.select('#body').node() as HTMLElement
+  if (!container) return
+  
   const containerWidth = container.clientWidth
   const containerHeight = container.clientHeight
 
   tree.size([containerHeight - margin[0] - margin[2], containerWidth - margin[3] - margin[1]])
-  const nodes = tree.nodes(root).reverse()
-  const links = tree.links(nodes)
+  
+  const treeData = tree(d3.hierarchy(root))
+  const nodes = treeData.descendants()
+  const links = treeData.links()
 
   let maxDepth = 0
-  nodes.forEach(d => { if (d.depth > maxDepth) maxDepth = d.depth })
+  nodes.forEach((d: any) => { if (d.depth > maxDepth) maxDepth = d.depth })
 
-  // Calculate available width for the tree
   const availableWidth = containerWidth - margin[1] - margin[3]
   const nodeSpacing = maxDepth > 0 ? Math.min(240, availableWidth / maxDepth) : 240
   
-  // Constrain the SVG to container width
   d3.select('#body svg').attr('width', containerWidth).attr('height', containerHeight)
 
-  nodes.forEach(d => d.y = d.depth * nodeSpacing)
+  nodes.forEach((d: any) => d.y = d.depth * nodeSpacing)
 
-  const node = vis.selectAll('g.node').data(nodes, d => d.id || (d.id = ++i))
+  const sourceNode = source === root ? treeData : nodes.find((n: any) => n.data === source) || treeData
+
+  const node = vis.selectAll('g.node').data(nodes, (d: any) => d.data.id || (d.data.id = ++i))
 
   const nodeEnter = node.enter().append('g')
     .attr('class', 'node')
-    .attr('transform', d => `translate(${source.y0 || 0},${source.x0 || 0})`)
-    .on('click', d => { toggle(d); update(d) })
+    .attr('transform', (d: any) => `translate(${sourceNode.y0 || sourceNode.y || 0},${sourceNode.x0 || sourceNode.x || 0})`)
+    .on('click', (event: any, d: any) => { toggle(d); update(d.data) })
 
   nodeEnter.append('circle')
     .attr('r', 1e-6)
-    .style('fill', d => d._children ? 'var(--primary-color)' : '#fff')
+    .style('fill', (d: any) => d.data._children ? 'var(--primary-color)' : '#fff')
     .style('stroke', 'var(--primary-color)')
-    .on('click', function (d) {
-      if (d.url) {
-        d3.event.stopPropagation()
-        window.location.href = `${d.url}`
+    .on('click', function (event: any, d: any) {
+      if (d.data.url) {
+        event.stopPropagation()
+        window.location.href = `${d.data.url}`
       }
     })
 
   nodeEnter.append('text')
-    .attr('x', d => d.children || d._children ? -10 : 10)
+    .attr('x', (d: any) => d.data.children || d.data._children ? -10 : 10)
     .attr('dy', '.35em')
-    .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-    .text(d => d.name)
+    .attr('text-anchor', (d: any) => d.data.children || d.data._children ? 'end' : 'start')
+    .text((d: any) => d.data.name)
     .style('fill-opacity', 1e-6)
-    .on('click', function (d) {
-      if (d.url) {
-        d3.event.stopPropagation()
-        window.location.href = `${d.url}`
+    .on('click', function (event: any, d: any) {
+      if (d.data.url) {
+        event.stopPropagation()
+        window.location.href = `${d.data.url}`
       }
     })
 
-  nodeEnter.append('title').text(d => d.description || '')
+  nodeEnter.append('title').text((d: any) => d.data.description || '')
 
-  const nodeUpdate = node.transition().duration(duration)
-    .attr('transform', d => `translate(${d.y},${d.x})`)
+  const nodeUpdate = node.merge(nodeEnter).transition().duration(duration)
+    .attr('transform', (d: any) => `translate(${d.y},${d.x})`)
 
   nodeUpdate.select('circle').attr('r', 6)
   nodeUpdate.select('text').style('fill-opacity', 1)
 
   const nodeExit = node.exit().transition().duration(duration)
-    .attr('transform', d => `translate(${source.y},${source.x})`).remove()
+    .attr('transform', (d: any) => `translate(${sourceNode.y},${sourceNode.x})`).remove()
   nodeExit.select('circle').attr('r', 1e-6)
   nodeExit.select('text').style('fill-opacity', 1e-6)
 
-  const link = vis.selectAll('path.link').data(links, d => d.target.id)
+  const link = vis.selectAll('path.link').data(links, (d: any) => d.target.data.id)
 
   link.enter().insert('path', 'g')
     .attr('class', 'link')
-    .attr('d', d => {
-      const o = { x: source.x0 || 0, y: source.y0 || 0 }
+    .attr('d', (d: any) => {
+      const o = { x: sourceNode.x0 || sourceNode.x || 0, y: sourceNode.y0 || sourceNode.y || 0 }
       return diagonal({ source: o, target: o })
     })
     .transition().duration(duration)
@@ -201,24 +217,24 @@ function update(source: any) {
   link.transition().duration(duration).attr('d', diagonal)
 
   link.exit().transition().duration(duration)
-    .attr('d', d => {
-      const o = { x: source.x, y: source.y }
+    .attr('d', (d: any) => {
+      const o = { x: sourceNode.x, y: sourceNode.y }
       return diagonal({ source: o, target: o })
     }).remove()
 
-  nodes.forEach(d => {
+  nodes.forEach((d: any) => {
     d.x0 = d.x
     d.y0 = d.y
   })
 }
 
 function toggle(d: any) {
-  if (d.children) {
-    d._children = d.children
-    d.children = null
+  if (d.data.children) {
+    d.data._children = d.data.children
+    d.data.children = null
   } else {
-    d.children = d._children
-    d._children = null
+    d.data.children = d.data._children
+    d.data._children = null
   }
 }
 
@@ -230,34 +246,35 @@ function onSearchInput() {
   }
 }
 
-function search(searchTerm) {
-    var lowerCaseSearchTerm = searchTerm.toLowerCase();
+function search(searchTerm: string) {
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
     
-    var matchedNodes = allNodes.filter(function(d) {
+    const matchedNodes = allNodes.filter(function(d: any) {
         return d.name.toLowerCase().includes(lowerCaseSearchTerm) || 
                (d.description && d.description.toLowerCase().includes(lowerCaseSearchTerm));
     });
 
-    var nodesToExpand = new Set();
-    matchedNodes.forEach(function(d) {
-        var current = d.parent;
+    const nodesToExpand = new Set();
+    matchedNodes.forEach(function(d: any) {
+        let current = d.parent;
         while(current) {
             nodesToExpand.add(current);
             current = current.parent;
         }
     });
 
-    nodesToExpand.forEach(function(d) {
-        if (d._children) {
-            toggle(d);
+    nodesToExpand.forEach(function(originalNode: any) {
+        if (originalNode._children) {
+            originalNode.children = originalNode._children;
+            originalNode._children = null;
         }
     });
     
     update(root);
 
-    var nodesToHighlight = new Set(matchedNodes);
-    matchedNodes.forEach(function(d){
-        var current = d;
+    const nodesToHighlight = new Set(matchedNodes);
+    matchedNodes.forEach(function(d: any){
+        let current = d;
         while(current){
             nodesToHighlight.add(current);
             current = current.parent;
@@ -265,59 +282,62 @@ function search(searchTerm) {
     });
 
     vis.selectAll("g.node")
-        .style("display", d => nodesToHighlight.has(d) ? "block" : "none");
+        .style("display", (d: any) => nodesToHighlight.has(d.data) ? "block" : "none");
         
     vis.selectAll("path.link")
-        .style("display", d => (nodesToHighlight.has(d.source) && nodesToHighlight.has(d.target)) ? "block" : "none");
+        .style("display", (d: any) => (nodesToHighlight.has(d.source.data) && nodesToHighlight.has(d.target.data)) ? "block" : "none");
 }
 
 function clearSearch() {
   vis.selectAll('g.node').style('display', 'block')
   vis.selectAll('path.link').style('display', 'block')
-  if (root.children) root.children.forEach(c => collapse(c))
+  if (root.children) root.children.forEach((c: any) => collapse(c))
   update(root)
 }
 
 function toggleSidebar() {
+  visible.value = !visible.value
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.toggle('visible')
 }
 
 function closeSidebar() {
+  visible.value = false
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.remove('visible')
 }
 
-// Close sidebar when clicking outside on mobile
 function handleClickOutside(event: Event) {
   const sidebar = document.getElementById('sidebar')
   const menuToggle = document.getElementById('menu-toggle')
   
   if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+    visible.value = false
     sidebar.classList.remove('visible')
   }
 }
 
-// Close sidebar on escape key
 function handleEscapeKey(event: KeyboardEvent) {
   if (event.key === 'Escape') {
+    visible.value = false
     const sidebar = document.getElementById('sidebar')
     sidebar?.classList.remove('visible')
   }
 }
 
 onMounted(() => {
+  checkScreenSize()
   root = props.appData
   root.x0 = 0
   root.y0 = 0
   processData(root, null)
-  uniqueNodeNames.value = Array.from(new Set(allNodes.map(n => n.name)))
-  if (root.children) root.children.forEach(c => collapse(c))
+  uniqueNodeNames.value = Array.from(new Set(allNodes.map((n: any) => n.name)))
+  if (root.children) root.children.forEach((c: any) => collapse(c))
   redraw()
   loading.value = false
   window.addEventListener('resize', redraw)
-  
-  // Add mobile sidebar event listeners
+  window.addEventListener('resize', checkScreenSize)
+
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscapeKey)
 })
@@ -326,6 +346,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleEscapeKey)
   window.removeEventListener('resize', redraw)
+  window.removeEventListener('resize', checkScreenSize)
 })
 </script>
 

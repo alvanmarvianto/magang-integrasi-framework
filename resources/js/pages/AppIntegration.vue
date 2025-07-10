@@ -65,7 +65,7 @@
     </aside>
 
     <main id="main-content">
-      <div id="menu-toggle" @click.stop="toggleSidebar">
+      <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
         <i class="fas fa-bars"></i>
       </div>
       <!-- <div id="loader" vif="loading"></div> -->
@@ -79,8 +79,7 @@
 // @ts-nocheck
 import { onMounted, onUnmounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-
-declare const d3: any;
+import * as d3 from 'd3';
 
 interface NodeData {
   id?: number;
@@ -109,10 +108,24 @@ const props = defineProps<{
 }>();
 
 const loading = ref(true);
+const visible = ref(false)
+const isMobile = ref(false)
+
+function checkScreenSize() {
+  isMobile.value = window.innerWidth <= 768
+  if (!isMobile.value) {
+    visible.value = false
+    const sidebar = document.getElementById('sidebar')
+    sidebar?.classList.remove('visible')
+  }
+}
+
 let root: NodeData | null = null;
 let i = 0;
 const duration = 750;
-let tree: any, vis: any;
+let simulation: any, vis: any;
+let nodes: any[] = [];
+let links: any[] = [];
 
 function goBack() {
   window.history.back();
@@ -126,126 +139,150 @@ function collapse(d: NodeData) {
   }
 }
 
+function flattenHierarchy(node: NodeData, parent: NodeData | null = null): { nodes: NodeData[], links: any[] } {
+  const allNodes: NodeData[] = [];
+  const allLinks: any[] = [];
+  
+  function traverse(current: NodeData, parentNode: NodeData | null) {
+    allNodes.push(current);
+    
+    if (parentNode) {
+      allLinks.push({
+        source: parentNode,
+        target: current,
+        type: current.link || 'default'
+      });
+    }
+    
+    if (current.children) {
+      current.children.forEach(child => {
+        traverse(child, current);
+      });
+    }
+  }
+  
+  traverse(node, parent);
+  return { nodes: allNodes, links: allLinks };
+}
+
 function update(source: NodeData) {
   const container = d3.select('#body').node();
   const width = container.clientWidth;
   const height = container.clientHeight;
-  const radius = Math.min(width, height) / 2 - 150;
+  const centerX = width / 2;
+  const centerY = height / 2;
 
-  tree.size([360, radius]);
-  const nodes = tree.nodes(root).reverse();
-  const links = tree.links(nodes);
+  const { nodes: flatNodes, links: flatLinks } = flattenHierarchy(root);
+  
+  nodes = flatNodes;
+  links = flatLinks;
 
-  nodes.forEach((d: NodeData) => (d.y = d.depth * 180));
+  if (simulation) {
+    simulation.stop();
+  }
 
-  const node = vis.selectAll('g.node').data(nodes, (d: NodeData) => d.id || (d.id = ++i));
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links)
+      .id((d: any) => d.id || d.name)
+      .distance(100)
+      .strength(0.5)
+    )
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('center', d3.forceCenter(centerX, centerY))
+    .force('collision', d3.forceCollide().radius(30));
 
-  const nodeEnter = node
-    .enter()
+  const node = vis.selectAll('g.node')
+    .data(nodes, (d: any) => d.id || d.name);
+
+  const nodeEnter = node.enter()
     .append('g')
     .attr('class', 'node')
-    .attr('transform', () => `rotate(${source.x0 - 90})translate(${source.y0})`)
-    .on('click', (d: NodeData) => {
-      toggle(d);
-      update(d);
-    });
-
-  nodeEnter
-    .append('circle')
-    .attr('r', 1e-6)
-    .attr('class', (d: NodeData) => `node-border ${d.lingkup || 'external'}`)
-    .on('click', function (d) {
-      if(d.depth === 0){
-        d3.event.stopPropagation()
-        window.location.href = `/technology/${d.app_id}`
-      } else if (d.id && d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter') {
-        d3.event.stopPropagation()
-        window.location.href = `/integration/app/${d.app_id}`
+    .style('cursor', 'pointer')
+    .on('click', (event, d: any) => {
+      if (d.children) {
+        d._children = d.children;
+        d.children = undefined;
+      } else if (d._children) {
+        d.children = d._children;
+        d._children = undefined;
       }
-    })
+      update(source);
+    });
 
-  nodeEnter
-    .append('text')
-    .attr('x', 0)
-    .attr('dy', (d: NodeData) => {
-      if (d.depth === 0) return '-1.5em';
-      return d.x >= 90 && d.x < 270 ? '1.4em' : '-0.8em';
-    })
-    .attr('text-anchor', 'middle')
-    .attr('transform', (d: NodeData) => `rotate(${-(d.x - 90)})`)
-    .text((d: NodeData) => d.name)
-    .style('fill-opacity', 1e-6)
-    .style('font-weight', (d: NodeData) => (d.depth === 0 ? 'bold' : 'normal'))
-    .style('font-size', (d: NodeData) => (d.depth === 0 ? '16px' : '12px'));
-
-
-  const nodeUpdate = node
-    .transition()
-    .duration(duration)
-    .attr('transform', (d: NodeData) => `rotate(${d.x - 90})translate(${d.y})`);
-
-  nodeUpdate
-    .select('circle')
-    .attr('r', (d: NodeData) => (d.depth === 0 ? 8 : 6))
-    .attr('class', (d: NodeData) => `node-border ${d.lingkup || 'external'}`)
-    .style('fill', (d: NodeData) => {
-      if (d.depth === 0) return `var(--${d.lingkup || 'eksternal'})`;
+  nodeEnter.append('circle')
+    .attr('r', (d: any) => d.name === root.name ? 12 : 8)
+    .attr('class', (d: any) => `node-border ${d.lingkup || 'external'}`)
+    .style('fill', (d: any) => {
+      if (d.name === root.name) return `var(--${d.lingkup || 'external'})`;
       return '#fff';
+    })
+    .style('stroke-width', 2)
+    .on('click', function (event, d) {
+      if (d.name === root.name) {
+        event.stopPropagation();
+        window.location.href = `/technology/${d.app_id}`;
+      } else if (d.app_id && (d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter')) {
+        event.stopPropagation();
+        window.location.href = `/integration/app/${d.app_id}`;
+      }
     });
 
-  nodeUpdate
-    .select('text')
-    .style('fill-opacity', 1)
-    .attr('dy', (d: NodeData) => {
-      if (d.depth === 0) return '-1.5em';
-      return d.x >= 90 && d.x < 270 ? '1.4em' : '-0.8em';
-    })
-    .attr('transform', (d: NodeData) => `rotate(${-(d.x - 90)})`);
+  nodeEnter.append('text')
+    .attr('dy', (d: any) => d.name === root.name ? '-1.8em' : '-1.5em')
+    .attr('text-anchor', 'middle')
+    .style('font-size', (d: any) => d.name === root.name ? '14px' : '12px')
+    .style('font-weight', (d: any) => d.name === root.name ? 'bold' : 'normal')
+    .style('fill', '#333')
+    .text((d: any) => d.name);
 
+  nodeEnter.append('title')
+    .text((d: any) => d.description || d.name);
 
-  const nodeExit = node
-    .exit()
-    .transition()
-    .duration(duration)
-    .attr('transform', () => `rotate(${source.x - 90})translate(${source.y})`)
-    .remove();
+  node.exit().remove();
 
-  nodeExit.select('circle').attr('r', 1e-6);
-  nodeExit.select('text').style('fill-opacity', 1e-6);
+  const link = vis.selectAll('path.link')
+    .data(links, (d: any) => `${d.source.id || d.source.name}-${d.target.id || d.target.name}`);
 
-  const link = vis.selectAll('path.link').data(links, (d: any) => d.target.id);
-  const radialLink = d3.svg.line
-    .radial()
-    .interpolate("linear")
-    .angle((d: NodeData) => (d.x * Math.PI) / 180)
-    .radius((d: NodeData) => d.y);
-
-  link
-    .enter()
+  link.enter()
     .insert('path', 'g')
-    .attr('class', (d: any) => `link ${d.target.link || ''}`)
-    .attr('d', () => {
-      const o = { x: source.x0, y: source.y0, parent: { x: source.x0, y: source.y0 } };
-      return radialLink([o, o]);
+    .attr('class', (d: any) => `link ${d.type || 'default'}`)
+    .style('stroke', '#8da4be')
+    .style('stroke-width', 1.5)
+    .style('fill', 'none');
+
+  link.exit().remove();
+
+  const drag = d3.drag()
+    .on('start', function(event, d: any) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    })
+    .on('drag', function(event, d: any) {
+      d.fx = event.x;
+      d.fy = event.y;
+    })
+    .on('end', function(event, d: any) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
     });
 
+  vis.selectAll('g.node').call(drag);
 
-  link.transition().duration(duration).attr('d', (d: any) => radialLink([d.source, d.target]));
+  simulation.on('tick', () => {
+    vis.selectAll('path.link')
+      .attr('d', (d: any) => {
+        return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
+      });
 
-  link
-    .exit()
-    .transition()
-    .duration(duration)
-    .attr('d', () => {
-      const o = { x: source.x, y: source.y, parent: { x: source.x, y: source.y } };
-      return radialLink([o, o]);
-    })
-    .remove();
-
-  nodes.forEach((d: NodeData) => {
-    d.x0 = d.x;
-    d.y0 = d.y;
+    vis.selectAll('g.node')
+      .attr('transform', (d: any) => `translate(${d.x},${d.y})`);
   });
+
+  setTimeout(() => {
+    simulation.stop();
+  }, 3000);
 }
 
 function toggle(d: NodeData) {
@@ -263,20 +300,17 @@ function redraw() {
   const container = d3.select('#body').node();
   const width = container.clientWidth;
   const height = container.clientHeight;
-  const radius = Math.min(width, height) / 2 - 150;
-
-
-  tree = d3.layout.tree().size([360, radius]).separation((a, b) => (a.parent == b.parent ? 1 : 2) / 1 + a.depth);
 
   vis = d3
     .select('#body')
     .append('svg')
     .attr('width', width)
     .attr('height', height)
-    .append('g')
-    .attr('transform', `translate(${width / 2},${height / 2})`);
+    .append('g');
 
-  update(root);
+  if (root) {
+    update(root);
+  }
 }
 
 function deepCloneWithoutParent(obj) {
@@ -284,46 +318,77 @@ function deepCloneWithoutParent(obj) {
 }
 
 function toggleSidebar() {
+  visible.value = !visible.value
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.toggle('visible')
 }
 
 function closeSidebar() {
+  visible.value = false
   const sidebar = document.getElementById('sidebar')
   sidebar?.classList.remove('visible')
 }
 
-// Close sidebar when clicking outside on mobile
 function handleClickOutside(event: Event) {
   const sidebar = document.getElementById('sidebar')
   const menuToggle = document.getElementById('menu-toggle')
   
   if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
+    visible.value = false
     sidebar.classList.remove('visible')
   }
 }
 
-// Close sidebar on escape key
 function handleEscapeKey(event: KeyboardEvent) {
   if (event.key === 'Escape') {
+    visible.value = false
     const sidebar = document.getElementById('sidebar')
     sidebar?.classList.remove('visible')
   }
 }
 
 onMounted(() => {
+  checkScreenSize()
   root = deepCloneWithoutParent(props.integrationData)
   root.x0 = 0
   root.y0 = 0
   if (root.children) root.children.forEach(collapse)
   redraw()
   
-  // Add mobile sidebar event listeners
+  let resizeHandler = () => {
+    redraw();
+  };
+
+  window.addEventListener('resize', resizeHandler);
+  window.addEventListener('resize', checkScreenSize);
+
+  (window as any).__appIntegrationResizeHandler = resizeHandler;
+  
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscapeKey)
 })
 
 onUnmounted(() => {
+  if (simulation) {
+    simulation.stop();
+  }
+  
+  d3.select('#body svg').remove()
+  
+  const resizeHandler = (window as any).__appIntegrationResizeHandler;
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler);
+    delete (window as any).__appIntegrationResizeHandler;
+  }
+  
+  window.removeEventListener('resize', checkScreenSize);
+  
+  simulation = null;
+  vis = null;
+  nodes = [];
+  links = [];
+  root = null;
+  
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleEscapeKey)
 })
