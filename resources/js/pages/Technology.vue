@@ -15,11 +15,6 @@
             <span>Integrasi App</span>
           </a>
         </div>
-
-        <div class="notes">
-          <h3>Notes</h3>
-          <p>Halaman ini menampilkan teknologi yang digunakan oleh aplikasi {{ appName }}.</p>
-        </div>
       </div>
     </aside>
 
@@ -39,7 +34,6 @@
         </div>
 
         <div v-else class="tech-cards-container">
-          <!-- Vendor Card -->
           <div v-if="technology.vendor" class="tech-card">
             <h3><i class="fas fa-building"></i> VENDOR</h3>
             <div class="tech-items">
@@ -47,7 +41,6 @@
             </div>
           </div>
 
-          <!-- App Type Card -->
           <div v-if="technology.app_type" class="tech-card">
             <h3><i class="fas fa-cube"></i> APP TYPE</h3>
             <div class="tech-items">
@@ -55,7 +48,6 @@
             </div>
           </div>
 
-          <!-- Stratification Card -->
           <div v-if="technology.stratification" class="tech-card">
             <h3><i class="fas fa-layer-group"></i> STRATIFICATION</h3>
             <div class="tech-items">
@@ -63,7 +55,6 @@
             </div>
           </div>
 
-          <!-- OS Card -->
           <div v-if="technology.os" class="tech-card">
             <h3><i class="fas fa-desktop"></i> OPERATING SYSTEM</h3>
             <div class="tech-items">
@@ -71,7 +62,6 @@
             </div>
           </div>
 
-          <!-- Database Card -->
           <div v-if="technology.database" class="tech-card">
             <h3><i class="fas fa-database"></i> DATABASE</h3>
             <div class="tech-items">
@@ -79,7 +69,6 @@
             </div>
           </div>
 
-          <!-- Language Card -->
           <div v-if="technology.language" class="tech-card">
             <h3><i class="fas fa-code"></i> PROGRAMMING LANGUAGE</h3>
             <div class="tech-items">
@@ -87,7 +76,6 @@
             </div>
           </div>
 
-          <!-- DRC Card -->
           <div v-if="technology.drc" class="tech-card">
             <h3><i class="fas fa-shield-alt"></i> DRC</h3>
             <div class="tech-items">
@@ -95,7 +83,6 @@
             </div>
           </div>
 
-          <!-- Failover Card -->
           <div v-if="technology.failover" class="tech-card">
             <h3><i class="fas fa-sync-alt"></i> FAILOVER</h3>
             <div class="tech-items">
@@ -103,7 +90,6 @@
             </div>
           </div>
 
-          <!-- Third Party Card -->
           <div v-if="technology.third_party" class="tech-card">
             <h3><i class="fas fa-plug"></i> THIRD PARTY</h3>
             <div class="tech-items">
@@ -111,7 +97,6 @@
             </div>
           </div>
 
-          <!-- Middleware Card -->
           <div v-if="technology.middleware" class="tech-card">
             <h3><i class="fas fa-exchange-alt"></i> MIDDLEWARE</h3>
             <div class="tech-items">
@@ -119,7 +104,6 @@
             </div>
           </div>
 
-          <!-- Framework Card -->
           <div v-if="technology.framework" class="tech-card">
             <h3><i class="fas fa-tools"></i> FRAMEWORK</h3>
             <div class="tech-items">
@@ -127,7 +111,6 @@
             </div>
           </div>
 
-          <!-- Platform Card -->
           <div v-if="technology.platform" class="tech-card">
             <h3><i class="fas fa-cloud"></i> PLATFORM</h3>
             <div class="tech-items">

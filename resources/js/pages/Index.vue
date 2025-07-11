@@ -26,8 +26,16 @@
         </div>
         <div class="stream-links">
           <h3>Intergrasi dalam Stream</h3>
-            <p>Navigasi ke halaman integrasi stream tertentu:</p>
+          <p>Navigasi ke halaman integrasi stream tertentu:</p>
           <div class="stream-buttons">
+            <a href="/integration/stream/sp" class="stream-link">
+              <i class="fas fa-shield-alt"></i>
+              <span>SP Stream</span>
+            </a>
+            <a href="/integration/stream/mi" class="stream-link">
+              <i class="fas fa-chart-line"></i>
+              <span>MI Stream</span>
+            </a>
             <a href="/integration/stream/ssk" class="stream-link">
               <i class="fas fa-project-diagram"></i>
               <span>SSK Stream</span>
@@ -36,24 +44,11 @@
               <i class="fas fa-coins"></i>
               <span>Moneter Stream</span>
             </a>
-            <a href="/integration/stream/mi" class="stream-link">
-              <i class="fas fa-chart-line"></i>
-              <span>MI Stream</span>
-            </a>
-            <a href="/integration/stream/sp" class="stream-link">
-              <i class="fas fa-shield-alt"></i>
-              <span>SP Stream</span>
-            </a>
             <a href="/integration/stream/market" class="stream-link">
               <i class="fas fa-store"></i>
               <span>Market Stream</span>
             </a>
           </div>
-        </div>
-        
-        <div class="notes">
-          <h3>Notes</h3>
-          <p>Website ini berisi kumpulan aplikasi milik Bank Indonesia beserta integrasinya.</p>
         </div>
       </div>
     </aside>

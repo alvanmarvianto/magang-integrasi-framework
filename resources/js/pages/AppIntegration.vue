@@ -21,12 +21,6 @@
             <span>Halaman Teknologi</span>
           </a>
         </div>
-        <div class="notes">
-          <h3>About</h3>
-          <p>
-            Halaman ini menampilkan integrasi untuk aplikasi {{ appName }}.
-          </p>
-        </div>
         <div class="legend">
           <h3>Node Legend</h3>
           <ul>

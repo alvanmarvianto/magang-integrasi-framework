@@ -17,10 +17,6 @@
                         <span>Halaman Utama</span>
                     </a>
                 </div>
-                <div class="notes">
-                    <h3>About</h3>
-                    <p>Grafik ini menampilkan interkoneksi antar aplikasi di dalam stream {{ streamName }}.</p>
-                </div>
 
                 <div class="legend">
                     <h3>Node Legend</h3>
@@ -50,7 +46,8 @@
         </aside>
 
         <main id="main-content">
-            <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
+            <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
+                @click.stop="toggleSidebar">
                 <i class="fas fa-bars"></i>
             </div>
             <div id="body"></div>
