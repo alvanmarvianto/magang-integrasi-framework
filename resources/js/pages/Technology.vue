@@ -35,42 +35,42 @@
 
         <div v-else class="tech-cards-container">
           <div v-if="technology.vendor" class="tech-card">
-            <h3><i class="fas fa-building"></i> VENDOR</h3>
+            <h3><i class="fas fa-building"></i> Vendor</h3>
             <div class="tech-items">
               <span v-for="item in technology.vendor" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.app_type" class="tech-card">
-            <h3><i class="fas fa-cube"></i> APP TYPE</h3>
+            <h3><i class="fas fa-cube"></i> Jenis Aplikasi</h3>
             <div class="tech-items">
               <span class="tech-item">{{ technology.app_type }}</span>
             </div>
           </div>
 
           <div v-if="technology.stratification" class="tech-card">
-            <h3><i class="fas fa-layer-group"></i> STRATIFICATION</h3>
+            <h3><i class="fas fa-layer-group"></i> Stratifikasi</h3>
             <div class="tech-items">
               <span class="tech-item">{{ technology.stratification }}</span>
             </div>
           </div>
 
           <div v-if="technology.os" class="tech-card">
-            <h3><i class="fas fa-desktop"></i> OPERATING SYSTEM</h3>
+            <h3><i class="fas fa-desktop"></i> Operating System</h3>
             <div class="tech-items">
               <span v-for="item in technology.os" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.database" class="tech-card">
-            <h3><i class="fas fa-database"></i> DATABASE</h3>
+            <h3><i class="fas fa-database"></i> Database</h3>
             <div class="tech-items">
               <span v-for="item in technology.database" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.language" class="tech-card">
-            <h3><i class="fas fa-code"></i> PROGRAMMING LANGUAGE</h3>
+            <h3><i class="fas fa-code"></i> Programming Language</h3>
             <div class="tech-items">
               <span v-for="item in technology.language" :key="item" class="tech-item">{{ item }}</span>
             </div>
@@ -84,35 +84,35 @@
           </div>
 
           <div v-if="technology.failover" class="tech-card">
-            <h3><i class="fas fa-sync-alt"></i> FAILOVER</h3>
+            <h3><i class="fas fa-sync-alt"></i> Fail-Over</h3>
             <div class="tech-items">
               <span v-for="item in technology.failover" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.third_party" class="tech-card">
-            <h3><i class="fas fa-plug"></i> THIRD PARTY</h3>
+            <h3><i class="fas fa-plug"></i> Third Party</h3>
             <div class="tech-items">
               <span v-for="item in technology.third_party" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.middleware" class="tech-card">
-            <h3><i class="fas fa-exchange-alt"></i> MIDDLEWARE</h3>
+            <h3><i class="fas fa-exchange-alt"></i> Middleware</h3>
             <div class="tech-items">
               <span v-for="item in technology.middleware" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.framework" class="tech-card">
-            <h3><i class="fas fa-tools"></i> FRAMEWORK</h3>
+            <h3><i class="fas fa-tools"></i> Framework</h3>
             <div class="tech-items">
               <span v-for="item in technology.framework" :key="item" class="tech-item">{{ item }}</span>
             </div>
           </div>
 
           <div v-if="technology.platform" class="tech-card">
-            <h3><i class="fas fa-cloud"></i> PLATFORM</h3>
+            <h3><i class="fas fa-cloud"></i> Platform</h3>
             <div class="tech-items">
               <span v-for="item in technology.platform" :key="item" class="tech-item">{{ item }}</span>
             </div>

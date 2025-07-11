@@ -63,7 +63,7 @@ class AppController extends Controller
     }
 
 
-    public function integration($appId): Response
+    public function appIntegration($appId): Response
     {
         $app = App::with(['stream', 'integrations.stream', 'integratedBy.stream'])
             ->findOrFail($appId);
@@ -116,7 +116,6 @@ class AppController extends Controller
 
     public function streamIntegrations(string $streamName): Response
     {
-        // Only allow specific stream names
         $allowedNames = ['ssk', 'moneter', 'mi', 'sp', 'market'];
         if (!in_array(strtolower($streamName), $allowedNames)) {
             abort(404, 'Stream not found');

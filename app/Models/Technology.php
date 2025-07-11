@@ -233,6 +233,70 @@ class Technology extends Model
     }
 
     /**
+     * Mutator for app_type attribute - maps old values to new values
+     */
+    public function setAppTypeAttribute($value)
+    {
+        $map = [
+            'cots' => 'COTS',
+            'inhouse' => 'In-House',
+            'outsource' => 'Outsource',
+            'COTS' => 'COTS',
+            'In-House' => 'In-House',
+            'Outsource' => 'Outsource',
+        ];
+        $this->attributes['app_type'] = $map[$value] ?? $value;
+    }
+
+    /**
+     * Accessor for app_type attribute - returns mapped value
+     */
+    public function getAppTypeAttribute($value)
+    {
+        $map = [
+            'cots' => 'COTS',
+            'inhouse' => 'In-House',
+            'outsource' => 'Outsource',
+            'COTS' => 'COTS',
+            'In-House' => 'In-House',
+            'Outsource' => 'Outsource',
+        ];
+        return $map[$value] ?? $value;
+    }
+
+    /**
+     * Mutator for stratification attribute - maps old values to new values
+     */
+    public function setStratificationAttribute($value)
+    {
+        $map = [
+            'strategis' => 'Strategis',
+            'kritikal' => 'Kritikal',
+            'umum' => 'Umum',
+            'Strategis' => 'Strategis',
+            'Kritikal' => 'Kritikal',
+            'Umum' => 'Umum',
+        ];
+        $this->attributes['stratification'] = $map[$value] ?? $value;
+    }
+
+    /**
+     * Accessor for stratification attribute
+     */
+    public function getStratificationAttribute($value)
+    {
+        $map = [
+            'strategis' => 'Strategis',
+            'kritikal' => 'Kritikal',
+            'umum' => 'Umum',
+            'Strategis' => 'Strategis',
+            'Kritikal' => 'Kritikal',
+            'Umum' => 'Umum',
+        ];
+        return $map[$value] ?? $value;
+    }
+
+    /**
      * Get the app that owns the technology.
      */
     public function app(): BelongsTo
