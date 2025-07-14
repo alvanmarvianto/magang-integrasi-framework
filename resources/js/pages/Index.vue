@@ -50,6 +50,32 @@
             </a>
           </div>
         </div>
+        
+        <div class="stream-links">
+          <h3>Visualisasi Diagram</h3>
+          <div class="stream-buttons">
+            <a href="/vue-flow/stream/sp" class="stream-link">
+              <i class="fas fa-bezier-curve"></i>
+              <span>SP Stream</span>
+            </a>
+            <a href="/vue-flow/stream/mi" class="stream-link">
+              <i class="fas fa-bezier-curve"></i>
+              <span>MI Stream</span>
+            </a>
+            <a href="/vue-flow/stream/ssk" class="stream-link">
+              <i class="fas fa-bezier-curve"></i>
+              <span>SSK Stream</span>
+            </a>
+            <a href="/vue-flow/stream/moneter" class="stream-link">
+              <i class="fas fa-bezier-curve"></i>
+              <span>Moneter Stream</span>
+            </a>
+            <a href="/vue-flow/stream/market" class="stream-link">
+              <i class="fas fa-bezier-curve"></i>
+              <span>Market Stream</span>
+            </a>
+          </div>
+        </div>
       </div>
     </aside>
 

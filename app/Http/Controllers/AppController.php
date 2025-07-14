@@ -94,7 +94,7 @@ class AppController extends Controller
         });
 
         $allIntegrations = $integrations
-            ->merge($integratedBy)
+            ->concat($integratedBy)
             ->filter(fn($i) => !is_null($i['link']))
             ->unique('name')
             ->values();
@@ -175,6 +175,108 @@ class AppController extends Controller
             'technology' => $app->technology,
             'appName' => $app->app_name,
             'streamName' => $app->stream?->stream_name,
+        ]);
+    }
+
+    public function vueFlowStreamIntegrations(string $streamName): Response
+    {
+        $allowedNames = ['ssk', 'moneter', 'mi', 'sp', 'market'];
+        if (!in_array(strtolower($streamName), $allowedNames)) {
+            abort(404, 'Stream not found');
+        }
+
+        $stream = Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->firstOrFail();
+
+        // Get all apps in the current stream
+        $homeApps = $stream->apps;
+        $homeAppIds = $homeApps->pluck('app_id');
+
+        // Get connected apps (outgoing and incoming connections)
+        $outgoingAppIds = AppIntegration::whereIn('source_app_id', $homeAppIds)->pluck('target_app_id');
+        $incomingAppIds = AppIntegration::whereIn('target_app_id', $homeAppIds)->pluck('source_app_id');
+
+        // Combine all app IDs
+        $allAppIds = $homeAppIds->concat($outgoingAppIds)->concat($incomingAppIds)->unique();
+
+        // Get all apps and streams for the graph
+        $allAppsInGraph = App::with('stream')->whereIn('app_id', $allAppIds)->get();
+        $allStreams = Stream::whereIn('stream_id', $allAppsInGraph->pluck('stream_id')->filter()->unique())->get();
+
+        // Prepare nodes data
+        $nodes = $allAppsInGraph->map(function ($app) use ($streamName) {
+            $isHomeStream = strtolower($app->stream?->stream_name ?? '') === strtolower($streamName);
+            $lingkup = $app->stream?->stream_name ?? 'external';
+            
+            return [
+                'id' => (string) $app->app_id,
+                'type' => 'default',
+                'data' => [
+                    'label' => $app->app_name,
+                    'app_id' => $app->app_id,
+                    'stream_name' => $app->stream?->stream_name,
+                    'lingkup' => $lingkup,
+                    'is_home_stream' => $isHomeStream,
+                ],
+                'position' => ['x' => 0, 'y' => 0],
+                // NO parent-child relationship set here - will be handled in frontend
+                'parentNode' => null,
+                'extent' => null,
+            ];
+        });
+
+        // Add only ONE stream group node (the home stream) - as a DATA node, not group type
+        $homeStreamNode = [
+            'id' => $streamName,
+            'type' => 'streamParent', // Use custom stream parent type
+            'data' => [
+                'label' => strtoupper($streamName) . ' Stream',
+                'app_id' => -1,
+                'stream_name' => $streamName,
+                'lingkup' => $streamName,
+                'is_home_stream' => true,
+                'is_parent_node' => true,
+            ],
+            'position' => ['x' => 100, 'y' => 100],
+            'style' => [
+                'backgroundColor' => 'rgba(59, 130, 246, 0.3)',
+                'width' => '400px',
+                'height' => '300px',
+                'border' => '2px solid #3b82f6',
+                'borderRadius' => '8px',
+            ],
+        ];
+
+        // Combine nodes (home stream group + all app nodes)
+        $allNodes = collect([$homeStreamNode])->concat($nodes);
+
+        // Prepare edges data
+        $edges = AppIntegration::with('connectionType')
+            ->where(function ($query) use ($homeAppIds) {
+                $query->whereIn('source_app_id', $homeAppIds)
+                    ->orWhereIn('target_app_id', $homeAppIds);
+            })
+            ->whereIn('source_app_id', $allAppIds)
+            ->whereIn('target_app_id', $allAppIds)
+            ->get()
+            ->map(function ($integration) {
+                return [
+                    'id' => 'edge-' . $integration->source_app_id . '-' . $integration->target_app_id,
+                    'source' => (string) $integration->source_app_id,
+                    'target' => (string) $integration->target_app_id,
+                    'type' => 'default',
+                    'data' => [
+                        'label' => $integration->connectionType?->type_name ?? 'Connection',
+                        'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
+                    ],
+                ];
+            })
+            ->values();
+
+        return Inertia::render('VueFlowStreamIntegration', [
+            'streamName' => $stream->stream_name,
+            'nodes' => $allNodes,
+            'edges' => $edges,
+            'streams' => $allStreams->map(fn($s) => $s->stream_name),
         ]);
     }
 }

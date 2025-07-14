@@ -127,6 +127,23 @@
   font-size: 0.95em;
 }
 
+/* Vue Flow specific styling */
+.vue-flow-link {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.vue-flow-link:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+  border: 1px solid rgba(99, 102, 241, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+.vue-flow-link i {
+  color: #6366f1;
+}
+
 /* Navigation */
 .navigation {
   margin-bottom: 10px;

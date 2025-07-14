@@ -22,7 +22,7 @@
           </a>
         </div>
         <div class="legend">
-          <h3>Node Legend</h3>
+          <h3>Tipe Node</h3>
           <ul>
             <li><span class="legend-key circle sp"></span> Aplikasi SP</li>
             <li><span class="legend-key circle mi"></span> Aplikasi MI</li>
@@ -48,7 +48,7 @@
         </div>
 
         <div class="legend">
-          <h3>Link Legend</h3>
+          <h3>Tipe Koneksi</h3>
           <ul>
             <li><span class="legend-key line direct"></span> Direct</li>
             <li><span class="legend-key line soa"></span> SOA</li>
