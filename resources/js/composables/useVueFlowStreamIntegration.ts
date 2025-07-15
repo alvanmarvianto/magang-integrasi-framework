@@ -169,7 +169,7 @@ export function useVueFlowStreamIntegration() {
         
         const layoutedNode: AppNode = {
           id: node.id,
-          type: node.type,
+          type: 'custom', // Use custom node type with handles
           data: {
             ...node.data,
             label: node.data.label.replace(/\s+\w+$/, ''), // Remove any trailing stream name
@@ -221,7 +221,7 @@ export function useVueFlowStreamIntegration() {
         
         const layoutedNode: AppNode = {
           id: node.id,
-          type: node.type,
+          type: 'custom', // Use custom node type with handles
           data: {
             ...node.data,
             label: node.data.label.replace(/\s+\w+$/, ''), // Remove any trailing stream name
@@ -334,20 +334,12 @@ export function useVueFlowStreamIntegration() {
     });
   };
 
-  // Handle parent node drag to move children along
-  const onNodeDragStop = (event: any) => {
-    // Vue Flow handles parent-child dragging automatically
-    // This event is here for potential future enhancements
-    console.log('Node dragged:', event.node.id);
-  };
-
   return {
     nodes,
     edges,
     isLayouted,
     initializeLayout,
     onNodeClick,
-    onNodeDragStop,
     resetLayout,
     centerView,
   };

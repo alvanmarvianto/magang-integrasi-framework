@@ -40,8 +40,20 @@ export function useD3Tree(appData) {
     tree = d3.tree<any>().nodeSize([40, 180]);
     diagonal = d3.linkHorizontal<any, any>().x((d: any) => d.y).y((d: any) => d.x);
 
+    // Create zoom behavior with custom controls
     zoom = d3.zoom()
       .scaleExtent([0.2, 2])
+      .wheelDelta((event: any) => {
+        return -event.deltaY * (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002);
+      })
+      .filter((event: any) => {
+        // Allow zoom only with Ctrl + scroll or programmatic calls
+        if (event.type === 'wheel') {
+          return event.ctrlKey;
+        }
+        // Allow drag for panning
+        return event.type !== 'wheel';
+      })
       .on('zoom', (event: any) => {
         vis.attr('transform', event.transform);
       });
@@ -52,7 +64,27 @@ export function useD3Tree(appData) {
       .attr('height', height)
       .style('touch-action', 'none')
       .call(zoom)
-      .on('contextmenu', (event: any) => event.preventDefault());
+      .on('contextmenu', (event: any) => event.preventDefault())
+      .on('wheel', (event: any) => {
+        event.preventDefault();
+        
+        if (!event.ctrlKey) {
+          const currentTransform = d3.zoomTransform(svg.node());
+          
+          if (event.shiftKey) {
+            // Shift + scroll for horizontal movement
+            const deltaX = event.deltaY * 0.5; // Adjust scroll sensitivity
+            const newTransform = currentTransform.translate(-deltaX, 0);
+            svg.call(zoom.transform, newTransform);
+          } else {
+            // Regular scroll for vertical movement
+            const deltaY = event.deltaY * 0.5; // Adjust scroll sensitivity
+            const newTransform = currentTransform.translate(0, -deltaY);
+            svg.call(zoom.transform, newTransform);
+          }
+        }
+        // Ctrl + scroll is handled by zoom behavior automatically
+      });
 
     vis = svg.append('g');
 

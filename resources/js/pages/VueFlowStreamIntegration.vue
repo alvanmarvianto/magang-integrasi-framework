@@ -83,18 +83,14 @@
           :default-viewport="{ zoom: 1, x: 0, y: 0 }"
           class="vue-flow-container"
           @node-click="onNodeClick"
-          @node-drag-stop="onNodeDragStop"
         >
           <!-- Custom Node Types -->
           <template #node-streamParent="nodeProps">
             <StreamParentNode v-bind="nodeProps" />
           </template>
-          <!-- Background Pattern -->
-          <Background
-            pattern-color="#e5e7eb"
-            :size="20"
-            variant="dots"
-          />
+          <template #node-custom="nodeProps">
+            <CustomNode v-bind="nodeProps" />
+          </template>
 
           <!-- Controls -->
           <Controls
@@ -102,17 +98,6 @@
             :show-fit-view="true"
             :show-interactive="true"
             position="bottom-right"
-          />
-
-          <!-- Mini Map -->
-          <MiniMap
-            :pannable="true"
-            :zoomable="true"
-            node-color="#3b82f6"
-            node-stroke-color="#1e40af"
-            :node-stroke-width="2"
-            mask-color="rgb(240, 240, 240, 0.8)"
-            position="bottom-left"
           />
         </VueFlow>
 
@@ -134,10 +119,9 @@
 <script setup lang="ts">
 import { onMounted, computed, nextTick } from 'vue';
 import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
-import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
-import { MiniMap } from '@vue-flow/minimap';
 import StreamParentNode from '../components/StreamParentNode.vue';
+import CustomNode from '../components/CustomNode.vue';
 import { useSidebar } from '../composables/useSidebar';
 import { useVueFlowStreamIntegration } from '@/composables/useVueFlowStreamIntegration';
 import type { AppNode, AppEdge } from '@/composables/useVueFlowStreamIntegration';
@@ -146,7 +130,6 @@ import type { AppNode, AppEdge } from '@/composables/useVueFlowStreamIntegration
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
-import '@vue-flow/minimap/dist/style.css';
 
 // Props from Inertia
 interface Props {
@@ -168,7 +151,6 @@ const {
   isLayouted,
   initializeLayout,
   onNodeClick,
-  onNodeDragStop,
   resetLayout,
   centerView,
 } = useVueFlowStreamIntegration();
@@ -220,7 +202,6 @@ onMounted(async () => {
 .vue-flow-container {
   width: 100%;
   height: 100%;
-  background-color: #fafafa;
 }
 
 /* Control buttons in sidebar */
@@ -386,11 +367,23 @@ onMounted(async () => {
   background-color: #f3f4f6;
 }
 
-/* MiniMap Styling */
-:deep(.vue-flow__minimap) {
-  background-color: white;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+/* Custom Node Handle Styling */
+:deep(.vue-flow__handle) {
+  width: 10px;
+  height: 10px;
+  background: #555;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+:deep(.vue-flow__node:hover .vue-flow__handle) {
+  opacity: 1;
+}
+
+:deep(.vue-flow__handle:hover) {
+  background: #3b82f6;
+  transform: scale(1.2);
 }
 </style>
