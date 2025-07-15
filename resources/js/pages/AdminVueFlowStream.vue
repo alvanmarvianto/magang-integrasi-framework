@@ -70,10 +70,6 @@
         <template #node-stream="nodeProps">
           <StreamNest v-bind="nodeProps" :admin-mode="true" @resize="onStreamResize" />
         </template>
-        
-        <template #node-custom="nodeProps">
-          <AppNode v-bind="nodeProps" :admin-mode="true" />
-        </template>
 
         <!-- Controls -->
         <Controls :show-fit-view="true" :show-zoom="true" />
@@ -96,7 +92,6 @@ import { Controls } from '@vue-flow/controls'
 import { PanOnScrollMode } from '@vue-flow/core'
 import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
-import AppNode from '@/components/VueFlow/AppNode.vue'
 import type { Node, Edge } from '@vue-flow/core'
 
 // Props
@@ -202,7 +197,7 @@ function initializeLayout() {
       
       return {
         ...node,
-        type: node.data.is_parent_node ? 'stream' : 'custom', // Use 'custom' type like user page
+        type: node.data.is_parent_node ? 'stream' : 'default', // Use 'default' type for simple outer box only
         position: savedNode?.position || { x: 0, y: 0 },
         style: node.data.is_parent_node ? {
           ...savedNode?.style,
@@ -214,18 +209,14 @@ function initializeLayout() {
           ...savedNode?.style,
           cursor: 'grab',
           width: 120,
-          height: 40,
+          height: 60, // Increased height for multi-line text
           backgroundColor: nodeColors.background,
           border: `2px solid ${nodeColors.border}`,
           borderRadius: '6px',
         },
         draggable: true, // Enable dragging for all nodes in admin mode
         selectable: true,
-        // Apply parent-child constraints for home stream nodes - NO BOUNDARIES
-        ...(node.data.is_home_stream && !node.data.is_parent_node && {
-          parentNode: savedNode?.parentNode || props.streamName,
-          extent: undefined // Remove all boundaries to allow free movement
-        }),
+        // No parent-child constraints - all app nodes are independent
         ...(node.data.is_parent_node && savedNode?.dimensions && {
           style: {
             ...savedNode.style,
@@ -247,7 +238,7 @@ function initializeLayout() {
       const nodeColors = getNodeColor(node.data.lingkup || '')
       return {
         ...node,
-        type: node.data.is_parent_node ? 'stream' : 'custom', // Use 'custom' type like user page
+        type: node.data.is_parent_node ? 'stream' : 'default', // Use 'default' type for simple outer box only
         position: { x: 0, y: 0 },
         style: node.data.is_parent_node ? {
           cursor: 'grab',
@@ -257,30 +248,26 @@ function initializeLayout() {
         } : {
           cursor: 'grab',
           width: 120,
-          height: 40,
+          height: 60, // Increased height for multi-line text
           backgroundColor: nodeColors.background,
           border: `2px solid ${nodeColors.border}`,
           borderRadius: '6px',
         },
         draggable: true, // Enable dragging for all nodes in admin mode
         selectable: true,
-        // Apply parent-child constraints for home stream nodes - NO BOUNDARIES
-        ...(node.data.is_home_stream && !node.data.is_parent_node && {
-          parentNode: props.streamName,
-          extent: undefined // Remove all boundaries to allow free movement
-        })
+        // No parent-child constraints - all app nodes are independent
       }
     })
     
     applyAutomaticLayoutWithConstraints()
   }
   
-  // Initialize edges with duplicate removal and user page styling
+  // Initialize edges with duplicate removal and smoothstep styling
   edges.value = removeDuplicateEdges(props.edges).map(edge => {
     const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct')
     return {
       ...edge,
-      type: 'default', // Use default edges like user page
+      type: 'smoothstep', // Use smoothstep edges for admin page
       style: {
         stroke: edgeColor,
         strokeWidth: 2,
@@ -313,10 +300,10 @@ function applyAutomaticLayoutWithConstraints() {
   const STREAM_MIN_WIDTH = 300
   const STREAM_MIN_HEIGHT = 200
   const NODE_WIDTH = 120
-  const NODE_HEIGHT = 40
+  const NODE_HEIGHT = 60 // Increased for multi-line text
   const NODES_PER_ROW = 2
   const NODE_SPACING_X = 150
-  const NODE_SPACING_Y = 80
+  const NODE_SPACING_Y = 100 // Increased spacing for taller nodes
 
   // Separate nodes by type - use the unique nodes we've already filtered
   const currentNodes = nodes.value
@@ -358,20 +345,21 @@ function applyAutomaticLayoutWithConstraints() {
     }
   }
 
-  // Position home stream nodes within the parent with constraints
+  // Position home stream nodes as independent nodes (no parent-child relationship)
   homeStreamNodes.forEach((node, nodeIndex) => {
     const updatedNode = nodes.value.find(n => n.id === node.id)
     if (updatedNode) {
       const row = Math.floor(nodeIndex / NODES_PER_ROW)
       const col = nodeIndex % NODES_PER_ROW
       
-      // Position relative to parent stream
-      const nodeX = STREAM_PADDING + col * NODE_SPACING_X
-      const nodeY = STREAM_PADDING + 40 + row * NODE_SPACING_Y // +40 for title
+      // Position near the stream but as independent nodes
+      const nodeX = 150 + STREAM_PADDING + col * NODE_SPACING_X
+      const nodeY = 150 + STREAM_PADDING + 40 + row * NODE_SPACING_Y // +40 for title
       
       updatedNode.position = { x: nodeX, y: nodeY }
-      updatedNode.parentNode = props.streamName
-      updatedNode.extent = undefined // Remove boundaries for free movement
+      // Remove parent-child relationship
+      updatedNode.parentNode = undefined
+      updatedNode.extent = undefined
     }
   })
 
@@ -846,17 +834,19 @@ function onStreamResize(event: { width: number, height: number }) {
   border-radius: 6px !important;
   padding: 8px 12px !important;
   min-width: 120px !important;
-  min-height: 40px !important;
+  min-height: 60px !important; /* Increased for multi-line text */
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   text-align: center !important;
-  font-size: 12px !important;
+  font-size: 11px !important; /* Slightly smaller font for more text */
   font-weight: 500 !important;
   color: #1c1c1e !important;
   cursor: pointer !important;
   transition: box-shadow 0.15s ease !important;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+  white-space: pre-line !important; /* Allow line breaks */
+  line-height: 1.2 !important; /* Better line spacing */
 }
 
 :deep(.vue-flow__node-default:hover) {

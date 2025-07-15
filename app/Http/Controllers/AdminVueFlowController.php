@@ -141,7 +141,7 @@ class AdminVueFlowController extends Controller
             $nodes[] = [
                 'id' => (string)$app->app_id,
                 'data' => [
-                    'label' => $app->app_name,
+                    'label' => $app->app_name . "\nID: " . $app->app_id . "\nStream: " . strtoupper($streamName),
                     'app_id' => $app->app_id,
                     'stream_name' => $streamName,
                     'lingkup' => $app->stream->stream_name ?? 'unknown',
@@ -164,7 +164,7 @@ class AdminVueFlowController extends Controller
             $nodes[] = [
                 'id' => (string)$app->app_id,
                 'data' => [
-                    'label' => $app->app_name,
+                    'label' => $app->app_name . "\nID: " . $app->app_id . "\nStream: " . strtoupper($app->stream->stream_name ?? 'external'),
                     'app_id' => $app->app_id,
                     'stream_name' => $app->stream->stream_name ?? 'external',
                     'lingkup' => $app->stream->stream_name ?? 'external',
