@@ -51,7 +51,7 @@
           </div>
         </div>
         
-        <div class="stream-links">
+        <!-- <div class="stream-links">
           <h3>Visualisasi Diagram</h3>
           <div class="stream-buttons">
             <a href="/vue-flow/stream/sp" class="stream-link">
@@ -75,11 +75,11 @@
               <span>Market Stream</span>
             </a>
           </div>
-        </div>
+        </div> -->
 
         <div class="stream-links">
           <h3>Admin - Layout Editor</h3>
-          <p>Edit layout positions and sizes for stream diagrams:</p>
+          <p> Diagram yang sudah jadi ada di stream ssk</p>
           <div class="stream-buttons">
             <a href="/admin/stream/sp" class="stream-link admin-link">
               <i class="fas fa-edit"></i>

@@ -37,12 +37,6 @@
       </div>
     </div>
 
-    <!-- Instructions -->
-    <div class="instructions">
-      <p><strong>Instructions:</strong> Drag nodes to reposition them. Resize the stream nest by dragging corners. Changes are automatically tracked and can be saved.</p>
-      <p><strong>Note:</strong> You can only modify positions and sizes. Nodes and connections are automatically generated from the database.</p>
-    </div>
-
     <!-- Vue Flow -->
     <div class="vue-flow-wrapper">
       <VueFlow
