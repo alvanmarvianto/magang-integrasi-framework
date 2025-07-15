@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\AppController;
+use App\Http\Controllers\AdminVueFlowController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -20,3 +21,9 @@ Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegra
     ->name('stream.integrations');
 Route::get('/vue-flow/stream/{stream}', [AppController::class, 'vueFlowStreamIntegrations'])
     ->name('vue-flow.stream.integrations');
+
+// Admin routes for stream layout management
+Route::prefix('admin')->group(function () {
+    Route::get('/stream/{stream}', [AdminVueFlowController::class, 'show'])->name('admin.stream.show');
+    Route::post('/stream/{stream}/layout', [AdminVueFlowController::class, 'saveLayout'])->name('admin.stream.layout');
+});

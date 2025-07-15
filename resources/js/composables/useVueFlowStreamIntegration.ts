@@ -140,7 +140,7 @@ export function useVueFlowStreamIntegration() {
       
       const updatedParentNode: AppNode = {
         id: parentNode.id,
-        type: 'streamParent', // Use custom stream parent type
+        type: 'stream', // Use 'stream' type to match admin page template
         data: parentNode.data,
         position: { x: groupX, y: groupY },
         style: {
@@ -150,8 +150,7 @@ export function useVueFlowStreamIntegration() {
           border: '2px solid #3b82f6',
           borderRadius: '8px',
         },
-        selectable: true,
-        draggable: true, // Make parent draggable
+        selectable: true
       };
 
       layoutedNodes.push(updatedParentNode);
@@ -175,9 +174,9 @@ export function useVueFlowStreamIntegration() {
             label: node.data.label.replace(/\s+\w+$/, ''), // Remove any trailing stream name
           },
           position: { x: nodeX, y: nodeY },
-          // Set parent-child relationship HERE in the layout
+          // Set parent-child relationship with no boundaries for free movement
           parentNode: currentStreamName,
-          extent: 'parent',
+          extent: undefined, // Remove boundaries to allow free movement
           style: {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,

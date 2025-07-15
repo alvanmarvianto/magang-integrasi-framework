@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class StreamLayout extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'stream_name',
+        'nodes_layout',
+        'stream_config',
+    ];
+
+    protected $casts = [
+        'nodes_layout' => 'array',
+        'stream_config' => 'array',
+    ];
+
+    /**
+     * Get layout for a specific stream
+     */
+    public static function getLayout(string $streamName): ?array
+    {
+        $layout = self::where('stream_name', $streamName)->first();
+        return $layout ? [
+            'nodes_layout' => $layout->nodes_layout,
+            'stream_config' => $layout->stream_config,
+        ] : null;
+    }
+
+    /**
+     * Save layout for a specific stream
+     */
+    public static function saveLayout(string $streamName, array $nodesLayout, array $streamConfig): void
+    {
+        self::updateOrCreate(
+            ['stream_name' => $streamName],
+            [
+                'nodes_layout' => $nodesLayout,
+                'stream_config' => $streamConfig,
+            ]
+        );
+    }
+}

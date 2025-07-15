@@ -88,6 +88,9 @@
           <template #node-streamParent="nodeProps">
             <StreamParentNode v-bind="nodeProps" />
           </template>
+          <template #node-stream="nodeProps">
+            <StreamNest v-bind="nodeProps" :admin-mode="false" />
+          </template>
           <template #node-custom="nodeProps">
             <CustomNode v-bind="nodeProps" />
           </template>
@@ -121,6 +124,7 @@ import { onMounted, computed, nextTick } from 'vue';
 import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import StreamParentNode from '../components/StreamParentNode.vue';
+import StreamNest from '@/components/VueFlow/StreamNest.vue';
 import CustomNode from '../components/CustomNode.vue';
 import { useSidebar } from '../composables/useSidebar';
 import { useVueFlowStreamIntegration } from '@/composables/useVueFlowStreamIntegration';
@@ -171,6 +175,7 @@ const convertedNodes = computed((): AppNode[] => {
 const convertedEdges = computed((): AppEdge[] => {
   return props.edges.map(edge => ({
     ...edge,
+    type: 'smoothstep',
     data: {
       ...edge.data,
       label: edge.data.label || 'Connection',
@@ -313,6 +318,19 @@ onMounted(async () => {
 }
 
 :deep(.vue-flow__node-streamParent.dragging) {
+  transition: none !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Stream node styles - same as streamParent */
+:deep(.vue-flow__node-stream) {
+  cursor: move !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+:deep(.vue-flow__node-stream.dragging) {
   transition: none !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }
