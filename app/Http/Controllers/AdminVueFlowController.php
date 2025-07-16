@@ -202,7 +202,7 @@ class AdminVueFlowController extends Controller
         }
         $nodes = $uniqueNodes;
         
-        // Get all edges
+        // Get all edges - only show connections involving at least one home stream app
         $allAppIds = collect($nodes)->pluck('data.app_id')->filter(fn($id) => $id > 0)->toArray();
         
         $integrations = AppIntegration::whereIn('source_app_id', $allAppIds)
@@ -212,15 +212,21 @@ class AdminVueFlowController extends Controller
 
         $edges = [];
         foreach ($integrations as $integration) {
-            $edges[] = [
-                'id' => $integration->source_app_id . '-' . $integration->target_app_id,
-                'source' => (string)$integration->source_app_id,
-                'target' => (string)$integration->target_app_id,
-                'data' => [
-                    'label' => $integration->connectionType->type_name ?? 'Unknown',
-                    'connection_type' => strtolower($integration->connectionType->type_name ?? 'direct'),
-                ]
-            ];
+            // Only include edges where at least one end is a home stream app
+            $sourceIsHome = in_array($integration->source_app_id, $homeAppIds);
+            $targetIsHome = in_array($integration->target_app_id, $homeAppIds);
+            
+            if ($sourceIsHome || $targetIsHome) {
+                $edges[] = [
+                    'id' => $integration->source_app_id . '-' . $integration->target_app_id,
+                    'source' => (string)$integration->source_app_id,
+                    'target' => (string)$integration->target_app_id,
+                    'data' => [
+                        'label' => $integration->connectionType->type_name ?? 'Unknown',
+                        'connection_type' => strtolower($integration->connectionType->type_name ?? 'direct'),
+                    ]
+                ];
+            }
         }
 
         return ['nodes' => $nodes, 'edges' => $edges];

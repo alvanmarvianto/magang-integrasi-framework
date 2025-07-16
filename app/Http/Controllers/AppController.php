@@ -256,28 +256,30 @@ class AppController extends Controller
         // Combine nodes (home stream group + all app nodes)
         $allNodes = collect([$homeStreamNode])->concat($nodes);
 
-        // Prepare edges data
-        $edges = AppIntegration::with('connectionType')
-            ->where(function ($query) use ($homeAppIds) {
-                $query->whereIn('source_app_id', $homeAppIds)
-                    ->orWhereIn('target_app_id', $homeAppIds);
-            })
+        // Prepare edges data - only show connections involving at least one home stream app
+        $allEdges = AppIntegration::with('connectionType')
             ->whereIn('source_app_id', $allAppIds)
             ->whereIn('target_app_id', $allAppIds)
-            ->get()
-            ->map(function ($integration) {
-                return [
-                    'id' => 'edge-' . $integration->source_app_id . '-' . $integration->target_app_id,
-                    'source' => (string) $integration->source_app_id,
-                    'target' => (string) $integration->target_app_id,
-                    'type' => 'smoothstep',
-                    'data' => [
-                        'label' => $integration->connectionType?->type_name ?? 'Connection',
-                        'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
-                    ],
-                ];
-            })
-            ->values();
+            ->get();
+
+        $edges = $allEdges->filter(function ($integration) use ($homeAppIds) {
+            // Only include edges where at least one end is a home stream app
+            $sourceIsHome = $homeAppIds->contains($integration->source_app_id);
+            $targetIsHome = $homeAppIds->contains($integration->target_app_id);
+            
+            return $sourceIsHome || $targetIsHome;
+        })->map(function ($integration) {
+            return [
+                'id' => 'edge-' . $integration->source_app_id . '-' . $integration->target_app_id,
+                'source' => (string) $integration->source_app_id,
+                'target' => (string) $integration->target_app_id,
+                'type' => 'smoothstep',
+                'data' => [
+                    'label' => $integration->connectionType?->type_name ?? 'Connection',
+                    'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
+                ],
+            ];
+        })->values();
 
         return Inertia::render('VueFlowStreamIntegration', [
             'streamName' => $stream->stream_name,

@@ -72,13 +72,6 @@
     <div class="node-content">
       <div class="app-label">{{ nodeData.label }}</div>
     </div>
-
-    <!-- Admin mode drag indicator -->
-    <div v-if="adminMode" class="drag-indicator">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-      </svg>
-    </div>
   </div>
 </template>
 
@@ -214,19 +207,6 @@ const nodeStyle = computed(() => {
 .app-id {
   font-size: 10px;
   color: #9ca3af;
-}
-
-.drag-indicator {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  color: #6b7280;
-  opacity: 0.6;
-}
-
-.app-node.admin-mode:hover .drag-indicator {
-  opacity: 1;
-  color: #3b82f6;
 }
 
 /* Custom handle styles */

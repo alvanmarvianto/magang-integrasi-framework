@@ -16,13 +16,13 @@
         <!-- Layout changed indicator -->
         <div v-else-if="layoutChanged" class="status-indicator unsaved">
           <div class="indicator-dot"></div>
-          Unsaved changes
+          Belum tersimpan
         </div>
         
         <!-- Saved indicator -->
         <div v-else class="status-indicator saved">
           <div class="indicator-dot saved-dot"></div>
-          Saved
+          Tersimpan
         </div>
         
         <select v-model="selectedStream" @change="switchStream" class="stream-selector">
@@ -36,7 +36,7 @@
         <button @click="resetLayout" class="reset-btn">Reset Layout</button>
       </div>
     </div>
-    
+
     <!-- Vue Flow -->
     <div class="vue-flow-wrapper">
       <VueFlow
@@ -46,10 +46,8 @@
         :edges="edges"
         :class="{ 'vue-flow': true, 'admin-mode': true }"
         @node-drag-stop="onNodeDragStop"
-        @node-resize-end="onNodeResize"
         @nodes-change="onNodesChange"
         @edges-change="onEdgesChange"
-        @connect="onConnect"
         @edge-update="onEdgeUpdate"
         @edge-update-start="onEdgeUpdateStart"
         @edge-update-end="onEdgeUpdateEnd"
@@ -231,7 +229,7 @@ function initializeLayout() {
         },
         draggable: true, // Enable dragging for all nodes in admin mode
         selectable: true,
-        connectable: true, // Enable connections in admin mode
+        connectable: true, // Enable connection handles in admin mode
         // No parent-child constraints - all app nodes are independent
         ...(node.data.is_parent_node && savedNode?.dimensions && {
           style: {
@@ -271,7 +269,7 @@ function initializeLayout() {
         },
         draggable: true, // Enable dragging for all nodes in admin mode
         selectable: true,
-        connectable: true, // Enable connections in admin mode
+        connectable: true, // Enable connection handles in admin mode
         // No parent-child constraints - all app nodes are independent
       }
     })
@@ -485,17 +483,19 @@ function getEdgeColor(type: string): string {
 }
 
 function validateConnection(connection: any) {
-  // Allow all connections between nodes
-  // This ensures that sourceHandle and targetHandle are properly captured
-  console.log('Validating connection:', {
+  // Allow dragging interaction but prevent actual connection creation
+  // This enables the visual feedback while blocking new connections
+  console.log('Connection attempt blocked (visual dragging allowed):', {
     source: connection.source,
     target: connection.target,
     sourceHandle: connection.sourceHandle,
     targetHandle: connection.targetHandle
   })
   
-  // Always return true to allow the connection
-  return true
+  // Show user feedback about blocked connection
+  showStatus('Tidak bisa membuat koneksi. Anda hanya dapat memperbarui koneksi yang ada.', 'error')
+  
+  return false // Always block new connections while allowing the drag interaction
 }
 
 function onNodeDragStop(event: any) {
@@ -509,47 +509,6 @@ function onNodeDragStop(event: any) {
   
   markLayoutChanged()
   scheduleAutoSave() // Schedule debounced auto-save
-  showStatus('Node position updated', 'info')
-}
-
-function onConnect(connection: any) {
-  // Handle new connections between nodes
-  console.log('New connection created:', {
-    source: connection.source,
-    target: connection.target,
-    sourceHandle: connection.sourceHandle,
-    targetHandle: connection.targetHandle
-  })
-  
-  const newEdge = {
-    id: `${connection.source}-${connection.target}`,
-    source: connection.source,
-    target: connection.target,
-    sourceHandle: connection.sourceHandle,
-    targetHandle: connection.targetHandle,
-    type: 'smoothstep',
-    updatable: true, // Make new edges updatable
-    animated: false, // New edges start non-animated
-    style: {
-      stroke: '#6b7280',
-      strokeWidth: 2,
-    },
-    markerEnd: {
-      type: 'arrowclosed',
-      color: '#6b7280',
-    } as any,
-    data: {
-      label: 'New Connection',
-      connection_type: 'direct',
-    }
-  }
-  
-  // Add to edges
-  edges.value.push(newEdge)
-  
-  markLayoutChanged()
-  scheduleAutoSave()
-  showStatus('New connection created', 'success')
 }
 
 function onEdgeUpdate(params: any, newConnection?: any) {
@@ -571,12 +530,12 @@ function onEdgeUpdate(params: any, newConnection?: any) {
       connection = newConnection
     } else {
       console.error('onEdgeUpdate: Unexpected parameter structure', params)
-      showStatus('Failed to update connection - unexpected parameters', 'error')
+      showStatus('Gagal memperbarui koneksi - parameter tidak valid', 'error')
       return
     }
   } else {
     console.error('onEdgeUpdate: Invalid parameters', { params, newConnection })
-    showStatus('Failed to update connection - invalid parameters', 'error')
+    showStatus('Gagal memperbarui koneksi - parameter tidak valid', 'error')
     return
   }
   
@@ -599,23 +558,44 @@ function onEdgeUpdate(params: any, newConnection?: any) {
   // Guard against missing data
   if (!oldEdge || !connection) {
     console.error('onEdgeUpdate: oldEdge or connection is missing', { oldEdge, connection })
-    showStatus('Failed to update connection - missing data', 'error')
     return
   }
   
+  // Check if the connection is only changing handles on the same nodes
+  const sourceNodeChanged = connection.source !== oldEdge.source
+  const targetNodeChanged = connection.target !== oldEdge.target
+  
+  if (sourceNodeChanged || targetNodeChanged) {
+    console.log('Edge update blocked: Cannot connect to different nodes', {
+      oldSource: oldEdge.source,
+      newSource: connection.source,
+      oldTarget: oldEdge.target,
+      newTarget: connection.target
+    })
+    showStatus('Tidak bisa menghubungkan ke node yang berbeda.', 'error')
+    return
+  }
+  
+  console.log('Edge update allowed: Only handle positions changed', {
+    source: connection.source,
+    target: connection.target,
+    oldSourceHandle: oldEdge.sourceHandle,
+    newSourceHandle: connection.sourceHandle,
+    oldTargetHandle: oldEdge.targetHandle,
+    newTargetHandle: connection.targetHandle
+  })
+  
   const edgeIndex = edges.value.findIndex(e => e.id === oldEdge.id)
   if (edgeIndex !== -1) {
-    // Create new edge ID if source or target changed
-    const newEdgeId = connection.source !== oldEdge.source || connection.target !== oldEdge.target 
-      ? `${connection.source}-${connection.target}`
-      : oldEdge.id
+    // Since source and target nodes haven't changed, keep the same edge ID
+    const edgeId = oldEdge.id
 
-    // Preserve original edge properties but update connection details
+    // Preserve original edge properties but update handle information
     const updatedEdge = {
       ...edges.value[edgeIndex],
-      id: newEdgeId,
-      source: connection.source,
-      target: connection.target,
+      id: edgeId,
+      source: connection.source, // Same as oldEdge.source
+      target: connection.target, // Same as oldEdge.target
       sourceHandle: connection.sourceHandle || oldEdge.sourceHandle,
       targetHandle: connection.targetHandle || oldEdge.targetHandle,
     }
@@ -624,11 +604,6 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     const newEdges = [...edges.value]
     newEdges[edgeIndex] = updatedEdge
     edges.value = newEdges
-    
-    // Update selected edge ID if it changed
-    if (selectedEdgeId.value === oldEdge.id && newEdgeId !== oldEdge.id) {
-      selectedEdgeId.value = newEdgeId
-    }
     
     // Apply proper styling
     updateEdgeStyles()
@@ -645,21 +620,21 @@ function onEdgeUpdate(params: any, newConnection?: any) {
       }
     })
     
-    console.log('Edge successfully updated:', {
-      oldEdge: oldEdge.id,
-      newEdge: newEdgeId,
-      from: `${oldEdge.source}:${oldEdge.sourceHandle || 'default'}`,
-      to: `${connection.source}:${connection.sourceHandle || 'default'}`,
-      target: `${oldEdge.target}:${oldEdge.targetHandle || 'default'}`,
-      newTarget: `${connection.target}:${connection.targetHandle || 'default'}`
+    console.log('Edge handle positions updated successfully:', {
+      edgeId: edgeId,
+      sourceNode: connection.source,
+      targetNode: connection.target,
+      oldSourceHandle: oldEdge.sourceHandle || 'default',
+      newSourceHandle: connection.sourceHandle || 'default',
+      oldTargetHandle: oldEdge.targetHandle || 'default',
+      newTargetHandle: connection.targetHandle || 'default'
     })
     
     markLayoutChanged()
     scheduleAutoSave()
-    showStatus('Connection updated', 'success')
   } else {
     console.error('Edge not found for update:', oldEdge.id)
-    showStatus('Failed to update connection', 'error')
+    showStatus('Gagal memperbarui koneksi', 'error')
   }
 }
 
@@ -695,25 +670,19 @@ function onEdgeClick(event: any) {
   // Handle edge click to toggle animation and bold style
   const clickedEdgeId = event.edge?.id
   if (!clickedEdgeId) {
-    console.log('No edge ID found in click event')
     return
   }
   
-  console.log('Edge clicked:', clickedEdgeId)
   
   // Toggle selection: if already selected, deselect it
   if (selectedEdgeId.value === clickedEdgeId) {
     selectedEdgeId.value = null
-    console.log('Edge deselected')
   } else {
     selectedEdgeId.value = clickedEdgeId
-    console.log('Edge selected:', clickedEdgeId)
   }
   
   // Update the edge styles
   updateEdgeStyles()
-  
-  showStatus(selectedEdgeId.value ? 'Edge selected - animated style applied' : 'Edge deselected', 'info')
 }
 
 function updateEdgeStyles() {
@@ -752,21 +721,7 @@ function onPaneClick(event: any) {
     console.log('Pane clicked, deselecting edge:', selectedEdgeId.value)
     selectedEdgeId.value = null
     updateEdgeStyles()
-    showStatus('Edge deselected', 'info')
   }
-}
-
-function onNodeResize(event: any) {
-  const { node } = event
-  // Update the node in our reactive array
-  const nodeIndex = nodes.value.findIndex(n => n.id === node.id)
-  if (nodeIndex !== -1) {
-    nodes.value[nodeIndex] = { ...node }
-  }
-  
-  markLayoutChanged()
-  scheduleAutoSave() // Schedule debounced auto-save
-  showStatus('Node resized', 'info')
 }
 
 function onNodesChange(changes: any[]) {
@@ -845,7 +800,7 @@ function showStatus(message: string, type: 'success' | 'error' | 'info' = 'info'
 
 async function saveLayout() {
   if (!layoutChanged.value) {
-    showStatus('No changes to save', 'info')
+    showStatus('Tidak ada perubahan untuk disimpan', 'info')
     return
   }
 
@@ -903,16 +858,16 @@ async function saveLayout() {
       onSuccess: () => {
         layoutChanged.value = false
         autoSaveTimeout.value = null // Clear auto-save indicator
-        showStatus('Layout saved successfully!', 'success')
+        showStatus('Layout berhasil disimpan!', 'success')
       },
       onError: (errors) => {
         console.error('Save failed:', errors)
-        showStatus('Failed to save layout', 'error')
+        showStatus('Gagal menyimpan layout', 'error')
       }
     })
   } catch (error) {
     console.error('Save error:', error)
-    showStatus('Failed to save layout', 'error')
+    showStatus('Gagal menyimpan layout', 'error')
   } finally {
     saving.value = false
   }
@@ -993,7 +948,7 @@ async function autoSaveLayout() {
       onError: (errors) => {
         console.error('Auto-save failed:', errors)
         autoSaveTimeout.value = null // Clear auto-save indicator on error
-        showStatus('Auto-save failed', 'error')
+        showStatus('Auto-save gagal', 'error')
       }
     })
   } catch (error) {
@@ -1009,12 +964,12 @@ function resetLayout() {
   if (originalLayout.value) {
     // Reset to saved layout
     initializeLayout()
-    showStatus('Layout reset to saved state', 'info')
+    showStatus('Layout kembali ke semula', 'info')
   } else {
     // Reset to automatic layout with constraints
     applyAutomaticLayoutWithConstraints()
     fitView()
-    showStatus('Layout reset to default', 'info')
+    showStatus('Layout kembali ke default', 'info')
     markLayoutChanged() // Mark as changed so user can save the new layout
   }
 }
@@ -1024,7 +979,7 @@ function switchStream() {
     if (layoutChanged.value) {
       // Reset the selector to current stream and show warning
       selectedStream.value = props.streamName
-      showStatus('Please save your changes before switching streams', 'error')
+      showStatus('Simpan perubahan sebelum keluar dari halaman', 'error')
     } else {
       router.get(`/admin/stream/${selectedStream.value}`)
     }
@@ -1056,7 +1011,6 @@ function onStreamResize(event: { width: number, height: number }) {
     
     markLayoutChanged()
     scheduleAutoSave()
-    showStatus(`Stream resized to ${event.width}x${event.height}`, 'info')
   } else {
     console.warn('Stream node not found for resize')
   }
