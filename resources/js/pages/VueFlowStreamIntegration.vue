@@ -7,7 +7,7 @@
       <header>
         <h1>
           <i class="fas fa-bezier-curve"></i>
-          Vue Flow - {{ streamName.toUpperCase() }} Stream
+          Diagram - {{ streamName.toUpperCase() }} Stream
         </h1>
       </header>
       <div class="sidebar-content">
@@ -113,7 +113,7 @@
         >
           <div class="loading-content">
             <div class="loading-spinner"></div>
-            <p>Loading Vue Flow diagram...</p>
+            <p>Loading Diagram...</p>
           </div>
         </div>
       </div>
