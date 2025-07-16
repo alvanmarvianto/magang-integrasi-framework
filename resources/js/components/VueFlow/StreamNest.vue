@@ -1,13 +1,33 @@
 <template>
   <div 
     class="stream-nest" 
-    :class="{ 'admin-mode': adminMode }"
+    :class="{ 'admin-mode': adminMode, 'user-mode': !adminMode }"
     :style="nestStyle"
   >
-    <!-- Stream label -->
-    <div class="stream-label">
-      {{ nodeData.label }}
-    </div>
+    <!-- User mode: separate border and center areas -->
+    <template v-if="!adminMode">
+      <!-- Draggable border strips -->
+      <div class="drag-border-top" @mousedown="startManualDrag"></div>
+      <div class="drag-border-right" @mousedown="startManualDrag"></div>
+      <div class="drag-border-bottom" @mousedown="startManualDrag"></div>
+      <div class="drag-border-left" @mousedown="startManualDrag"></div>
+      <!-- Non-draggable center area -->
+      <div 
+        class="center-content"
+        data-nodrag="true"
+      >
+        <div class="stream-label">
+          {{ nodeData.label }}
+        </div>
+      </div>
+    </template>
+    
+    <!-- Admin mode: everything is draggable -->
+    <template v-else>
+      <div class="stream-label">
+        {{ nodeData.label }}
+      </div>
+    </template>
     
     <!-- Add resize handles for admin mode -->
     <div v-if="adminMode" class="resize-controls">
@@ -56,6 +76,11 @@ const startPos = ref({ x: 0, y: 0 })
 const startSize = ref({ width: 0, height: 0 })
 const currentSize = ref({ width: 0, height: 0 })
 
+// Manual drag state for border dragging
+const isDragging = ref(false)
+const dragStartPos = ref({ x: 0, y: 0 })
+const dragStartNodePos = ref({ x: 0, y: 0 })
+
 // Computed style - use the actual Vue Flow node dimensions
 const nestStyle = computed(() => {
   const currentStyle = props.style || {}
@@ -69,7 +94,7 @@ const nestStyle = computed(() => {
       borderRadius: '12px',
       background: 'rgba(59, 130, 246, 0.05)',
       position: 'relative' as const,
-      cursor: props.adminMode ? 'move' : 'default',
+      cursor: props.adminMode ? 'move' : 'drag',
       boxSizing: 'border-box' as const,
       // Apply any custom style from Vue Flow
       ...currentStyle
@@ -84,7 +109,7 @@ const nestStyle = computed(() => {
     borderRadius: '12px',
     background: 'rgba(59, 130, 246, 0.05)',
     position: 'relative' as const,
-    cursor: props.adminMode ? 'move' : 'default',
+    cursor: props.adminMode ? 'move' : 'drag',
     boxSizing: 'border-box' as const,
     // Apply any custom style from Vue Flow
     ...currentStyle
@@ -181,9 +206,55 @@ function stopResize() {
   document.body.style.userSelect = ''
 }
 
+// Manual drag functions for border dragging in user mode
+function startManualDrag(event: MouseEvent) {
+  if (props.adminMode) return // Only for user mode
+  
+  event.preventDefault()
+  event.stopPropagation()
+  
+  isDragging.value = true
+  dragStartPos.value = { x: event.clientX, y: event.clientY }
+  dragStartNodePos.value = { x: props.position?.x || 0, y: props.position?.y || 0 }
+  
+  document.addEventListener('mousemove', handleManualDrag)
+  document.addEventListener('mouseup', stopManualDrag)
+  document.body.style.userSelect = 'none'
+}
+
+function handleManualDrag(event: MouseEvent) {
+  if (!isDragging.value) return
+  
+  const deltaX = event.clientX - dragStartPos.value.x
+  const deltaY = event.clientY - dragStartPos.value.y
+  
+  const newPosition = {
+    x: dragStartNodePos.value.x + deltaX,
+    y: dragStartNodePos.value.y + deltaY
+  }
+  
+  // Update the node position using VueFlow
+  if (props.id) {
+    updateNode(props.id, {
+      position: newPosition
+    })
+  }
+}
+
+function stopManualDrag() {
+  if (!isDragging.value) return
+  
+  isDragging.value = false
+  document.removeEventListener('mousemove', handleManualDrag)
+  document.removeEventListener('mouseup', stopManualDrag)
+  document.body.style.userSelect = ''
+}
+
 onUnmounted(() => {
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
+  document.removeEventListener('mousemove', handleManualDrag)
+  document.removeEventListener('mouseup', stopManualDrag)
 })
 </script>
 
@@ -196,13 +267,80 @@ onUnmounted(() => {
   padding-top: 20px;
 }
 
+.stream-nest.user-mode {
+  cursor: grab;
+}
+
+/* User mode drag areas - specific border strips only */
+.drag-border-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  cursor: move;
+  z-index: 3;
+}
+
+.drag-border-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  cursor: move;
+  z-index: 3;
+}
+
+.drag-border-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  cursor: move;
+  z-index: 3;
+}
+
+.drag-border-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 40px;
+  cursor: move;
+  z-index: 3;
+}
+
+.center-content {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+  /* Make completely transparent to all pointer events */
+  pointer-events: none;
+  z-index: 2;
+  /* Prevent any selection or drag operations */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 .stream-label {
   font-size: 18px;
   font-weight: 600;
   color: #1e40af;
   text-align: center;
-  pointer-events: none;
   user-select: none;
+  pointer-events: none;
 }
 
 /* Resize controls */

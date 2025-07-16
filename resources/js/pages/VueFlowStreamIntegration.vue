@@ -226,7 +226,7 @@ function initializeLayout() {
         type: node.data.is_parent_node ? 'stream' : 'app',
         position: savedNode?.position || { x: 0, y: 0 },
         data: node.data,
-        draggable: true,
+        draggable: !node.data.is_parent_node, // Stream nodes are not draggable in user mode, only app nodes
         selectable: false,
         connectable: false,
         focusable: true,
@@ -275,7 +275,7 @@ function initializeLayout() {
         type: node.data.is_parent_node ? 'stream' : 'app',
         position: { x: 0, y: 0 },
         data: node.data,
-        draggable: true,
+        draggable: !node.data.is_parent_node, // Stream nodes are not draggable in user mode, only app nodes
         selectable: false,
         connectable: false,
         focusable: true,
@@ -382,6 +382,12 @@ function initializeLayout() {
 
 function onNodeClick(event: any) {
   console.log('Node clicked:', event.node)
+  
+  // Handle app node redirection in user mode
+  if (event.node.type === 'app' && event.node.id) {
+    // Redirect to app integration page
+    window.location.href = `/integration/app/${event.node.id}`
+  }
 }
 
 function onEdgeClick(event: any) {
