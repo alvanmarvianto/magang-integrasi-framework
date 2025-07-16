@@ -6,7 +6,7 @@
   >
     <!-- Stream label -->
     <div class="stream-label">
-      {{ data.label }}
+      {{ nodeData.label }}
     </div>
     
     <!-- Add resize handles for admin mode -->
@@ -39,6 +39,12 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   resize: [event: { width: number, height: number }]
 }>()
+
+// Ensure data exists and has required properties
+const nodeData = computed(() => ({
+  label: props.data?.label || 'Stream',
+  ...props.data
+}))
 
 // Get Vue Flow instance for direct node manipulation
 const { updateNode } = useVueFlow()

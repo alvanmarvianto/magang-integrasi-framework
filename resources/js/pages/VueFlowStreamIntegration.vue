@@ -39,18 +39,18 @@
         <div class="legend">
           <h3>Tipe Node</h3>
           <ul>
-            <li><span class="legend-key circle sp"></span> SP Apps</li>
-            <li><span class="legend-key circle mi"></span> MI Apps</li>
-            <li><span class="legend-key circle ssk-mon"></span> SSK & Moneter Apps</li>
-            <li><span class="legend-key circle market"></span> Market Apps</li>
-            <li><span class="legend-key circle internal"></span> Internal BI Apps</li>
-            <li><span class="legend-key circle external"></span> External BI Apps</li>
+            <li><span class="legend-key circle sp"></span>Aplikasi SP</li>
+            <li><span class="legend-key circle mi"></span>Aplikasi MI</li>
+            <li><span class="legend-key circle ssk-mon"></span>Aplikasi SSK & Moneter</li>
+            <li><span class="legend-key circle market"></span>Aplikasi Market</li>
+            <li><span class="legend-key circle internal"></span>Aplikasi Internal BI di luar DLDS</li>
+            <li><span class="legend-key circle external"></span>Aplikasi External BI</li>
             <li><span class="legend-key circle middleware"></span> Middleware</li>
           </ul>
         </div>
 
         <div class="legend">
-          <h3>Connection Types</h3>
+          <h3>Tipe Koneksi</h3>
           <ul>
             <li><span class="legend-key line direct"></span> Direct</li>
             <li><span class="legend-key line soa"></span> SOA</li>
@@ -69,9 +69,10 @@
       <!-- Vue Flow Container -->
       <div id="body" class="vue-flow-wrapper">
         <VueFlow
-          v-model:nodes="nodes"
-          v-model:edges="edges"
-          :fit-view-on-init="true"
+          ref="vueFlowRef"
+          :nodes="nodes"
+          :edges="edges"
+          :fit-view-on-init="false"
           :nodes-draggable="true"
           :pan-on-scroll="true"
           :pan-on-scroll-mode="PanOnScrollMode.Free"
@@ -83,16 +84,16 @@
           :default-viewport="{ zoom: 1, x: 0, y: 0 }"
           class="vue-flow-container"
           @node-click="onNodeClick"
+          @edge-click="onEdgeClick"
+          @pane-click="onPaneClick"
+          @node-drag-stop="onNodeDragStop"
         >
           <!-- Custom Node Types -->
-          <template #node-streamParent="nodeProps">
-            <StreamParentNode v-bind="nodeProps" />
-          </template>
           <template #node-stream="nodeProps">
             <StreamNest v-bind="nodeProps" :admin-mode="false" />
           </template>
-          <template #node-custom="nodeProps">
-            <CustomNode v-bind="nodeProps" />
+          <template #node-app="nodeProps">
+            <AppNode v-bind="nodeProps" :admin-mode="false" />
           </template>
 
           <!-- Controls -->
@@ -102,6 +103,7 @@
             :show-interactive="true"
             position="bottom-right"
           />
+          <Background :pattern="BackgroundVariant.Dots" />
         </VueFlow>
 
         <!-- Loading Overlay -->
@@ -120,15 +122,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted } from 'vue';
 import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
-import StreamParentNode from '../components/StreamParentNode.vue';
+import { Background, BackgroundVariant } from '@vue-flow/background';
 import StreamNest from '@/components/VueFlow/StreamNest.vue';
-import CustomNode from '../components/CustomNode.vue';
+import AppNode from '@/components/VueFlow/AppNode.vue';
 import { useSidebar } from '../composables/useSidebar';
-import { useVueFlowStreamIntegration } from '@/composables/useVueFlowStreamIntegration';
-import type { AppNode, AppEdge } from '@/composables/useVueFlowStreamIntegration';
+import { useVueFlowUserView } from '../composables/useVueFlowUserView';
+import type { Node, Edge } from '@vue-flow/core';
 
 // Add necessary CSS imports
 import '@vue-flow/core/dist/style.css';
@@ -138,270 +140,289 @@ import '@vue-flow/controls/dist/style.css';
 // Props from Inertia
 interface Props {
   streamName: string;
-  nodes: any[];
-  edges: any[];
+  nodes: Node[];
+  edges: Edge[];
+  savedLayout: {
+    nodes_layout?: Record<string, any>
+    edges_layout?: any[]
+    stream_config?: Record<string, any>
+  } | null
   streams: string[];
 }
 
 const props = defineProps<Props>();
 
-// Use sidebar composable
+// Use composables
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-
-// Use the composable
 const {
-  nodes,
-  edges,
-  isLayouted,
-  initializeLayout,
-  onNodeClick,
-  resetLayout,
-  centerView,
-} = useVueFlowStreamIntegration();
+  selectedEdgeId,
+  getNodeColor,
+  getEdgeColor,
+  removeDuplicateEdges,
+  applyAutomaticLayoutWithConstraints,
+  updateEdgeStyles,
+  handleEdgeClick,
+  handlePaneClick,
+} = useVueFlowUserView();
 
-// Convert props to proper types
-const convertedNodes = computed((): AppNode[] => {
-  return props.nodes.map(node => ({
-    ...node,
-    data: {
-      ...node.data,
-      app_id: node.data.app_id || -1,
-      stream_name: node.data.stream_name || '',
-      is_home_stream: node.data.is_home_stream || false,
-    }
-  }));
-});
+// Refs
+const vueFlowRef = ref()
+const isLayouted = ref(false)
 
-const convertedEdges = computed((): AppEdge[] => {
-  return props.edges.map(edge => ({
-    ...edge,
-    type: 'smoothstep',
-    data: {
-      ...edge.data,
-      label: edge.data.label || 'Connection',
-    }
-  }));
-});
+// Reactive data
+const nodes = ref<Node[]>([])
+const edges = ref<Edge[]>([])
 
-// Initialize layout on mount
-onMounted(async () => {
-  // Wait for the DOM to be fully rendered
-  await nextTick();
+// Initialize layout
+onMounted(() => {
+  initializeLayout()
+})
+
+function initializeLayout() {
+  // Check if we have saved layout data
+  const hasSavedLayout = props.savedLayout?.nodes_layout && Object.keys(props.savedLayout.nodes_layout).length > 0
   
-  // Minimal delay to ensure Vue Flow container is ready
-  setTimeout(async () => {
-    await initializeLayout(convertedNodes.value, convertedEdges.value, props.streamName);
-  }, 50);
-});
+  // Ensure no duplicate nodes and validate node data
+  const uniqueNodes = props.nodes.reduce((acc, node) => {
+    if (!acc.find(n => n.id === node.id)) {
+      // Ensure each node has required properties with complete structure
+      const validNode = {
+        id: node.id || `node-${acc.length}`,
+        type: node.type || 'default',
+        position: node.position || { x: 0, y: 0 },
+        data: {
+          label: node.data?.label || 'Unknown',
+          lingkup: node.data?.lingkup || '',
+          is_parent_node: node.data?.is_parent_node || false,
+          is_home_stream: node.data?.is_home_stream || false,
+          ...(node.data || {})
+        },
+        draggable: true,
+        selectable: false,
+        connectable: false,
+        focusable: true,
+        deletable: false,
+        zIndex: node.zIndex || 0,
+        ...(node.style && { style: node.style }),
+        ...(node.class && { class: node.class }),
+        ...(node.hidden !== undefined && { hidden: node.hidden }),
+        ...(node.selected !== undefined && { selected: node.selected })
+      }
+      acc.push(validNode)
+    } else {
+      console.warn('Duplicate node found and removed:', node.id)
+    }
+    return acc
+  }, [] as Node[])
+  
+  if (hasSavedLayout) {
+    // Initialize nodes with saved positions
+    nodes.value = uniqueNodes.map(node => {
+      const savedNode = props.savedLayout?.nodes_layout?.[node.id]
+      const nodeColors = getNodeColor(node.data?.lingkup || '')
+      
+      const newNode: Node = {
+        id: node.id,
+        type: node.data.is_parent_node ? 'stream' : 'app',
+        position: savedNode?.position || { x: 0, y: 0 },
+        data: node.data,
+        draggable: true,
+        selectable: false,
+        connectable: false,
+        focusable: true,
+        deletable: false
+      }
+      
+      if (node.data.is_parent_node) {
+        // Stream node
+        newNode.style = {
+          cursor: 'grab',
+          backgroundColor: 'rgba(59, 130, 246, 0.3)',
+          border: '2px solid #3b82f6',
+          borderRadius: '8px',
+          width: savedNode?.dimensions?.width ? `${savedNode.dimensions.width}px` : '300px',
+          height: savedNode?.dimensions?.height ? `${savedNode.dimensions.height}px` : '200px'
+        }
+        
+        if (savedNode?.dimensions) {
+          newNode.data = {
+            ...newNode.data,
+            dimensions: savedNode.dimensions
+          }
+        }
+      } else {
+        // App node
+        newNode.style = {
+          cursor: 'grab',
+          width: '120px',
+          height: '80px',
+          backgroundColor: nodeColors.background,
+          border: `2px solid ${nodeColors.border}`,
+          borderRadius: '8px'
+        }
+      }
+      
+      return newNode
+    })
+  } else {
+    // Auto-generate layout
+    nodes.value = uniqueNodes.map(node => {
+      const nodeColors = getNodeColor(node.data?.lingkup || '')
+      
+      const newNode: Node = {
+        id: node.id,
+        type: node.data.is_parent_node ? 'stream' : 'app',
+        position: { x: 0, y: 0 },
+        data: node.data,
+        draggable: true,
+        selectable: false,
+        connectable: false,
+        focusable: true,
+        deletable: false
+      }
+      
+      if (node.data.is_parent_node) {
+        // Stream node
+        newNode.style = {
+          cursor: 'grab',
+          backgroundColor: 'rgba(59, 130, 246, 0.3)',
+          border: '2px solid #3b82f6',
+          borderRadius: '8px',
+          width: '300px',
+          height: '200px'
+        }
+      } else {
+        // App node
+        newNode.style = {
+          cursor: 'grab',
+          width: '120px',
+          height: '80px',
+          backgroundColor: nodeColors.background,
+          border: `2px solid ${nodeColors.border}`,
+          borderRadius: '8px'
+        }
+      }
+      
+      return newNode
+    })
+    
+    applyAutomaticLayoutWithConstraints(nodes.value)
+  }
+  
+  // Initialize edges with saved handle information if available
+  let edgesData = props.edges
+  
+  if (props.savedLayout?.edges_layout && props.savedLayout.edges_layout.length > 0) {
+    console.log('Loading saved edges layout:', props.savedLayout.edges_layout)
+    edgesData = props.savedLayout.edges_layout
+  }
+  
+  edges.value = removeDuplicateEdges(edgesData).map(edge => {
+    const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct')
+    const isSelected = selectedEdgeId.value === edge.id
+    
+    // For saved layouts, preserve all edge properties including handles
+    if (props.savedLayout?.edges_layout && props.savedLayout.edges_layout.length > 0) {
+      return {
+        ...edge,
+        type: 'smoothstep',
+        updatable: false, // Disable edge updates in user view
+        animated: isSelected,
+        style: {
+          stroke: edgeColor,
+          strokeWidth: isSelected ? 4 : 2,
+          ...(edge.style || {})
+        },
+        markerEnd: {
+          type: 'arrowclosed',
+          color: edgeColor,
+        } as any,
+        // Preserve saved handle positions
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        data: {
+          connection_type: edge.data?.connection_type || 'direct',
+          ...edge.data
+        }
+      }
+    } else {
+      // For non-saved layouts, use default behavior
+      return {
+        ...edge,
+        type: 'smoothstep',
+        updatable: false, // Disable edge updates in user view
+        animated: isSelected,
+        style: {
+          stroke: edgeColor,
+          strokeWidth: isSelected ? 4 : 2,
+          ...(edge.style || {})
+        },
+        markerEnd: {
+          type: 'arrowclosed',
+          color: edgeColor,
+        } as any,
+        sourceHandle: edge.sourceHandle || undefined,
+        targetHandle: edge.targetHandle || undefined,
+        data: {
+          connection_type: edge.data?.connection_type || 'direct',
+          ...edge.data
+        }
+      }
+    }
+  })
+
+  // Apply layout and fit view
+  setTimeout(() => {
+    fitView()
+    isLayouted.value = true
+  }, 100)
+}
+
+function onNodeClick(event: any) {
+  console.log('Node clicked:', event.node)
+}
+
+function onEdgeClick(event: any) {
+  const clickedEdgeId = event.edge?.id
+  if (!clickedEdgeId) {
+    console.log('No edge ID found in click event')
+    return
+  }
+  
+  console.log('Edge clicked:', clickedEdgeId)
+  handleEdgeClick(clickedEdgeId)
+  edges.value = updateEdgeStyles(edges.value)
+}
+
+function onPaneClick(event: any) {
+  handlePaneClick()
+  edges.value = updateEdgeStyles(edges.value)
+}
+
+function onNodeDragStop(event: any) {
+  const { node } = event
+  const nodeIndex = nodes.value.findIndex(n => n.id === node.id)
+  if (nodeIndex !== -1) {
+    nodes.value[nodeIndex].position = node.position
+  }
+}
+
+function fitView() {
+  if (vueFlowRef.value) {
+    vueFlowRef.value.fitView({ padding: 50 })
+  }
+}
+
+function centerView() {
+  fitView()
+}
+
+function resetLayout() {
+  initializeLayout()
+}
 </script>
 
 <style scoped>
 @import '../../css/app.css';
-
-.vue-flow-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.vue-flow-container {
-  width: 100%;
-  height: 100%;
-}
-
-/* Control buttons in sidebar */
-.controls-section {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(221, 221, 221, 0.2);
-}
-
-.control-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  background-color: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: var(--text-color-light);
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.control-button:hover {
-  background-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-}
-
-.control-button i {
-  color: var(--primary-color);
-  width: 16px;
-}
-
-/* Legend styling for stream groups */
-.legend-key.rect {
-  display: inline-block;
-  width: 20px;
-  height: 12px;
-  border-radius: 3px;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-.legend-key.rect.home-stream {
-  background-color: rgba(59, 130, 246, 0.2);
-  border: 2px solid #3b82f6;
-}
-
-.legend-key.rect.other-stream {
-  background-color: rgba(156, 163, 175, 0.2);
-  border: 2px dashed #9ca3af;
-}
-
-.legend-key.rect.external-app {
-  background-color: rgba(245, 158, 11, 0.2);
-  border: 2px solid #f59e0b;
-}
-
-/* Loading overlay */
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.loading-content {
-  text-align: center;
-  color: var(--text-color);
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 15px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Custom Node Styles - White boxes with colored borders */
-:deep(.vue-flow__node) {
-  font-family: inherit;
-  will-change: transform;
-}
-
-:deep(.vue-flow__node.dragging) {
-  transition: none !important;
-}
-
-/* Stream parent node specific styles */
-:deep(.vue-flow__node-streamParent) {
-  cursor: move !important;
-}
-
-:deep(.vue-flow__node-streamParent.dragging) {
-  transition: none !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Stream node styles - same as streamParent */
-:deep(.vue-flow__node-stream) {
-  cursor: move !important;
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-}
-
-:deep(.vue-flow__node-stream.dragging) {
-  transition: none !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
-:deep(.vue-flow__node-default) {
-  background: white !important;
-  border-radius: 6px !important;
-  padding: 8px 12px !important;
-  min-width: 120px !important;
-  min-height: 40px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  color: #1c1c1e !important;
-  cursor: pointer !important;
-  transition: box-shadow 0.15s ease !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-:deep(.vue-flow__node-default:hover) {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* Edge Styles */
-:deep(.vue-flow__edge-path) {
-  stroke: #6b7280;
-  stroke-width: 2;
-}
-
-:deep(.vue-flow__edge:hover .vue-flow__edge-path) {
-  stroke: #3b82f6;
-  stroke-width: 3;
-}
-
-/* Controls Styling */
-:deep(.vue-flow__controls) {
-  background-color: white;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-
-:deep(.vue-flow__controls-button) {
-  border: none;
-  background-color: transparent;
-}
-
-:deep(.vue-flow__controls-button:hover) {
-  background-color: #f3f4f6;
-}
-
-/* Custom Node Handle Styling */
-:deep(.vue-flow__handle) {
-  width: 10px;
-  height: 10px;
-  background: #555;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-:deep(.vue-flow__node:hover .vue-flow__handle) {
-  opacity: 1;
-}
-
-:deep(.vue-flow__handle:hover) {
-  background: #3b82f6;
-  transform: scale(1.2);
-}
+@import '../../css/vue-flow-integration.css';
 </style>

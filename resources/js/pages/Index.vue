@@ -51,35 +51,34 @@
           </div>
         </div>
         
-        <!-- <div class="stream-links">
+        <div class="stream-links">
           <h3>Visualisasi Diagram</h3>
           <div class="stream-buttons">
-            <a href="/vue-flow/stream/sp" class="stream-link">
+            <a href="diagram/stream/sp" class="stream-link">
               <i class="fas fa-bezier-curve"></i>
               <span>SP Stream</span>
             </a>
-            <a href="/vue-flow/stream/mi" class="stream-link">
+            <a href="/diagram/stream/mi" class="stream-link">
               <i class="fas fa-bezier-curve"></i>
               <span>MI Stream</span>
             </a>
-            <a href="/vue-flow/stream/ssk" class="stream-link">
+            <a href="/diagram/stream/ssk" class="stream-link">
               <i class="fas fa-bezier-curve"></i>
               <span>SSK Stream</span>
             </a>
-            <a href="/vue-flow/stream/moneter" class="stream-link">
+            <a href="/diagram/stream/moneter" class="stream-link">
               <i class="fas fa-bezier-curve"></i>
               <span>Moneter Stream</span>
             </a>
-            <a href="/vue-flow/stream/market" class="stream-link">
+            <a href="/diagram/stream/market" class="stream-link">
               <i class="fas fa-bezier-curve"></i>
               <span>Market Stream</span>
             </a>
           </div>
-        </div> -->
+        </div>
 
         <div class="stream-links">
           <h3>Admin - Layout Editor</h3>
-          <p> Diagram yang sudah jadi ada di stream ssk</p>
           <div class="stream-buttons">
             <a href="/admin/stream/sp" class="stream-link admin-link">
               <i class="fas fa-edit"></i>

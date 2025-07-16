@@ -1,0 +1,190 @@
+/* VueFlow Integration Styles */
+
+.vue-flow-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.vue-flow-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Background styling */
+:deep(.vue-flow__background) {
+  background-color: transparent;
+}
+
+:deep(.vue-flow__background-pattern) {
+  fill: rgba(0, 0, 0, 0.05);
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-content {
+  text-align: center;
+  color: var(--text-color);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom Node Styles */
+:deep(.vue-flow__node) {
+  font-family: inherit;
+  will-change: transform;
+}
+
+:deep(.vue-flow__node.dragging) {
+  transition: none !important;
+}
+
+/* Stream node styles */
+:deep(.vue-flow__node-stream) {
+  cursor: move !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+:deep(.vue-flow__node-stream.dragging) {
+  transition: none !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+:deep(.vue-flow__node-app) {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Edge Styles */
+:deep(.vue-flow__edge-path) {
+  stroke: #6b7280;
+  stroke-width: 2;
+  transition: stroke-width 0.2s ease;
+}
+
+:deep(.vue-flow__edge:hover .vue-flow__edge-path) {
+  stroke: #3b82f6;
+  stroke-width: 3;
+}
+
+/* Animated edge styles */
+:deep(.vue-flow__edge.animated .vue-flow__edge-path) {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Selected edge styles */
+:deep(.vue-flow__edge.selected .vue-flow__edge-path) {
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+}
+
+/* Controls Styling */
+:deep(.vue-flow__controls) {
+  background-color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+:deep(.vue-flow__controls-button) {
+  border: none;
+  background-color: transparent;
+}
+
+:deep(.vue-flow__controls-button:hover) {
+  background-color: #f3f4f6;
+}
+
+/* Control buttons in sidebar */
+.controls-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(221, 221, 221, 0.2);
+}
+
+.control-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: var(--text-color-light);
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.control-button:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.control-button i {
+  color: var(--primary-color);
+  width: 16px;
+}
+
+/* Legend styling for stream groups */
+.legend-key.rect {
+  display: inline-block;
+  width: 20px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.legend-key.rect.home-stream {
+  background-color: rgba(59, 130, 246, 0.2);
+  border: 2px solid #3b82f6;
+}
+
+.legend-key.rect.other-stream {
+  background-color: rgba(156, 163, 175, 0.2);
+  border: 2px dashed #9ca3af;
+}
+
+.legend-key.rect.external-app {
+  background-color: rgba(245, 158, 11, 0.2);
+  border: 2px solid #f59e0b;
+}

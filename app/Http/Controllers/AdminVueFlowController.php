@@ -52,13 +52,15 @@ class AdminVueFlowController extends Controller
 
         $request->validate([
             'nodes_layout' => 'required|array',
+            'edges_layout' => 'array',
             'stream_config' => 'required|array',
         ]);
 
         StreamLayout::saveLayout(
             $streamName,
             $request->nodes_layout,
-            $request->stream_config
+            $request->stream_config,
+            $request->edges_layout ?? []
         );
 
         // Return an empty response for Inertia
@@ -153,11 +155,25 @@ class AdminVueFlowController extends Controller
         // Get connected external apps
         $homeAppIds = $homeStreamApps->pluck('app_id')->toArray();
         
-        $externalApps = App::whereHas('integrations', function ($query) use ($homeAppIds) {
-            $query->whereIn('target_app_id', $homeAppIds);
-        })->orWhereHas('integratedBy', function ($query) use ($homeAppIds) {
-            $query->whereIn('source_app_id', $homeAppIds);
-        })->whereNotIn('app_id', $homeAppIds)->with('stream')->get();
+        // Get apps that are connected to home stream apps but are not in the home stream
+        $connectedAppIds = collect();
+        
+        // Get apps that have integrations TO home stream apps
+        $sourceAppIds = AppIntegration::whereIn('target_app_id', $homeAppIds)
+            ->pluck('source_app_id')
+            ->unique();
+        $connectedAppIds = $connectedAppIds->merge($sourceAppIds);
+        
+        // Get apps that have integrations FROM home stream apps
+        $targetAppIds = AppIntegration::whereIn('source_app_id', $homeAppIds)
+            ->pluck('target_app_id')
+            ->unique();
+        $connectedAppIds = $connectedAppIds->merge($targetAppIds);
+        
+        // Remove home stream app IDs to get only external apps
+        $externalAppIds = $connectedAppIds->diff($homeAppIds)->unique()->values();
+        
+        $externalApps = App::whereIn('app_id', $externalAppIds)->with('stream')->get();
 
         // Add external app nodes
         foreach ($externalApps as $app) {
@@ -173,6 +189,19 @@ class AdminVueFlowController extends Controller
             ];
         }
 
+        // Remove any duplicate nodes by app_id (safety check)
+        $uniqueNodes = [];
+        $seenIds = [];
+        
+        foreach ($nodes as $node) {
+            $nodeId = $node['id'];
+            if (!in_array($nodeId, $seenIds)) {
+                $uniqueNodes[] = $node;
+                $seenIds[] = $nodeId;
+            }
+        }
+        $nodes = $uniqueNodes;
+        
         // Get all edges
         $allAppIds = collect($nodes)->pluck('data.app_id')->filter(fn($id) => $id > 0)->toArray();
         

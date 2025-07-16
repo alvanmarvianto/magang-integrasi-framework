@@ -36,17 +36,25 @@
         <button @click="resetLayout" class="reset-btn">Reset Layout</button>
       </div>
     </div>
-
+    
     <!-- Vue Flow -->
     <div class="vue-flow-wrapper">
       <VueFlow
         ref="vueFlowRef"
+        :key="vueFlowKey"
         :nodes="nodes"
         :edges="edges"
         :class="{ 'vue-flow': true, 'admin-mode': true }"
         @node-drag-stop="onNodeDragStop"
         @node-resize-end="onNodeResize"
         @nodes-change="onNodesChange"
+        @edges-change="onEdgesChange"
+        @connect="onConnect"
+        @edge-update="onEdgeUpdate"
+        @edge-update-start="onEdgeUpdateStart"
+        @edge-update-end="onEdgeUpdateEnd"
+        @edge-click="onEdgeClick"
+        @pane-click="onPaneClick"
         :fit-view-on-init="false"
         :zoom-on-scroll="true"
         :zoom-on-pinch="true"
@@ -56,13 +64,21 @@
         :selection-key-code="null"
         :multi-selection-key-code="null"
         :nodes-draggable="true"
-        :nodes-connectable="false"
-        :edges-updatable="false"
+        :nodes-connectable="true"
+        :edges-updatable="true"
+        :edges-focusable="true"
+        :validate-connection="validateConnection"
+        :connection-line-type="'smoothstep'"
         :delete-key-code="null"
       >
         <!-- Custom Node Types -->
         <template #node-stream="nodeProps">
           <StreamNest v-bind="nodeProps" :admin-mode="true" @resize="onStreamResize" />
+        </template>
+
+        <!-- Custom App Node with Handles -->
+        <template #node-app="nodeProps">
+          <AppNode v-bind="nodeProps" :admin-mode="true" />
         </template>
 
         <!-- Controls -->
@@ -79,13 +95,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background, BackgroundVariant } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { PanOnScrollMode } from '@vue-flow/core'
 import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
+import AppNode from '@/components/VueFlow/AppNode.vue'
 import type { Node, Edge } from '@vue-flow/core'
 
 // Props
@@ -95,6 +112,7 @@ interface Props {
   edges: Edge[]
   savedLayout: {
     nodes_layout?: Record<string, any>
+    edges_layout?: any[]
     stream_config?: Record<string, any>
   } | null
   allowedStreams: string[]
@@ -114,10 +132,13 @@ const autoSaveTimeout = ref<number | null>(null)
 const nodes = ref<Node[]>([])
 const edges = ref<Edge[]>([])
 const layoutChanged = ref(false)
+const vueFlowKey = ref(0) // Key to force VueFlow re-render
+const selectedEdgeId = ref<string | null>(null) // Track selected edge for animation
 
 // Track original layout for reset
 const originalLayout = ref<{
   nodes_layout?: Record<string, any>
+  edges_layout?: any[]
   stream_config?: Record<string, any>
 } | null>(null)
 
@@ -191,7 +212,7 @@ function initializeLayout() {
       
       return {
         ...node,
-        type: node.data.is_parent_node ? 'stream' : 'default', // Use 'default' type for simple outer box only
+        type: node.data.is_parent_node ? 'stream' : 'app', // Use 'app' type for app nodes
         position: savedNode?.position || { x: 0, y: 0 },
         style: node.data.is_parent_node ? {
           ...savedNode?.style,
@@ -203,13 +224,14 @@ function initializeLayout() {
           ...savedNode?.style,
           cursor: 'grab',
           width: 120,
-          height: 60, // Increased height for multi-line text
+          height: 80, // Fixed height for better proportions
           backgroundColor: nodeColors.background,
           border: `2px solid ${nodeColors.border}`,
-          borderRadius: '6px',
+          borderRadius: '8px',
         },
         draggable: true, // Enable dragging for all nodes in admin mode
         selectable: true,
+        connectable: true, // Enable connections in admin mode
         // No parent-child constraints - all app nodes are independent
         ...(node.data.is_parent_node && savedNode?.dimensions && {
           style: {
@@ -232,7 +254,7 @@ function initializeLayout() {
       const nodeColors = getNodeColor(node.data.lingkup || '')
       return {
         ...node,
-        type: node.data.is_parent_node ? 'stream' : 'default', // Use 'default' type for simple outer box only
+        type: node.data.is_parent_node ? 'stream' : 'app', // Use 'app' type for app nodes
         position: { x: 0, y: 0 },
         style: node.data.is_parent_node ? {
           cursor: 'grab',
@@ -242,13 +264,14 @@ function initializeLayout() {
         } : {
           cursor: 'grab',
           width: 120,
-          height: 60, // Increased height for multi-line text
+          height: 80, // Fixed height for better proportions
           backgroundColor: nodeColors.background,
           border: `2px solid ${nodeColors.border}`,
-          borderRadius: '6px',
+          borderRadius: '8px',
         },
         draggable: true, // Enable dragging for all nodes in admin mode
         selectable: true,
+        connectable: true, // Enable connections in admin mode
         // No parent-child constraints - all app nodes are independent
       }
     })
@@ -257,19 +280,36 @@ function initializeLayout() {
   }
   
   // Initialize edges with duplicate removal and smoothstep styling
-  edges.value = removeDuplicateEdges(props.edges).map(edge => {
+  let edgesData = props.edges
+  
+  // Check if we have saved edge layout with handle information
+  if (props.savedLayout?.edges_layout && props.savedLayout.edges_layout.length > 0) {
+    console.log('Loading saved edges layout:', props.savedLayout.edges_layout)
+    // Use saved edges layout which includes handle information
+    edgesData = props.savedLayout.edges_layout
+  }
+  
+  edges.value = removeDuplicateEdges(edgesData).map(edge => {
     const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct')
+    const isSelected = selectedEdgeId.value === edge.id
+    
     return {
       ...edge,
       type: 'smoothstep', // Use smoothstep edges for admin page
+      updatable: true, // Make edges updatable in admin mode
+      animated: isSelected, // Animate if selected
       style: {
         stroke: edgeColor,
-        strokeWidth: 2,
+        strokeWidth: isSelected ? 4 : 2, // Bold if selected
+        ...(edge.style || {})
       },
       markerEnd: {
         type: 'arrowclosed',
         color: edgeColor,
       } as any,
+      // Preserve saved handle information
+      sourceHandle: edge.sourceHandle || undefined,
+      targetHandle: edge.targetHandle || undefined,
     }
   })
 
@@ -294,10 +334,10 @@ function applyAutomaticLayoutWithConstraints() {
   const STREAM_MIN_WIDTH = 300
   const STREAM_MIN_HEIGHT = 200
   const NODE_WIDTH = 120
-  const NODE_HEIGHT = 60 // Increased for multi-line text
+  const NODE_HEIGHT = 80 // Updated to match new node height
   const NODES_PER_ROW = 2
   const NODE_SPACING_X = 150
-  const NODE_SPACING_Y = 100 // Increased spacing for taller nodes
+  const NODE_SPACING_Y = 110 // Increased spacing for taller nodes
 
   // Separate nodes by type - use the unique nodes we've already filtered
   const currentNodes = nodes.value
@@ -444,6 +484,20 @@ function getEdgeColor(type: string): string {
   return colorMap[type] || '#6b7280'
 }
 
+function validateConnection(connection: any) {
+  // Allow all connections between nodes
+  // This ensures that sourceHandle and targetHandle are properly captured
+  console.log('Validating connection:', {
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle
+  })
+  
+  // Always return true to allow the connection
+  return true
+}
+
 function onNodeDragStop(event: any) {
   const { node } = event
   
@@ -456,6 +510,250 @@ function onNodeDragStop(event: any) {
   markLayoutChanged()
   scheduleAutoSave() // Schedule debounced auto-save
   showStatus('Node position updated', 'info')
+}
+
+function onConnect(connection: any) {
+  // Handle new connections between nodes
+  console.log('New connection created:', {
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle
+  })
+  
+  const newEdge = {
+    id: `${connection.source}-${connection.target}`,
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle,
+    type: 'smoothstep',
+    updatable: true, // Make new edges updatable
+    animated: false, // New edges start non-animated
+    style: {
+      stroke: '#6b7280',
+      strokeWidth: 2,
+    },
+    markerEnd: {
+      type: 'arrowclosed',
+      color: '#6b7280',
+    } as any,
+    data: {
+      label: 'New Connection',
+      connection_type: 'direct',
+    }
+  }
+  
+  // Add to edges
+  edges.value.push(newEdge)
+  
+  markLayoutChanged()
+  scheduleAutoSave()
+  showStatus('New connection created', 'success')
+}
+
+function onEdgeUpdate(params: any, newConnection?: any) {
+  // Handle edge updates when user drags edge to new connection
+  console.log('onEdgeUpdate called with params:', params)
+  console.log('newConnection:', newConnection)
+  
+  // VueFlow passes parameters differently - extract the actual data
+  let oldEdge, connection
+  
+  if (params && typeof params === 'object') {
+    // Check if params has edge and connection properties
+    if (params.edge && params.connection) {
+      oldEdge = params.edge
+      connection = params.connection
+    } else if (params.id) {
+      // params is the oldEdge itself
+      oldEdge = params
+      connection = newConnection
+    } else {
+      console.error('onEdgeUpdate: Unexpected parameter structure', params)
+      showStatus('Failed to update connection - unexpected parameters', 'error')
+      return
+    }
+  } else {
+    console.error('onEdgeUpdate: Invalid parameters', { params, newConnection })
+    showStatus('Failed to update connection - invalid parameters', 'error')
+    return
+  }
+  
+  console.log('Extracted data:', {
+    oldEdge: oldEdge ? {
+      id: oldEdge.id,
+      source: oldEdge.source,
+      target: oldEdge.target,
+      sourceHandle: oldEdge.sourceHandle,
+      targetHandle: oldEdge.targetHandle
+    } : null,
+    connection: connection ? {
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle
+    } : null
+  })
+  
+  // Guard against missing data
+  if (!oldEdge || !connection) {
+    console.error('onEdgeUpdate: oldEdge or connection is missing', { oldEdge, connection })
+    showStatus('Failed to update connection - missing data', 'error')
+    return
+  }
+  
+  const edgeIndex = edges.value.findIndex(e => e.id === oldEdge.id)
+  if (edgeIndex !== -1) {
+    // Create new edge ID if source or target changed
+    const newEdgeId = connection.source !== oldEdge.source || connection.target !== oldEdge.target 
+      ? `${connection.source}-${connection.target}`
+      : oldEdge.id
+
+    // Preserve original edge properties but update connection details
+    const updatedEdge = {
+      ...edges.value[edgeIndex],
+      id: newEdgeId,
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle || oldEdge.sourceHandle,
+      targetHandle: connection.targetHandle || oldEdge.targetHandle,
+    }
+
+    // Force reactivity by creating a new array reference
+    const newEdges = [...edges.value]
+    newEdges[edgeIndex] = updatedEdge
+    edges.value = newEdges
+    
+    // Update selected edge ID if it changed
+    if (selectedEdgeId.value === oldEdge.id && newEdgeId !== oldEdge.id) {
+      selectedEdgeId.value = newEdgeId
+    }
+    
+    // Apply proper styling
+    updateEdgeStyles()
+    
+    // Force VueFlow to re-render the edge with new handle positions
+    nextTick(() => {
+      if (vueFlowRef.value) {
+        try {
+          vueFlowRef.value.updateEdge(oldEdge.id, updatedEdge)
+        } catch (error) {
+          console.log('VueFlow updateEdge method not available, forcing re-render')
+          vueFlowKey.value += 1 // Force re-render of VueFlow component
+        }
+      }
+    })
+    
+    console.log('Edge successfully updated:', {
+      oldEdge: oldEdge.id,
+      newEdge: newEdgeId,
+      from: `${oldEdge.source}:${oldEdge.sourceHandle || 'default'}`,
+      to: `${connection.source}:${connection.sourceHandle || 'default'}`,
+      target: `${oldEdge.target}:${oldEdge.targetHandle || 'default'}`,
+      newTarget: `${connection.target}:${connection.targetHandle || 'default'}`
+    })
+    
+    markLayoutChanged()
+    scheduleAutoSave()
+    showStatus('Connection updated', 'success')
+  } else {
+    console.error('Edge not found for update:', oldEdge.id)
+    showStatus('Failed to update connection', 'error')
+  }
+}
+
+function onEdgeUpdateStart(event: any) {
+  // Handle start of edge update
+  console.log('Edge update started:', {
+    event: event,
+    edgeId: event.edge?.id,
+    source: event.edge?.source,
+    target: event.edge?.target,
+    sourceHandle: event.edge?.sourceHandle,
+    targetHandle: event.edge?.targetHandle,
+    eventType: typeof event,
+    hasEdge: !!event.edge
+  })
+}
+
+function onEdgeUpdateEnd(event: any) {
+  // Handle end of edge update
+  console.log('Edge update ended:', {
+    event: event,
+    edgeId: event.edge?.id,
+    source: event.edge?.source,
+    target: event.edge?.target,
+    sourceHandle: event.edge?.sourceHandle,
+    targetHandle: event.edge?.targetHandle,
+    eventType: typeof event,
+    hasEdge: !!event.edge
+  })
+}
+
+function onEdgeClick(event: any) {
+  // Handle edge click to toggle animation and bold style
+  const clickedEdgeId = event.edge?.id
+  if (!clickedEdgeId) {
+    console.log('No edge ID found in click event')
+    return
+  }
+  
+  console.log('Edge clicked:', clickedEdgeId)
+  
+  // Toggle selection: if already selected, deselect it
+  if (selectedEdgeId.value === clickedEdgeId) {
+    selectedEdgeId.value = null
+    console.log('Edge deselected')
+  } else {
+    selectedEdgeId.value = clickedEdgeId
+    console.log('Edge selected:', clickedEdgeId)
+  }
+  
+  // Update the edge styles
+  updateEdgeStyles()
+  
+  showStatus(selectedEdgeId.value ? 'Edge selected - animated style applied' : 'Edge deselected', 'info')
+}
+
+function updateEdgeStyles() {
+  // Update all edges with appropriate styles based on selection
+  const newEdges = edges.value.map(edge => {
+    const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct')
+    const isSelected = selectedEdgeId.value === edge.id
+    
+    return {
+      ...edge,
+      type: 'smoothstep',
+      updatable: true,
+      animated: isSelected, // Animate if selected
+      style: {
+        ...edge.style,
+        stroke: edgeColor,
+        strokeWidth: isSelected ? 4 : 2, // Bold if selected
+        strokeDasharray: isSelected ? undefined : edge.style?.strokeDasharray, // Remove any dash pattern when selected
+      },
+      markerEnd: {
+        type: 'arrowclosed',
+        color: edgeColor,
+      } as any,
+    }
+  })
+  
+  // Update edges array to trigger reactivity
+  edges.value = newEdges
+  
+  console.log('Edge styles updated. Selected edge:', selectedEdgeId.value)
+}
+
+function onPaneClick(event: any) {
+  // Deselect any selected edge when clicking on empty space
+  if (selectedEdgeId.value) {
+    console.log('Pane clicked, deselecting edge:', selectedEdgeId.value)
+    selectedEdgeId.value = null
+    updateEdgeStyles()
+    showStatus('Edge deselected', 'info')
+  }
 }
 
 function onNodeResize(event: any) {
@@ -494,6 +792,42 @@ function onNodesChange(changes: any[]) {
   // Mark layout as changed if there are actual changes
   if (changes.length > 0) {
     markLayoutChanged()
+  }
+}
+
+function onEdgesChange(changes: any[]) {
+  // Handle edge changes (deletions, updates, etc.)
+  console.log('Edges changed:', changes)
+  
+  // Update our reactive edges array
+  changes.forEach(change => {
+    if (change.type === 'remove' && change.id) {
+      const edgeIndex = edges.value.findIndex(e => e.id === change.id)
+      if (edgeIndex !== -1) {
+        edges.value.splice(edgeIndex, 1)
+        console.log('Edge removed:', change.id)
+      }
+    } else if (change.type === 'add' && change.item) {
+      // Handle edge additions
+      const existingEdgeIndex = edges.value.findIndex(e => e.id === change.item.id)
+      if (existingEdgeIndex === -1) {
+        edges.value.push(change.item)
+        console.log('Edge added:', change.item.id)
+      }
+    } else if (change.type === 'update' && change.item) {
+      // Handle edge updates
+      const edgeIndex = edges.value.findIndex(e => e.id === change.item.id)
+      if (edgeIndex !== -1) {
+        edges.value.splice(edgeIndex, 1, change.item)
+        console.log('Edge updated:', change.item.id)
+      }
+    }
+  })
+  
+  // Mark layout as changed if there are actual changes
+  if (changes.length > 0) {
+    markLayoutChanged()
+    scheduleAutoSave()
   }
 }
 
@@ -538,6 +872,20 @@ async function saveLayout() {
       }
     })
 
+    // Prepare edges layout
+    const edgesLayout = edges.value.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      type: edge.type,
+      style: edge.style,
+      data: edge.data
+    }))
+
+    console.log('Saving edges layout:', edgesLayout)
+
     // Prepare stream config
     const streamConfig = {
       lastUpdated: new Date().toISOString(),
@@ -548,6 +896,7 @@ async function saveLayout() {
     // Save to backend
     await router.post(`/admin/stream/${props.streamName}/layout`, {
       nodes_layout: nodesLayout,
+      edges_layout: edgesLayout,
       stream_config: streamConfig
     }, {
       preserveState: true,
@@ -601,6 +950,20 @@ async function autoSaveLayout() {
       return
     }
 
+    // Prepare edges layout for auto-save
+    const edgesLayout = edges.value.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      type: edge.type,
+      style: edge.style,
+      data: edge.data
+    }))
+
+    console.log('Auto-saving edges layout:', edgesLayout)
+
     // Prepare stream config
     const streamConfig = {
       lastUpdated: new Date().toISOString(),
@@ -613,11 +976,16 @@ async function autoSaveLayout() {
     saving.value = true
     await router.post(`/admin/stream/${props.streamName}/layout`, {
       nodes_layout: nodesLayout,
+      edges_layout: edgesLayout,
       stream_config: streamConfig
     }, {
       preserveState: true,
       onSuccess: () => {
-        originalLayout.value = { nodes_layout: nodesLayout, stream_config: streamConfig }
+        originalLayout.value = { 
+          nodes_layout: nodesLayout, 
+          edges_layout: edgesLayout,
+          stream_config: streamConfig 
+        }
         layoutChanged.value = false // Mark as saved
         autoSaveTimeout.value = null // Clear auto-save indicator
         showStatus('Layout auto-saved', 'success')
@@ -768,6 +1136,20 @@ function onStreamResize(event: { width: number, height: number }) {
   background: #4b5563;
 }
 
+.admin-instructions {
+  background: #f0f9ff;
+  border-left: 4px solid #0284c7;
+  padding: 0.75rem 2rem;
+  margin: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-instructions p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #0c4a6e;
+}
+
 .instructions {
   background: #e0f2fe;
   border-left: 4px solid #0284c7;
@@ -824,27 +1206,15 @@ function onStreamResize(event: { width: number, height: number }) {
 }
 
 :deep(.vue-flow__node-default) {
-  background: white !important;
-  border-radius: 6px !important;
-  padding: 8px 12px !important;
-  min-width: 120px !important;
-  min-height: 60px !important; /* Increased for multi-line text */
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  font-size: 11px !important; /* Slightly smaller font for more text */
-  font-weight: 500 !important;
-  color: #1c1c1e !important;
-  cursor: pointer !important;
-  transition: box-shadow 0.15s ease !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
-  white-space: pre-line !important; /* Allow line breaks */
-  line-height: 1.2 !important; /* Better line spacing */
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
-:deep(.vue-flow__node-default:hover) {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+:deep(.vue-flow__node-app) {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 /* Custom node styling (matching user page) */
@@ -874,11 +1244,30 @@ function onStreamResize(event: { width: number, height: number }) {
 :deep(.vue-flow__edge-path) {
   stroke: #6b7280;
   stroke-width: 2;
+  transition: stroke-width 0.2s ease;
 }
 
 :deep(.vue-flow__edge:hover .vue-flow__edge-path) {
   stroke: #3b82f6;
   stroke-width: 3;
+}
+
+/* Animated edge styles */
+:deep(.vue-flow__edge.animated .vue-flow__edge-path) {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Selected edge styles */
+:deep(.vue-flow__edge.selected .vue-flow__edge-path) {
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
 }
 
 /* Controls Styling (matching user page) */
@@ -896,26 +1285,6 @@ function onStreamResize(event: { width: number, height: number }) {
 
 :deep(.vue-flow__controls-button:hover) {
   background-color: #f3f4f6;
-}
-
-/* Custom Node Handle Styling (matching user page) */
-:deep(.vue-flow__handle) {
-  width: 10px;
-  height: 10px;
-  background: #555;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-:deep(.vue-flow__node:hover .vue-flow__handle) {
-  opacity: 1;
-}
-
-:deep(.vue-flow__handle:hover) {
-  background: #3b82f6;
-  transform: scale(1.2);
 }
 
 .status-message {
@@ -977,6 +1346,12 @@ function onStreamResize(event: { width: number, height: number }) {
   border: 1px solid #a7f3d0;
 }
 
+.status-indicator.connection-mode {
+  color: #7c3aed;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+}
+
 .spinner {
   animation: spin 1s linear infinite;
   width: 1rem;
@@ -1003,5 +1378,9 @@ function onStreamResize(event: { width: number, height: number }) {
 
 .indicator-dot.saved-dot {
   background: #059669;
+}
+
+.indicator-dot.connection-dot {
+  background: #7c3aed;
 }
 </style>

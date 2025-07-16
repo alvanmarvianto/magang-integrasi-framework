@@ -3,77 +3,74 @@
     class="app-node" 
     :class="{ 
       'admin-mode': adminMode,
-      'home-stream': data.is_home_stream,
-      'external-stream': !data.is_home_stream
+      'home-stream': nodeData.is_home_stream,
+      'external-stream': !nodeData.is_home_stream
     }"
+    :style="nodeStyle"
   >
-    <!-- Source Handles (for outgoing connections) -->
+    <!-- Source Handles (for outgoing connections) - always present but hidden in user mode -->
     <Handle
-      v-if="!adminMode"
       id="top-source"
       type="source"
       :position="Position.Top"
       class="custom-handle handle-source"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
-      v-if="!adminMode"
       id="right-source"
       type="source"
       :position="Position.Right"
       class="custom-handle handle-source"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
-      v-if="!adminMode"
       id="bottom-source"
       type="source"
       :position="Position.Bottom"
       class="custom-handle handle-source"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
-      v-if="!adminMode"
       id="left-source"
       type="source"
       :position="Position.Left"
       class="custom-handle handle-source"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     
-    <!-- Target Handles (for incoming connections) -->
+    <!-- Target Handles (for incoming connections) - always present but hidden in user mode -->
     <Handle
-      v-if="!adminMode"
       id="top-target"
       type="target"
       :position="Position.Top"
       class="custom-handle handle-target"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
-      v-if="!adminMode"
       id="right-target"
       type="target"
       :position="Position.Right"
       class="custom-handle handle-target"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
-      v-if="!adminMode"
       id="bottom-target"
       type="target"
       :position="Position.Bottom"
       class="custom-handle handle-target"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
-      v-if="!adminMode"
       id="left-target"
       type="target"
       :position="Position.Left"
       class="custom-handle handle-target"
+      :class="{ 'user-mode-hidden': !adminMode }"
     />
     
     <!-- Node Content -->
     <div class="node-content">
-      <div class="app-label">{{ data.label }}</div>
-      <div v-if="adminMode" class="admin-info">
-        <div class="stream-info">{{ data.lingkup }}</div>
-        <div class="app-id">ID: {{ data.app_id }}</div>
-      </div>
+      <div class="app-label">{{ nodeData.label }}</div>
     </div>
 
     <!-- Admin mode drag indicator -->
@@ -98,35 +95,35 @@ const props = withDefaults(defineProps<Props>(), {
   adminMode: false
 })
 
-const nodeStyle = computed(() => {
-  const baseStyle = {
-    borderRadius: '8px',
-    padding: '12px',
-    minWidth: '120px',
-    minHeight: '60px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    border: '2px solid',
-    background: 'white',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-    transition: 'all 0.2s ease',
-    cursor: props.adminMode ? 'grab' : 'default'
-  }
+// Ensure data exists and has required properties
+const nodeData = computed(() => ({
+  label: props.data?.label || 'Unknown',
+  lingkup: props.data?.lingkup || '',
+  is_home_stream: props.data?.is_home_stream || false,
+  ...props.data
+}))
 
-  if (props.data.is_home_stream) {
-    return {
-      ...baseStyle,
-      borderColor: '#10b981',
-      background: '#f0fdf4'
-    }
-  } else {
-    return {
-      ...baseStyle,
-      borderColor: '#6b7280',
-      background: '#f9fafb'
-    }
+const nodeColors = computed(() => {
+  const colorMap: { [key: string]: { background: string; border: string } } = {
+    'sp': { background: '#f5f5f5', border: '#000000' },
+    'mi': { background: '#fff5f5', border: '#ff0000' },
+    'ssk': { background: '#fffef0', border: '#fbff00' },
+    'ssk-mon': { background: '#fffef0', border: '#fbff00' },
+    'moneter': { background: '#fffef0', border: '#fbff00' },
+    'market': { background: '#fdf4ff', border: '#dd00ff' },
+    'internal bi': { background: '#f0fff4', border: '#00ff48' },
+    'external bi': { background: '#eff6ff', border: '#0a74da' },
+    'middleware': { background: '#f0fffe', border: '#00ddff' },
+  }
+  
+  return colorMap[nodeData.value.lingkup] || { background: '#ffffff', border: '#6b7280' }
+})
+
+const nodeStyle = computed(() => {
+  const colors = nodeColors.value
+  return {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
   }
 })
 </script>
@@ -134,20 +131,31 @@ const nodeStyle = computed(() => {
 <style scoped>
 .app-node {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: 120px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.app-node:not(.admin-mode) {
+  cursor: grab;
 }
 
 .app-node.admin-mode {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
+  cursor: grab;
+  border-color: #3b82f6;
 }
 
 .app-node.admin-mode:hover {
-  outline-color: #1d4ed8;
+  box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .node-content {
@@ -159,13 +167,34 @@ const nodeStyle = computed(() => {
   justify-content: center;
   text-align: center;
   gap: 4px;
+  padding: 2px;
+}
+
+/* Slightly adjusted content spacing for user mode */
+.app-node:not(.admin-mode) .node-content {
+  padding: 3px;
+  gap: 2px;
 }
 
 .app-label {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: #1c1c1e;
   line-height: 1.2;
+  text-align: center;
+  white-space: pre-line;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 4px;
+}
+
+/* Slightly larger text for user mode (non-admin) */
+.app-node:not(.admin-mode) .app-label {
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  padding: 6px 4px;
 }
 
 .admin-info {
@@ -211,8 +240,20 @@ const nodeStyle = computed(() => {
   transition: opacity 0.2s ease;
 }
 
+/* Hide handles completely in user mode */
+.custom-handle.user-mode-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .app-node:hover .custom-handle {
   opacity: 1;
+}
+
+/* Don't show handles on hover in user mode */
+.app-node:hover .custom-handle.user-mode-hidden {
+  opacity: 0 !important;
 }
 
 .handle-source {

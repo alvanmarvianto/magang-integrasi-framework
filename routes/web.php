@@ -19,8 +19,8 @@ Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration']
 Route::get('/technology/{app_id}', [AppController::class, 'technology'])->name('technology');
 Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegrations'])
     ->name('stream.integrations');
-Route::get('/vue-flow/stream/{stream}', [AppController::class, 'vueFlowStreamIntegrations'])
-    ->name('vue-flow.stream.integrations');
+Route::get('/diagram/stream/{stream}', [AppController::class, 'vueFlowStreamIntegrations'])
+    ->name('diagram.stream.integrations');
 
 // Admin routes for stream layout management
 Route::prefix('admin')->group(function () {

@@ -187,6 +187,17 @@ class AppController extends Controller
 
         $stream = Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->firstOrFail();
 
+        // Get saved layout from database
+        $savedLayout = null;
+        $streamLayout = \App\Models\StreamLayout::where('stream_name', $streamName)->first();
+        if ($streamLayout) {
+            $savedLayout = [
+                'nodes_layout' => $streamLayout->nodes_layout,
+                'edges_layout' => $streamLayout->edges_layout,
+                'stream_config' => $streamLayout->stream_config,
+            ];
+        }
+
         // Get all apps in the current stream
         $homeApps = $stream->apps;
         $homeAppIds = $homeApps->pluck('app_id');
@@ -209,29 +220,25 @@ class AppController extends Controller
             
             return [
                 'id' => (string) $app->app_id,
-                'type' => 'default',
+                'type' => 'app', // Use app type instead of default
                 'data' => [
                     'label' => $app->app_name,
-                    'app_id' => $app->app_id,
-                    'stream_name' => $app->stream?->stream_name,
                     'lingkup' => $lingkup,
                     'is_home_stream' => $isHomeStream,
+                    'is_parent_node' => false,
                 ],
                 'position' => ['x' => 0, 'y' => 0],
-                // NO parent-child relationship set here - will be handled in frontend
                 'parentNode' => null,
                 'extent' => null,
             ];
         });
 
-        // Add only ONE stream group node (the home stream) - as a DATA node, not group type
+        // Add home stream node
         $homeStreamNode = [
             'id' => $streamName,
-            'type' => 'streamParent', // Use custom stream parent type
+            'type' => 'stream',
             'data' => [
                 'label' => strtoupper($streamName) . ' Stream',
-                'app_id' => -1,
-                'stream_name' => $streamName,
                 'lingkup' => $streamName,
                 'is_home_stream' => true,
                 'is_parent_node' => true,
@@ -263,7 +270,7 @@ class AppController extends Controller
                     'id' => 'edge-' . $integration->source_app_id . '-' . $integration->target_app_id,
                     'source' => (string) $integration->source_app_id,
                     'target' => (string) $integration->target_app_id,
-                    'type' => 'default',
+                    'type' => 'smoothstep',
                     'data' => [
                         'label' => $integration->connectionType?->type_name ?? 'Connection',
                         'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
@@ -276,6 +283,7 @@ class AppController extends Controller
             'streamName' => $stream->stream_name,
             'nodes' => $allNodes,
             'edges' => $edges,
+            'savedLayout' => $savedLayout,
             'streams' => $allStreams->map(fn($s) => $s->stream_name),
         ]);
     }

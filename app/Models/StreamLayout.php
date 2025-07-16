@@ -12,11 +12,13 @@ class StreamLayout extends Model
     protected $fillable = [
         'stream_name',
         'nodes_layout',
+        'edges_layout',
         'stream_config',
     ];
 
     protected $casts = [
         'nodes_layout' => 'array',
+        'edges_layout' => 'array',
         'stream_config' => 'array',
     ];
 
@@ -28,6 +30,7 @@ class StreamLayout extends Model
         $layout = self::where('stream_name', $streamName)->first();
         return $layout ? [
             'nodes_layout' => $layout->nodes_layout,
+            'edges_layout' => $layout->edges_layout,
             'stream_config' => $layout->stream_config,
         ] : null;
     }
@@ -35,12 +38,13 @@ class StreamLayout extends Model
     /**
      * Save layout for a specific stream
      */
-    public static function saveLayout(string $streamName, array $nodesLayout, array $streamConfig): void
+    public static function saveLayout(string $streamName, array $nodesLayout, array $streamConfig, array $edgesLayout = []): void
     {
         self::updateOrCreate(
             ['stream_name' => $streamName],
             [
                 'nodes_layout' => $nodesLayout,
+                'edges_layout' => $edgesLayout,
                 'stream_config' => $streamConfig,
             ]
         );
