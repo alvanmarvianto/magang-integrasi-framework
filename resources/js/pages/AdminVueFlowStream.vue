@@ -212,6 +212,7 @@ function initializeLayout() {
         ...node,
         type: node.data.is_parent_node ? 'stream' : 'app', // Use 'app' type for app nodes
         position: savedNode?.position || { x: 0, y: 0 },
+        zIndex: node.data.is_parent_node ? -1 : 1, // Stream nodes always at bottom
         style: node.data.is_parent_node ? {
           ...savedNode?.style,
           cursor: 'grab',
@@ -254,6 +255,7 @@ function initializeLayout() {
         ...node,
         type: node.data.is_parent_node ? 'stream' : 'app', // Use 'app' type for app nodes
         position: { x: 0, y: 0 },
+        zIndex: node.data.is_parent_node ? -1 : 1, // Stream nodes always at bottom
         style: node.data.is_parent_node ? {
           cursor: 'grab',
           backgroundColor: 'rgba(59, 130, 246, 0.3)',

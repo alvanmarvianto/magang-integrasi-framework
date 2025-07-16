@@ -230,7 +230,8 @@ function initializeLayout() {
         selectable: false,
         connectable: false,
         focusable: true,
-        deletable: false
+        deletable: false,
+        zIndex: node.data.is_parent_node ? -1 : 1 // Stream nodes always at bottom
       }
       
       if (node.data.is_parent_node) {
@@ -278,7 +279,8 @@ function initializeLayout() {
         selectable: false,
         connectable: false,
         focusable: true,
-        deletable: false
+        deletable: false,
+        zIndex: node.data.is_parent_node ? -1 : 1 // Stream nodes always at bottom
       }
       
       if (node.data.is_parent_node) {
