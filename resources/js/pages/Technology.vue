@@ -15,6 +15,19 @@
             <span>Integrasi App</span>
           </a>
         </div>
+        
+        <!-- App Type and Stratification in Sidebar -->
+        <div v-if="technology" class="sidebar-tech-info">
+          <div v-if="technology.app_type" class="sidebar-tech-item">
+            <h4><i class="fas fa-cube"></i> Jenis Aplikasi</h4>
+            <p>{{ technology.app_type }}</p>
+          </div>
+          
+          <div v-if="technology.stratification" class="sidebar-tech-item">
+            <h4><i class="fas fa-layer-group"></i> Stratifikasi</h4>
+            <p>{{ technology.stratification }}</p>
+          </div>
+        </div>
       </div>
     </aside>
 
@@ -33,88 +46,76 @@
           <p>Tidak ada data teknologi untuk aplikasi ini.</p>
         </div>
 
-        <div v-else class="tech-cards-container">
-          <div v-if="technology.vendor" class="tech-card">
-            <h3><i class="fas fa-building"></i> Vendor</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.vendor" :key="item" class="tech-item">{{ item }}</span>
+        <div v-else class="tech-main-layout">
+          <!-- Left Side - Tech Stack Labels -->
+          <div class="tech-stack-labels">
+            <div v-if="technology.platform" class="stack-label platform-label">
+              <h3><i class="fas fa-cloud"></i> PLATFORM</h3>
+            </div>
+            <div v-if="technology.framework" class="stack-label framework-label">
+              <h3><i class="fas fa-tools"></i> FRAMEWORK</h3>
+            </div>
+            <div v-if="technology.middleware" class="stack-label middleware-label">
+              <h3><i class="fas fa-exchange-alt"></i> MIDDLEWARE</h3>
+            </div>
+            <div v-if="technology.third_party" class="stack-label third-party-label">
+              <h3><i class="fas fa-plug"></i> THIRD PARTY</h3>
+            </div>
+            <div v-if="technology.language" class="stack-label language-label">
+              <h3><i class="fas fa-code"></i> LANGUAGE</h3>
+            </div>
+            <div v-if="technology.database" class="stack-label database-label">
+              <h3><i class="fas fa-database"></i> DATABASE</h3>
+            </div>
+            <div v-if="technology.os" class="stack-label os-label">
+              <h3><i class="fas fa-desktop"></i> OPERATING SYSTEM</h3>
+            </div>
+            <div v-if="technology.vendor" class="stack-label vendor-label">
+              <h3><i class="fas fa-building"></i> VENDOR</h3>
             </div>
           </div>
 
-          <div v-if="technology.app_type" class="tech-card">
-            <h3><i class="fas fa-cube"></i> Jenis Aplikasi</h3>
-            <div class="tech-items">
-              <span class="tech-item">{{ technology.app_type }}</span>
+          <!-- Right Side - Tech Content -->
+          <div class="tech-content-area">
+            <div v-if="technology.platform" class="content-section platform-content">
+              <div class="content-items">
+                <span v-for="item in technology.platform" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.stratification" class="tech-card">
-            <h3><i class="fas fa-layer-group"></i> Stratifikasi</h3>
-            <div class="tech-items">
-              <span class="tech-item">{{ technology.stratification }}</span>
+            <div v-if="technology.framework" class="content-section framework-content">
+              <div class="content-items">
+                <span v-for="item in technology.framework" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.os" class="tech-card">
-            <h3><i class="fas fa-desktop"></i> Operating System</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.os" :key="item" class="tech-item">{{ item }}</span>
+            <div v-if="technology.middleware" class="content-section middleware-content">
+              <div class="content-items">
+                <span v-for="item in technology.middleware" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.database" class="tech-card">
-            <h3><i class="fas fa-database"></i> Database</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.database" :key="item" class="tech-item">{{ item }}</span>
+            <div v-if="technology.third_party" class="content-section third-party-content">
+              <div class="content-items">
+                <span v-for="item in technology.third_party" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.language" class="tech-card">
-            <h3><i class="fas fa-code"></i> Programming Language</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.language" :key="item" class="tech-item">{{ item }}</span>
+            <div v-if="technology.language" class="content-section language-content">
+              <div class="content-items">
+                <span v-for="item in technology.language" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.drc" class="tech-card">
-            <h3><i class="fas fa-shield-alt"></i> DRC</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.drc" :key="item" class="tech-item">{{ item }}</span>
+            <div v-if="technology.database" class="content-section database-content">
+              <div class="content-items">
+                <span v-for="item in technology.database" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.failover" class="tech-card">
-            <h3><i class="fas fa-sync-alt"></i> Fail-Over</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.failover" :key="item" class="tech-item">{{ item }}</span>
+            <div v-if="technology.os" class="content-section os-content">
+              <div class="content-items">
+                <span v-for="item in technology.os" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
-          </div>
-
-          <div v-if="technology.third_party" class="tech-card">
-            <h3><i class="fas fa-plug"></i> Third Party</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.third_party" :key="item" class="tech-item">{{ item }}</span>
-            </div>
-          </div>
-
-          <div v-if="technology.middleware" class="tech-card">
-            <h3><i class="fas fa-exchange-alt"></i> Middleware</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.middleware" :key="item" class="tech-item">{{ item }}</span>
-            </div>
-          </div>
-
-          <div v-if="technology.framework" class="tech-card">
-            <h3><i class="fas fa-tools"></i> Framework</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.framework" :key="item" class="tech-item">{{ item }}</span>
-            </div>
-          </div>
-
-          <div v-if="technology.platform" class="tech-card">
-            <h3><i class="fas fa-cloud"></i> Platform</h3>
-            <div class="tech-items">
-              <span v-for="item in technology.platform" :key="item" class="tech-item">{{ item }}</span>
+            <div v-if="technology.vendor" class="content-section vendor-content">
+              <div class="content-items">
+                <span v-for="item in technology.vendor" :key="item" class="content-item">{{ item }}</span>
+              </div>
             </div>
           </div>
         </div>

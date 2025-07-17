@@ -5,6 +5,7 @@ use Inertia\Inertia;
 
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\AdminVueFlowController;
+use App\Http\Controllers\TechnologyController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -16,7 +17,7 @@ Route::get('dashboard', function () {
 
 Route::get('/', [AppController::class, 'index']);
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
-Route::get('/technology/{app_id}', [AppController::class, 'technology'])->name('technology');
+Route::get('/technology/{app_id}', [TechnologyController::class, 'show'])->name('technology');
 Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegrations'])
     ->name('stream.integrations');
 Route::get('/diagram/stream/{stream}', [AppController::class, 'vueFlowStreamIntegrations'])

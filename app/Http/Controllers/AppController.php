@@ -164,20 +164,6 @@ class AppController extends Controller
         ]);
     }
 
-    public function technology($appId): Response
-    {
-        $app = App::with(['stream', 'technology'])
-            ->findOrFail($appId);
-
-        return Inertia::render('Technology', [
-            'app' => $app,
-            'appDescription' => $app->description,
-            'technology' => $app->technology,
-            'appName' => $app->app_name,
-            'streamName' => $app->stream?->stream_name,
-        ]);
-    }
-
     public function vueFlowStreamIntegrations(string $streamName): Response
     {
         $allowedNames = ['ssk', 'moneter', 'mi', 'sp', 'market'];

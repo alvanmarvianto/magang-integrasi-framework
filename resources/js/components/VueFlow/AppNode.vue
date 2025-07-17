@@ -138,7 +138,7 @@ const nodeStyle = computed(() => {
 }
 
 .app-node:not(.admin-mode) {
-  cursor: pointer; /* Show pointer cursor for clickable behavior */
+  cursor: grab;
 }
 
 .app-node.admin-mode {
