@@ -49,12 +49,11 @@ class TechnologyController extends Controller
             ->where('technology_id', $technologyId)
             ->get(['name', 'version']);
 
-        return $results->map(function ($item) {
-            $display = $item->name;
-            if ($item->version) {
-                $display .= ' ' . $item->version;
-            }
-            return $display;
+        return $results->map(function (object $item) {
+            return [
+            'name' => $item->name,
+            'version' => $item->version,
+            ];
         })->toArray();
     }
 
