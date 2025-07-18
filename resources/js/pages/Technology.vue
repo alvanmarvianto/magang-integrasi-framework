@@ -77,46 +77,14 @@
 
           <!-- Right Side - Tech Content -->
           <div class="tech-content-area">
-            <div v-if="technology.platform" class="content-section platform-content">
-              <div class="content-items">
-                <span v-for="item in technology.platform" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.framework" class="content-section framework-content">
-              <div class="content-items">
-                <span v-for="item in technology.framework" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.middleware" class="content-section middleware-content">
-              <div class="content-items">
-                <span v-for="item in technology.middleware" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.third_party" class="content-section third-party-content">
-              <div class="content-items">
-                <span v-for="item in technology.third_party" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.language" class="content-section language-content">
-              <div class="content-items">
-                <span v-for="item in technology.language" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.database" class="content-section database-content">
-              <div class="content-items">
-                <span v-for="item in technology.database" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.os" class="content-section os-content">
-              <div class="content-items">
-                <span v-for="item in technology.os" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
-            <div v-if="technology.vendor" class="content-section vendor-content">
-              <div class="content-items">
-                <span v-for="item in technology.vendor" :key="item" class="content-item">{{ item }}</span>
-              </div>
-            </div>
+            <PlatformSection :technology="technology" />
+            <FrameworkSection :technology="technology" />
+            <MiddlewareSection :technology="technology" />
+            <ThirdPartySection :technology="technology" />
+            <LanguageSection :technology="technology" />
+            <DatabaseSection :technology="technology" />
+            <OSSection :technology="technology" />
+            <VendorSection :technology="technology" />
           </div>
         </div>
       </div>
@@ -125,8 +93,16 @@
 </template>
 
 <script setup lang="ts">
-// @ts-nocheck
+
 import { useSidebar } from '../composables/useSidebar';
+import PlatformSection from '../components/TechnologyApp/PlatformSection.vue';
+import FrameworkSection from '../components/TechnologyApp/FrameworkSection.vue';
+import MiddlewareSection from '../components/TechnologyApp/MiddlewareSection.vue';
+import ThirdPartySection from '../components/TechnologyApp/ThirdPartySection.vue';
+import LanguageSection from '../components/TechnologyApp/LanguageSection.vue';
+import DatabaseSection from '../components/TechnologyApp/DatabaseSection.vue';
+import OSSection from '../components/TechnologyApp/OSSection.vue';
+import VendorSection from '../components/TechnologyApp/VendorSection.vue';
 
 const props = defineProps<{
   app: any;
@@ -141,4 +117,8 @@ const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 
 <style scoped>
 @import '../../css/app.css';
+
+.content-item {
+  text-decoration: none !important;
+}
 </style>
