@@ -29,7 +29,6 @@ return new class extends Migration
                 'N/A'
             ]);
             $table->string('version')->nullable();
-            $table->timestamps();
 
             $table->foreign('technology_id')->references('technology_id')->on('technologies')->onDelete('cascade');
         });

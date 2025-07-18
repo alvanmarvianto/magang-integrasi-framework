@@ -23,7 +23,6 @@ return new class extends Migration
                 'Mobile based'
             ]);
             $table->string('version')->nullable();
-            $table->timestamps();
 
             $table->foreign('technology_id')->references('technology_id')->on('technologies')->onDelete('cascade');
         });

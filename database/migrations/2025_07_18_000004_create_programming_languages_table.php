@@ -22,7 +22,6 @@ return new class extends Migration
                 '.Net Programming Languages'
             ]);
             $table->string('version')->nullable();
-            $table->timestamps();
 
             $table->foreign('technology_id')->references('technology_id')->on('technologies')->onDelete('cascade');
         });
