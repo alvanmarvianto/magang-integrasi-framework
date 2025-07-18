@@ -57,4 +57,75 @@ class TechnologyController extends Controller
             return $display;
         })->toArray();
     }
+
+    public function getAppByVendor($vendorName)
+    {
+        return $this->getAppByCondition('technology_vendors', $vendorName);
+    }
+
+    public function getAppByOS($osName): array
+    {
+        return $this->getAppByCondition('technology_operating_systems', $osName);
+    }
+
+    public function getAppByDatabase($databaseName): array
+    {
+        return $this->getAppByCondition('technology_databases', $databaseName);
+    }
+
+    public function getAppByLanguage($languageName): array
+    {
+        return $this->getAppByCondition('technology_programming_languages', $languageName);
+    }
+
+    public function getAppByThirdParty($thirdPartyName): array
+    {
+        return $this->getAppByCondition('technology_third_parties', $thirdPartyName);
+    }
+
+    public function getAppByMiddleware($middlewareName): array
+    {
+        return $this->getAppByCondition('technology_middlewares', $middlewareName);
+    }
+
+    public function getAppByFramework($frameworkName): array
+    {
+        return $this->getAppByCondition('technology_frameworks', $frameworkName);
+    }
+
+    public function getAppByPlatform($platformName): array
+    {
+        return $this->getAppByCondition('technology_platforms', $platformName);
+    }
+
+    private function getAppByCondition(string $tableName, string $name): array
+    {
+        $technologies = Technology::whereIn('technology_id', function ($query) use ($tableName, $name) {
+            $query->select('technology_id')
+                ->from($tableName)
+                ->where('name', $name);
+            })
+            ->get();
+
+        $appIds = $technologies->pluck('app_id')->unique()->toArray();
+
+        $apps = App::whereIn('app_id', $appIds)
+            ->get();
+
+        return $apps->map(function ($app) use ($tableName) {
+            $technologyId = $app->technology?->technology_id ?? $app->technology_id;
+            $version = optional(
+                DB::table($tableName)
+                    ->where('technology_id', $technologyId)
+                    ->first()
+            )->version;
+
+            return [
+                'id' => $app->app_id,
+                'name' => $app->app_name,
+                'description' => $app->description,
+                'version' => $version
+            ];
+        })->toArray();
+    }
 }
