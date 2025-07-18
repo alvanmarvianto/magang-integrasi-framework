@@ -92,7 +92,7 @@
 
 :deep(.vue-flow__edge:hover .vue-flow__edge-path) {
   stroke: #3b82f6;
-  stroke-width: 3;
+  stroke-width: 2; /* Keep consistent stroke width on hover */
 }
 
 /* Animated edge styles */
@@ -107,10 +107,11 @@
   }
 }
 
-/* Selected edge styles */
+/* Animated edge styles */
 :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
-  stroke-width: 4 !important;
-  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+  stroke-dasharray: 5;
+  stroke-width: 4 !important; /* Keep consistent stroke width */
+  animation: dashdraw 0.5s linear infinite;
 }
 
 /* Controls Styling */

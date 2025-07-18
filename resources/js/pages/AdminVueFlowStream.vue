@@ -101,6 +101,18 @@ import { PanOnScrollMode } from '@vue-flow/core'
 import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
+import { useAutoSave } from '../composables/useAutoSave'
+import { useStatusMessage } from '../composables/useStatusMessage'
+import { useAdminEdgeHandling } from '../composables/useAdminEdgeHandling'
+import { 
+  removeDuplicateEdges,
+  getNodeColor,
+  getEdgeColor,
+  handleNodeDragStop,
+  fitView as sharedFitView,
+  initializeNodesWithLayout,
+  applyAutomaticLayoutWithConstraints
+} from '../composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
 
 // Props
@@ -122,16 +134,20 @@ const props = defineProps<Props>()
 const vueFlowRef = ref()
 const saving = ref(false)
 const selectedStream = ref(props.streamName)
-const statusMessage = ref('')
-const statusType = ref<'success' | 'error' | 'info'>('info')
-const autoSaveTimeout = ref<number | null>(null)
 
 // Reactive data
 const nodes = ref<Node[]>([])
 const edges = ref<Edge[]>([])
 const layoutChanged = ref(false)
 const vueFlowKey = ref(0) // Key to force VueFlow re-render
-const selectedEdgeId = ref<string | null>(null) // Track selected edge for animation
+// Use admin-specific edge handling
+const { selectedEdgeId, handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges } = useAdminEdgeHandling()
+
+// Use auto-save functionality
+const { autoSaveTimeout, scheduleAutoSave, clearAutoSave } = useAutoSave()
+
+// Use status messages
+const { statusMessage, statusType, showStatus } = useStatusMessage()
 
 // Track original layout for reset
 const originalLayout = ref<{
@@ -140,43 +156,9 @@ const originalLayout = ref<{
   stream_config?: Record<string, any>
 } | null>(null)
 
-// Debounced auto-save system
-const autoSaveTimeoutId = ref<number | null>(null)
-const lastChangeTime = ref<number>(0)
-
-function scheduleAutoSave() {
-  // Clear existing timeout
-  if (autoSaveTimeoutId.value) {
-    clearTimeout(autoSaveTimeoutId.value)
-  }
-  
-  // Update last change time
-  lastChangeTime.value = Date.now()
-  
-  // Set auto-save status indicator
-  autoSaveTimeout.value = 1 // Indicate auto-save is pending
-  
-  // Schedule auto-save after 5 seconds of inactivity
-  autoSaveTimeoutId.value = setTimeout(() => {
-    const timeSinceLastChange = Date.now() - lastChangeTime.value
-    if (timeSinceLastChange >= 5000 && layoutChanged.value) {
-      autoSaveLayout()
-    } else {
-      autoSaveTimeout.value = null // Clear auto-save indicator if not needed
-    }
-  }, 5000) as unknown as number
-}
-
 // Initialize layout
 onMounted(() => {
   initializeLayout()
-})
-
-// Cleanup on unmount
-onUnmounted(() => {
-  if (autoSaveTimeoutId.value) {
-    clearTimeout(autoSaveTimeoutId.value)
-  }
 })
 
 // Watch for stream changes
@@ -192,133 +174,31 @@ function initializeLayout() {
   // Check if we have saved layout data
   const hasSavedLayout = props.savedLayout?.nodes_layout && Object.keys(props.savedLayout.nodes_layout).length > 0
   
-  // Ensure no duplicate nodes
-  const uniqueNodes = props.nodes.reduce((acc, node) => {
-    if (!acc.find(n => n.id === node.id)) {
-      acc.push(node)
-    } else {
-      console.warn('Duplicate node found and removed:', node.id)
-    }
-    return acc
-  }, [] as Node[])
+  // Initialize nodes with shared function
+  nodes.value = initializeNodesWithLayout(
+    props.nodes,
+    props.savedLayout,
+    true // Admin mode
+  )
   
-  if (hasSavedLayout) {
-    // Initialize nodes with saved positions
-    nodes.value = uniqueNodes.map(node => {
-      const savedNode = props.savedLayout?.nodes_layout?.[node.id]
-      const nodeColors = getNodeColor(node.data.lingkup || '')
-      
-      return {
-        ...node,
-        type: node.data.is_parent_node ? 'stream' : 'app', // Use 'app' type for app nodes
-        position: savedNode?.position || { x: 0, y: 0 },
-        zIndex: node.data.is_parent_node ? -1 : 1, // Stream nodes always at bottom
-        style: node.data.is_parent_node ? {
-          ...savedNode?.style,
-          cursor: 'grab',
-          backgroundColor: 'rgba(59, 130, 246, 0.3)',
-          border: '2px solid #3b82f6',
-          borderRadius: '8px',
-        } : {
-          ...savedNode?.style,
-          cursor: 'grab',
-          width: 120,
-          height: 80, // Fixed height for better proportions
-          backgroundColor: nodeColors.background,
-          border: `2px solid ${nodeColors.border}`,
-          borderRadius: '8px',
-        },
-        draggable: true, // Enable dragging for all nodes in admin mode
-        selectable: true,
-        connectable: true, // Enable connection handles in admin mode
-        // No parent-child constraints - all app nodes are independent
-        ...(node.data.is_parent_node && savedNode?.dimensions && {
-          style: {
-            ...savedNode.style,
-            width: `${savedNode.dimensions.width}px`,
-            height: `${savedNode.dimensions.height}px`,
-            cursor: 'grab',
-            backgroundColor: 'rgba(59, 130, 246, 0.3)',
-            border: '2px solid #3b82f6',
-            borderRadius: '8px',
-          },
-          dimensions: savedNode.dimensions
-        })
-      }
-    })
-  } else {
-    // Auto-generate layout following VueFlowStreamIntegration pattern
-    // First initialize nodes array with basic structure using unique nodes
-    nodes.value = uniqueNodes.map(node => {
-      const nodeColors = getNodeColor(node.data.lingkup || '')
-      return {
-        ...node,
-        type: node.data.is_parent_node ? 'stream' : 'app', // Use 'app' type for app nodes
-        position: { x: 0, y: 0 },
-        zIndex: node.data.is_parent_node ? -1 : 1, // Stream nodes always at bottom
-        style: node.data.is_parent_node ? {
-          cursor: 'grab',
-          backgroundColor: 'rgba(59, 130, 246, 0.3)',
-          border: '2px solid #3b82f6',
-          borderRadius: '8px',
-        } : {
-          cursor: 'grab',
-          width: 120,
-          height: 80, // Fixed height for better proportions
-          backgroundColor: nodeColors.background,
-          border: `2px solid ${nodeColors.border}`,
-          borderRadius: '8px',
-        },
-        draggable: true, // Enable dragging for all nodes in admin mode
-        selectable: true,
-        connectable: true, // Enable connection handles in admin mode
-        // No parent-child constraints - all app nodes are independent
-      }
-    })
-    
-    applyAutomaticLayoutWithConstraints()
+  // Apply automatic layout if no saved layout
+  if (!hasSavedLayout) {
+    applyAutomaticLayoutWithConstraints(nodes.value)
   }
   
-  // Initialize edges with duplicate removal and smoothstep styling
-  let edgesData = props.edges
-  
-  // Check if we have saved edge layout with handle information
-  if (props.savedLayout?.edges_layout && props.savedLayout.edges_layout.length > 0) {
-    console.log('Loading saved edges layout:', props.savedLayout.edges_layout)
-    // Use saved edges layout which includes handle information
-    edgesData = props.savedLayout.edges_layout
-  }
-  
-  edges.value = removeDuplicateEdges(edgesData).map(edge => {
-    const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct')
-    const isSelected = selectedEdgeId.value === edge.id
-    
-    return {
-      ...edge,
-      type: 'smoothstep', // Use smoothstep edges for admin page
-      updatable: true, // Make edges updatable in admin mode
-      animated: isSelected, // Animate if selected
-      style: {
-        stroke: edgeColor,
-        strokeWidth: isSelected ? 4 : 2, // Bold if selected
-        ...(edge.style || {})
-      },
-      markerEnd: {
-        type: 'arrowclosed',
-        color: edgeColor,
-      } as any,
-      // Preserve saved handle information
-      sourceHandle: edge.sourceHandle || undefined,
-      targetHandle: edge.targetHandle || undefined,
-    }
-  })
+  // Initialize edges with admin-specific function
+  edges.value = initializeAdminEdges(
+    props.edges,
+    props.savedLayout,
+    removeDuplicateEdges
+  )
 
   // Apply layout and auto-save if needed
   setTimeout(() => {
     if (!hasSavedLayout && nodes.value.length > 0) {
       // Schedule auto-save for generated layout (immediate, but still debounced)
       markLayoutChanged()
-      scheduleAutoSave()
+      scheduleAutoSave(autoSaveLayout)
     }
     fitView()
   }, 100)
@@ -328,160 +208,15 @@ function initializeLayout() {
   autoSaveTimeout.value = null
 }
 
-function applyAutomaticLayoutWithConstraints() {
-  // Layout constants from VueFlowStreamIntegration
-  const STREAM_PADDING = 20
-  const STREAM_MIN_WIDTH = 300
-  const STREAM_MIN_HEIGHT = 200
-  const NODE_WIDTH = 120
-  const NODE_HEIGHT = 80 // Updated to match new node height
-  const NODES_PER_ROW = 2
-  const NODE_SPACING_X = 150
-  const NODE_SPACING_Y = 110 // Increased spacing for taller nodes
-
-  // Separate nodes by type - use the unique nodes we've already filtered
-  const currentNodes = nodes.value
-  const streamNode = currentNodes.find(n => n.data.is_parent_node)
-  const homeStreamNodes = currentNodes.filter(n => n.data.is_home_stream && !n.data.is_parent_node)
-  const externalNodes = currentNodes.filter(n => !n.data.is_home_stream && !n.data.is_parent_node)
-
-  // Calculate stream dimensions based on content
-  const nodeCount = homeStreamNodes.length
-  const rows = Math.ceil(nodeCount / NODES_PER_ROW)
-  const cols = Math.min(nodeCount, NODES_PER_ROW)
-  
-  const contentWidth = cols * NODE_WIDTH + (cols - 1) * (NODE_SPACING_X - NODE_WIDTH)
-  const contentHeight = rows * NODE_HEIGHT + (rows - 1) * (NODE_SPACING_Y - NODE_HEIGHT)
-  
-  const streamWidth = Math.max(STREAM_MIN_WIDTH, contentWidth + 2 * STREAM_PADDING)
-  const streamHeight = Math.max(STREAM_MIN_HEIGHT, contentHeight + 2 * STREAM_PADDING + 40) // +40 for title
-
-  // Position stream parent node - MATCH USER PAGE EXACTLY
-  if (streamNode) {
-    const groupX = 150
-    const groupY = 150
-    
-    const updatedStreamNode = nodes.value.find(n => n.id === streamNode.id)
-    if (updatedStreamNode) {
-      updatedStreamNode.position = { x: groupX, y: groupY }
-      updatedStreamNode.style = {
-        backgroundColor: 'rgba(59, 130, 246, 0.3)',
-        width: `${streamWidth}px`,
-        height: `${streamHeight}px`,
-        border: '2px solid #3b82f6',
-        borderRadius: '8px'
-      }
-      // Add dimensions property for proper resize tracking
-      updatedStreamNode.dimensions = {
-        width: streamWidth,
-        height: streamHeight
-      }
-    }
-  }
-
-  // Position home stream nodes as independent nodes (no parent-child relationship)
-  homeStreamNodes.forEach((node, nodeIndex) => {
-    const updatedNode = nodes.value.find(n => n.id === node.id)
-    if (updatedNode) {
-      const row = Math.floor(nodeIndex / NODES_PER_ROW)
-      const col = nodeIndex % NODES_PER_ROW
-      
-      // Position near the stream but as independent nodes
-      const nodeX = 150 + STREAM_PADDING + col * NODE_SPACING_X
-      const nodeY = 150 + STREAM_PADDING + 40 + row * NODE_SPACING_Y // +40 for title
-      
-      updatedNode.position = { x: nodeX, y: nodeY }
-      // Remove parent-child relationship
-      updatedNode.parentNode = undefined
-      updatedNode.extent = undefined
-    }
-  })
-
-  // Position external nodes around the stream - MATCH USER PAGE EXACTLY
-  externalNodes.forEach((node, index) => {
-    const updatedNode = nodes.value.find(n => n.id === node.id)
-    if (updatedNode) {
-      let nodeX, nodeY
-      
-      // Position external nodes around the parent - EXACT SAME LOGIC AS USER PAGE
-      if (index < 3) {
-        // Top side
-        nodeX = 150 - 200 + (index * 200)
-        nodeY = 150 - 80
-      } else if (index < 6) {
-        // Right side
-        nodeX = 150 + streamWidth + 50
-        nodeY = 150 + (index - 3) * 100
-      } else if (index < 9) {
-        // Bottom side
-        nodeX = 150 - 200 + ((index - 6) * 200)
-        nodeY = 150 + streamHeight + 50
-      } else {
-        // Left side
-        nodeX = 150 - 150
-        nodeY = 150 + (index - 9) * 100
-      }
-      
-      updatedNode.position = { x: nodeX, y: nodeY }
-      updatedNode.parentNode = undefined
-      updatedNode.extent = undefined
-    }
-  })
-}
-
 function applyAutomaticLayout() {
-  // Legacy fallback - use the constraint-based layout
-  applyAutomaticLayoutWithConstraints()
+  // Use the shared layout function
+  applyAutomaticLayoutWithConstraints(nodes.value)
 }
 
 function fitView() {
   if (vueFlowRef.value) {
     vueFlowRef.value.fitView({ padding: 50 })
   }
-}
-
-// Remove duplicate edges between the same pair of nodes (matching user page logic)
-function removeDuplicateEdges(inputEdges: Edge[]): Edge[] {
-  const connectionMap = new Map<string, Edge>()
-  
-  inputEdges.forEach(edge => {
-    // Create a unique key for each connection pair (bidirectional)
-    const key1 = `${edge.source}-${edge.target}`
-    const key2 = `${edge.target}-${edge.source}`
-    
-    // Check if we already have a connection between these nodes
-    if (!connectionMap.has(key1) && !connectionMap.has(key2)) {
-      connectionMap.set(key1, edge)
-    }
-  })
-  
-  return Array.from(connectionMap.values())
-}
-
-function getNodeColor(lingkup: string): { background: string; border: string } {
-  const colorMap: { [key: string]: { background: string; border: string } } = {
-    'sp': { background: '#f5f5f5', border: '#000000' },
-    'mi': { background: '#fff5f5', border: '#ff0000' },
-    'ssk': { background: '#fffef0', border: '#fbff00' },
-    'ssk-mon': { background: '#fffef0', border: '#fbff00' },
-    'moneter': { background: '#fffef0', border: '#fbff00' },
-    'market': { background: '#fdf4ff', border: '#dd00ff' },
-    'internal bi': { background: '#f0fff4', border: '#00ff48' },
-    'external bi': { background: '#eff6ff', border: '#0a74da' },
-    'middleware': { background: '#f0fffe', border: '#00ddff' },
-  }
-  
-  return colorMap[lingkup] || { background: '#ffffff', border: '#6b7280' }
-}
-
-function getEdgeColor(type: string): string {
-  const colorMap: { [key: string]: string } = {
-    'direct': '#000000',
-    'soa': '#02a330', 
-    'sftp': '#002ac0',
-  }
-  
-  return colorMap[type] || '#6b7280'
 }
 
 function validateConnection(connection: any) {
@@ -510,7 +245,7 @@ function onNodeDragStop(event: any) {
   }
   
   markLayoutChanged()
-  scheduleAutoSave() // Schedule debounced auto-save
+  scheduleAutoSave(autoSaveLayout) // Schedule debounced auto-save
 }
 
 function onEdgeUpdate(params: any, newConnection?: any) {
@@ -608,7 +343,7 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     edges.value = newEdges
     
     // Apply proper styling
-    updateEdgeStyles()
+    edges.value = updateAdminEdgeStyles(edges.value)
     
     // Force VueFlow to re-render the edge with new handle positions
     nextTick(() => {
@@ -633,7 +368,7 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     })
     
     markLayoutChanged()
-    scheduleAutoSave()
+    scheduleAutoSave(autoSaveLayout)
   } else {
     console.error('Edge not found for update:', oldEdge.id)
     showStatus('Gagal memperbarui koneksi', 'error')
@@ -669,61 +404,18 @@ function onEdgeUpdateEnd(event: any) {
 }
 
 function onEdgeClick(event: any) {
-  // Handle edge click to toggle animation and bold style
   const clickedEdgeId = event.edge?.id
   if (!clickedEdgeId) {
     return
   }
   
-  
-  // Toggle selection: if already selected, deselect it
-  if (selectedEdgeId.value === clickedEdgeId) {
-    selectedEdgeId.value = null
-  } else {
-    selectedEdgeId.value = clickedEdgeId
-  }
-  
-  // Update the edge styles
-  updateEdgeStyles()
-}
-
-function updateEdgeStyles() {
-  // Update all edges with appropriate styles based on selection
-  const newEdges = edges.value.map(edge => {
-    const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct')
-    const isSelected = selectedEdgeId.value === edge.id
-    
-    return {
-      ...edge,
-      type: 'smoothstep',
-      updatable: true,
-      animated: isSelected, // Animate if selected
-      style: {
-        ...edge.style,
-        stroke: edgeColor,
-        strokeWidth: isSelected ? 4 : 2, // Bold if selected
-        strokeDasharray: isSelected ? undefined : edge.style?.strokeDasharray, // Remove any dash pattern when selected
-      },
-      markerEnd: {
-        type: 'arrowclosed',
-        color: edgeColor,
-      } as any,
-    }
-  })
-  
-  // Update edges array to trigger reactivity
-  edges.value = newEdges
-  
-  console.log('Edge styles updated. Selected edge:', selectedEdgeId.value)
+  handleEdgeClick(clickedEdgeId)
+  edges.value = updateAdminEdgeStyles(edges.value)
 }
 
 function onPaneClick(event: any) {
-  // Deselect any selected edge when clicking on empty space
-  if (selectedEdgeId.value) {
-    console.log('Pane clicked, deselecting edge:', selectedEdgeId.value)
-    selectedEdgeId.value = null
-    updateEdgeStyles()
-  }
+  handlePaneClick()
+  edges.value = updateAdminEdgeStyles(edges.value)
 }
 
 function onNodesChange(changes: any[]) {
@@ -784,20 +476,12 @@ function onEdgesChange(changes: any[]) {
   // Mark layout as changed if there are actual changes
   if (changes.length > 0) {
     markLayoutChanged()
-    scheduleAutoSave()
+    scheduleAutoSave(autoSaveLayout)
   }
 }
 
 function markLayoutChanged() {
   layoutChanged.value = true
-}
-
-function showStatus(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  statusMessage.value = message
-  statusType.value = type
-  setTimeout(() => {
-    statusMessage.value = ''
-  }, 3000)
 }
 
 async function saveLayout() {
@@ -969,7 +653,7 @@ function resetLayout() {
     showStatus('Layout kembali ke semula', 'info')
   } else {
     // Reset to automatic layout with constraints
-    applyAutomaticLayoutWithConstraints()
+    applyAutomaticLayoutWithConstraints(nodes.value)
     fitView()
     showStatus('Layout kembali ke default', 'info')
     markLayoutChanged() // Mark as changed so user can save the new layout
@@ -1012,7 +696,7 @@ function onStreamResize(event: { width: number, height: number }) {
     nodes.value.splice(streamNodeIndex, 1, updatedNode)
     
     markLayoutChanged()
-    scheduleAutoSave()
+    scheduleAutoSave(autoSaveLayout)
   } else {
     console.warn('Stream node not found for resize')
   }
@@ -1128,15 +812,7 @@ function onStreamResize(event: { width: number, height: number }) {
   background: #f8fafc;
 }
 
-/* Custom Node Styles - White boxes with colored borders (matching user page) */
-:deep(.vue-flow__node) {
-  font-family: inherit;
-  will-change: transform;
-}
-
-:deep(.vue-flow__node.dragging) {
-  transition: none !important;
-}
+/* Admin-specific Node Styles */
 
 /* Stream parent node specific styles */
 :deep(.vue-flow__node-streamParent) {
@@ -1148,32 +824,13 @@ function onStreamResize(event: { width: number, height: number }) {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Stream node styles - same as streamParent */
-:deep(.vue-flow__node-stream) {
-  cursor: move !important;
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-}
-
-:deep(.vue-flow__node-stream.dragging) {
-  transition: none !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
 :deep(.vue-flow__node-default) {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
 }
 
-:deep(.vue-flow__node-app) {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-/* Custom node styling (matching user page) */
+/* Admin-specific custom node styling */
 :deep(.vue-flow__node-custom) {
   background: white !important;
   border-radius: 6px !important;
@@ -1194,53 +851,6 @@ function onStreamResize(event: { width: number, height: number }) {
 
 :deep(.vue-flow__node-custom:hover) {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* Edge Styles (matching user page) */
-:deep(.vue-flow__edge-path) {
-  stroke: #6b7280;
-  stroke-width: 2;
-  transition: stroke-width 0.2s ease;
-}
-
-:deep(.vue-flow__edge:hover .vue-flow__edge-path) {
-  stroke: #3b82f6;
-  stroke-width: 3;
-}
-
-/* Animated edge styles */
-:deep(.vue-flow__edge.animated .vue-flow__edge-path) {
-  stroke-dasharray: 5;
-  animation: dashdraw 0.5s linear infinite;
-}
-
-@keyframes dashdraw {
-  to {
-    stroke-dashoffset: -10;
-  }
-}
-
-/* Selected edge styles */
-:deep(.vue-flow__edge.selected .vue-flow__edge-path) {
-  stroke-width: 4 !important;
-  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
-}
-
-/* Controls Styling (matching user page) */
-:deep(.vue-flow__controls) {
-  background-color: white;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-
-:deep(.vue-flow__controls-button) {
-  border: none;
-  background-color: transparent;
-}
-
-:deep(.vue-flow__controls-button:hover) {
-  background-color: #f3f4f6;
 }
 
 .status-message {
@@ -1339,4 +949,8 @@ function onStreamResize(event: { width: number, height: number }) {
 .indicator-dot.connection-dot {
   background: #7c3aed;
 }
+</style>
+
+<style>
+@import '../../css/vue-flow-integration.css';
 </style>
