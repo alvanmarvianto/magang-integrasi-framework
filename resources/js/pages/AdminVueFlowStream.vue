@@ -106,12 +106,10 @@ import { useStatusMessage } from '../composables/useStatusMessage'
 import { useAdminEdgeHandling } from '../composables/useAdminEdgeHandling'
 import { 
   removeDuplicateEdges,
-  getNodeColor,
-  getEdgeColor,
-  handleNodeDragStop,
   fitView as sharedFitView,
   initializeNodesWithLayout,
-  applyAutomaticLayoutWithConstraints
+  applyAutomaticLayoutWithConstraints,
+  validateAndCleanNodes
 } from '../composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
 
@@ -170,13 +168,14 @@ watch(() => props.streamName, () => {
 function initializeLayout() {
   // Store original layout
   originalLayout.value = props.savedLayout ? JSON.parse(JSON.stringify(props.savedLayout)) : null
+  const cleanedNodes = validateAndCleanNodes(props.nodes);
   
   // Check if we have saved layout data
   const hasSavedLayout = props.savedLayout?.nodes_layout && Object.keys(props.savedLayout.nodes_layout).length > 0
   
   // Initialize nodes with shared function
   nodes.value = initializeNodesWithLayout(
-    props.nodes,
+    cleanedNodes,
     props.savedLayout,
     true // Admin mode
   )
@@ -205,12 +204,7 @@ function initializeLayout() {
   
   // Reset status indicators
   layoutChanged.value = false
-  autoSaveTimeout.value = null
-}
-
-function applyAutomaticLayout() {
-  // Use the shared layout function
-  applyAutomaticLayoutWithConstraints(nodes.value)
+  autoSaveTimeout.value = 0
 }
 
 function fitView() {
@@ -337,14 +331,15 @@ function onEdgeUpdate(params: any, newConnection?: any) {
       targetHandle: connection.targetHandle || oldEdge.targetHandle,
     }
 
-    // Force reactivity by creating a new array reference
+    // Move the updated edge to the end of the array (VueFlow renders later edges on top)
     const newEdges = [...edges.value]
-    newEdges[edgeIndex] = updatedEdge
+    newEdges.splice(edgeIndex, 1) // Remove the old edge
+    newEdges.push(updatedEdge) // Add updated edge to the end
     edges.value = newEdges
-    
+
     // Apply proper styling
     edges.value = updateAdminEdgeStyles(edges.value)
-    
+
     // Force VueFlow to re-render the edge with new handle positions
     nextTick(() => {
       if (vueFlowRef.value) {
@@ -356,8 +351,8 @@ function onEdgeUpdate(params: any, newConnection?: any) {
         }
       }
     })
-    
-    console.log('Edge handle positions updated successfully:', {
+
+    console.log('Edge handle positions updated successfully and moved to top:', {
       edgeId: edgeId,
       sourceNode: connection.source,
       targetNode: connection.target,
@@ -366,7 +361,7 @@ function onEdgeUpdate(params: any, newConnection?: any) {
       oldTargetHandle: oldEdge.targetHandle || 'default',
       newTargetHandle: connection.targetHandle || 'default'
     })
-    
+
     markLayoutChanged()
     scheduleAutoSave(autoSaveLayout)
   } else {
@@ -776,33 +771,6 @@ function onStreamResize(event: { width: number, height: number }) {
   background: #4b5563;
 }
 
-.admin-instructions {
-  background: #f0f9ff;
-  border-left: 4px solid #0284c7;
-  padding: 0.75rem 2rem;
-  margin: 0;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.admin-instructions p {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #0c4a6e;
-}
-
-.instructions {
-  background: #e0f2fe;
-  border-left: 4px solid #0284c7;
-  padding: 1rem 2rem;
-  margin: 0;
-}
-
-.instructions p {
-  margin: 0.25rem 0;
-  font-size: 0.875rem;
-  color: #0c4a6e;
-}
-
 .vue-flow-wrapper {
   flex: 1;
   position: relative;
@@ -812,47 +780,10 @@ function onStreamResize(event: { width: number, height: number }) {
   background: #f8fafc;
 }
 
-/* Admin-specific Node Styles */
-
 /* Stream parent node specific styles */
 :deep(.vue-flow__node-streamParent) {
   cursor: move !important;
 }
-
-:deep(.vue-flow__node-streamParent.dragging) {
-  transition: none !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-}
-
-:deep(.vue-flow__node-default) {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-/* Admin-specific custom node styling */
-:deep(.vue-flow__node-custom) {
-  background: white !important;
-  border-radius: 6px !important;
-  padding: 8px 12px !important;
-  min-width: 120px !important;
-  min-height: 40px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  color: #1c1c1e !important;
-  cursor: pointer !important;
-  transition: box-shadow 0.15s ease !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-:deep(.vue-flow__node-custom:hover) {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-}
-
 .status-message {
   position: fixed;
   bottom: 2rem;
@@ -951,6 +882,6 @@ function onStreamResize(event: { width: number, height: number }) {
 }
 </style>
 
-<style>
+<style scoped>
 @import '../../css/vue-flow-integration.css';
 </style>

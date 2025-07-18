@@ -13,28 +13,28 @@
       id="top-source"
       type="source"
       :position="Position.Top"
-      class="custom-handle handle-source"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
       id="right-source"
       type="source"
       :position="Position.Right"
-      class="custom-handle handle-source"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
       id="bottom-source"
       type="source"
       :position="Position.Bottom"
-      class="custom-handle handle-source"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
       id="left-source"
       type="source"
       :position="Position.Left"
-      class="custom-handle handle-source"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     
@@ -43,28 +43,28 @@
       id="top-target"
       type="target"
       :position="Position.Top"
-      class="custom-handle handle-target"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
       id="right-target"
       type="target"
       :position="Position.Right"
-      class="custom-handle handle-target"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
       id="bottom-target"
       type="target"
       :position="Position.Bottom"
-      class="custom-handle handle-target"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     <Handle
       id="left-target"
       type="target"
       :position="Position.Left"
-      class="custom-handle handle-target"
+      class="custom-handle"
       :class="{ 'user-mode-hidden': !adminMode }"
     />
     
@@ -215,7 +215,7 @@ const nodeStyle = computed(() => {
   height: 8px;
   border-radius: 50%;
   border: 2px solid white;
-  background: #6b7280;
+  background: #3b82f6;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -236,16 +236,8 @@ const nodeStyle = computed(() => {
   opacity: 0 !important;
 }
 
-.handle-source {
-  background: #10b981;
-}
-
-.handle-target {
-  background: #3b82f6;
-}
-
 .custom-handle:hover {
-  transform: scale(1.2);
+  background: #10b981;
 }
 
 /* Different styles for home vs external stream apps */

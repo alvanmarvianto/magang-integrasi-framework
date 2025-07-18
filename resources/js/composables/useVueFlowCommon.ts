@@ -19,7 +19,7 @@ export const LAYOUT_CONSTANTS = {
 } as const;
 
 // Color schemes
-const ADMIN_NODE_COLORS: { [key: string]: { background: string; border: string } } = {
+const NODE_COLORS: { [key: string]: { background: string; border: string } } = {
   'sp': { background: '#f5f5f5', border: '#000000' },
   'mi': { background: '#fff5f5', border: '#ff0000' },
   'ssk': { background: '#fffef0', border: '#fbff00' },
@@ -29,17 +29,6 @@ const ADMIN_NODE_COLORS: { [key: string]: { background: string; border: string }
   'internal bi': { background: '#f0fff4', border: '#00ff48' },
   'external bi': { background: '#eff6ff', border: '#0a74da' },
   'middleware': { background: '#f0fffe', border: '#00ddff' },
-};
-
-const USER_NODE_COLORS: { [key: string]: { background: string; border: string } } = {
-  'sp': { background: '#fef3c7', border: '#f59e0b' },
-  'mi': { background: '#dbeafe', border: '#3b82f6' },
-  'ssk': { background: '#f3e8ff', border: '#8b5cf6' },
-  'moneter': { background: '#f3e8ff', border: '#8b5cf6' },
-  'market': { background: '#dcfce7', border: '#10b981' },
-  'internal': { background: '#fee2e2', border: '#ef4444' },
-  'external': { background: '#f1f5f9', border: '#64748b' },
-  'middleware': { background: '#fff7ed', border: '#ea580c' },
 };
 
 const EDGE_COLORS: { [key: string]: string } = {
@@ -52,7 +41,7 @@ const EDGE_COLORS: { [key: string]: string } = {
  * Get node color based on lingkup/stream
  */
 export function getNodeColor(lingkup: string, isAdminMode: boolean = false): { background: string; border: string } {
-  const colorMap = isAdminMode ? ADMIN_NODE_COLORS : USER_NODE_COLORS;
+  const colorMap = NODE_COLORS;
   return colorMap[lingkup] || { background: '#ffffff', border: '#6b7280' };
 }
 
@@ -68,16 +57,23 @@ export function getEdgeColor(type: string, isAdminMode: boolean = false): string
  * Remove duplicate edges between the same pair of nodes
  */
 export function removeDuplicateEdges(inputEdges: Edge[]): Edge[] {
+  // Map to keep only one edge per source-target pair, but if an edge is updated (appears later), it will be placed at the top
   const connectionMap = new Map<string, Edge>();
-  
+  const order: string[] = [];
+
   inputEdges.forEach(edge => {
     const connectionKey = `${edge.source}-${edge.target}`;
-    if (!connectionMap.has(connectionKey)) {
-      connectionMap.set(connectionKey, edge);
+    // If already exists, remove from order (so the latest will be at the top)
+    if (connectionMap.has(connectionKey)) {
+      const idx = order.indexOf(connectionKey);
+      if (idx !== -1) order.splice(idx, 1);
     }
+    connectionMap.set(connectionKey, edge);
+    order.unshift(connectionKey); // Always put the latest at the front
   });
-  
-  return Array.from(connectionMap.values());
+
+  // Return edges in the order of most recently updated first
+  return order.map(key => connectionMap.get(key)!);
 }
 
 /**
