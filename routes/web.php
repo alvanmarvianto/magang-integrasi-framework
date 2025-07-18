@@ -30,7 +30,7 @@ Route::prefix('technology')->group(function () {
     Route::get('/third-party/{third_party_name}', [TechnologyController::class, 'getAppByThirdParty'])->name('technology.third_party');
     Route::get('/middleware/{middleware_name}', [TechnologyController::class, 'getAppByMiddleware'])->name('technology.middleware');
     Route::get('/framework/{framework_name}', [TechnologyController::class, 'getAppByFramework'])->name('technology.framework');
-    Route::get('/platfrom/{platform_name}', [TechnologyController::class, 'getAppByPlatform'])->name('technology.platform');
+    Route::get('/platform/{platform_name}', [TechnologyController::class, 'getAppByPlatform'])->name('technology.platform');
     Route::get('/{app_id}', [TechnologyController::class, 'show'])->name('technology.app');
 });
 
