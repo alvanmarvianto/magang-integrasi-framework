@@ -139,10 +139,10 @@ const edges = ref<Edge[]>([])
 const layoutChanged = ref(false)
 const vueFlowKey = ref(0) // Key to force VueFlow re-render
 // Use admin-specific edge handling
-const { selectedEdgeId, handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges } = useAdminEdgeHandling()
+const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges } = useAdminEdgeHandling()
 
 // Use auto-save functionality
-const { autoSaveTimeout, scheduleAutoSave, clearAutoSave } = useAutoSave()
+const { autoSaveTimeout, scheduleAutoSave} = useAutoSave()
 
 // Use status messages
 const { statusMessage, statusType, showStatus } = useStatusMessage()
