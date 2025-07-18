@@ -25,6 +25,13 @@ class Middleware extends Model
     protected $primaryKey = 'middleware_id';
 
     /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
