@@ -24,11 +24,17 @@ class AdminController extends Controller
         $this->diagramController = $diagramController;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $apps = App::with('stream')
-            ->orderBy('app_name')
-            ->paginate(10);
+        $query = App::with('stream')->orderBy('app_name');
+
+        // Apply search filter if provided
+        if ($request->has('search')) {
+            $searchTerm = $request->get('search');
+            $query->where('app_name', 'like', '%' . $searchTerm . '%');
+        }
+
+        $apps = $query->paginate(10);
 
         return Inertia::render('Admin/Index', [
             'apps' => $apps,

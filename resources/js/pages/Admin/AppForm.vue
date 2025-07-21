@@ -1,20 +1,20 @@
 <template>
   <div class="admin-container">
     <div class="admin-header">
-      <h1 class="admin-title">{{ app ? 'Edit' : 'Create' }} Application</h1>
+      <h1 class="admin-title">{{ app ? 'Edit' : 'Buat' }} Aplikasi</h1>
       <a href="/admin/apps" class="admin-action-button">
-        Back to List
+        Kembali
       </a>
     </div>
 
     <form @submit.prevent="submit" class="admin-form">
       <!-- Basic Information -->
       <div class="admin-form-section">
-        <h2 class="admin-form-title">Basic Information</h2>
+        <h2 class="admin-form-title">Informasi Dasar</h2>
         
         <div class="admin-form-grid">
           <div class="admin-form-field">
-            <label for="app_name" class="admin-form-label">Application Name</label>
+            <label for="app_name" class="admin-form-label">Nama Aplikasi</label>
             <input
               id="app_name"
               v-model="form.app_name"
@@ -32,45 +32,15 @@
               class="admin-form-select"
               required
             >
-              <option value="">Select Stream</option>
+              <option value="">Pilih Stream</option>
               <option v-for="stream in streams" :key="stream.stream_id" :value="stream.stream_id">
                 {{ stream.stream_name }}
               </option>
             </select>
           </div>
 
-          <div class="admin-form-field">
-            <label for="app_type" class="admin-form-label">Application Type</label>
-            <select
-              id="app_type"
-              v-model="form.app_type"
-              class="admin-form-select"
-              required
-            >
-              <option value="">Select Type</option>
-              <option v-for="type in appTypes" :key="type" :value="type">
-                {{ type }}
-              </option>
-            </select>
-          </div>
-
-          <div class="admin-form-field">
-            <label for="stratification" class="admin-form-label">Stratification</label>
-            <select
-              id="stratification"
-              v-model="form.stratification"
-              class="admin-form-select"
-              required
-            >
-              <option value="">Select Stratification</option>
-              <option v-for="strat in stratifications" :key="strat" :value="strat">
-                {{ strat }}
-              </option>
-            </select>
-          </div>
-
           <div class="col-span-2">
-            <label for="description" class="admin-form-label">Description</label>
+            <label for="description" class="admin-form-label">Deskripsi</label>
             <textarea
               id="description"
               v-model="form.description"
@@ -83,10 +53,42 @@
 
       <!-- Technology Components -->
       <div class="admin-form-section">
-        <h2 class="admin-form-title">Technology Components</h2>
+        <h2 class="admin-form-title">Informasi Detail</h2>
+
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label for="app_type" class="admin-form-label">Tipe Aplikasi</label>
+            <select
+              id="app_type"
+              v-model="form.app_type"
+              class="admin-form-select"
+              required
+            >
+              <option value="">Pilih Tipe</option>
+              <option v-for="type in appTypes" :key="type" :value="type">
+                {{ type }}
+              </option>
+            </select>
+          </div>
+
+          <div class="admin-form-field">
+            <label for="stratification" class="admin-form-label">Stratifikasi</label>
+            <select
+              id="stratification"
+              v-model="form.stratification"
+              class="admin-form-select"
+              required
+            >
+              <option value="">Pilih Stratifikasi</option>
+              <option v-for="strat in stratifications" :key="strat" :value="strat">
+                {{ strat }}
+              </option>
+            </select>
+          </div>
+        </div>
 
         <TechnologySection
-          title="Vendors"
+          title="Vendor"
           :items="form.vendors"
           :available-items="vendors"
           @add="addItem('vendors')"
@@ -152,7 +154,7 @@
 
       <div class="flex justify-end">
         <button type="submit" class="admin-form-submit">
-          {{ app ? 'Update' : 'Create' }} Application
+          {{ app ? 'Update' : 'Buat' }} Aplikasi
         </button>
       </div>
     </form>

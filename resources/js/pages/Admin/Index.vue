@@ -1,43 +1,62 @@
 <template>
   <div class="admin-container">
     <div class="admin-header">
-      <h1 class="admin-title">Application Management</h1>
-      <a href="/admin/apps/create" class="admin-action-button">
-        <font-awesome-icon icon="fa-solid fa-plus" />
-        Add New Application
-      </a>
+      <h1 class="admin-title">Manajemen Aplikasi</h1>
+      <div class="admin-controls">
+        <div class="search-container">
+          <input 
+            type="text" 
+            v-model="searchQuery" 
+            placeholder="Cari aplikasi..." 
+            class="search-input"
+            @input="handleSearch"
+          />
+        </div>
+        <a href="/admin/apps/create" class="admin-action-button">
+          <font-awesome-icon icon="fa-solid fa-plus" />
+          Tambah Aplikasi Baru
+        </a>
+      </div>
     </div>
 
     <div class="admin-table-container">
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Stream</th>
-            <th>Type</th>
-            <th>Stratification</th>
-            <th class="text-center">Actions</th>
+            <th @click="toggleSort('name')" class="sortable" :class="{ 'sorted': sortBy === 'name' }">
+              Nama
+              <font-awesome-icon 
+                :icon="getSortIcon('name')" 
+                class="sort-icon"
+              />
+            </th>
+            <th @click="toggleSort('stream')" class="sortable" :class="{ 'sorted': sortBy === 'stream' }">
+              Stream
+              <font-awesome-icon 
+                :icon="getSortIcon('stream')" 
+                class="sort-icon"
+              />
+            </th>
+            <th class="text-center">Aksi</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="app in apps.data" :key="app.app_id">
+          <tr v-for="app in sortedAndFilteredApps" :key="app.app_id">
             <td>{{ app.app_name }}</td>
             <td>{{ app.stream?.stream_name }}</td>
-            <td class="capitalize">{{ app.app_type }}</td>
-            <td class="capitalize">{{ app.stratification }}</td>
             <td>
               <div class="flex justify-center gap-2">
                 <a 
                   :href="`/admin/apps/${app.app_id}/edit`" 
                   class="action-button edit-button"
-                  title="Edit Application"
+                  title="Edit Aplikasi"
                 >
                   <font-awesome-icon icon="fa-solid fa-pencil" />
                 </a>
                 <button 
                   @click="deleteApp(app.app_id)" 
                   class="action-button delete-button"
-                  title="Delete Application"
+                  title="Hapus Aplikasi"
                 >
                   <font-awesome-icon icon="fa-solid fa-trash" />
                 </button>
@@ -65,13 +84,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 interface App {
   app_id: number;
   app_name: string;
-  app_type: string;
-  stratification: string;
   stream?: {
     stream_name: string;
   };
@@ -91,9 +109,64 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const searchQuery = ref('');
+const sortBy = ref('name'); // Default sort by name
+const sortDesc = ref(false);
+
+const sortedAndFilteredApps = computed(() => {
+  let filteredApps = props.apps.data;
+  
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filteredApps = filteredApps.filter(app => 
+      app.app_name.toLowerCase().includes(query)
+    );
+  }
+
+  // Apply sorting
+  return [...filteredApps].sort((a, b) => {
+    if (sortBy.value === 'name') {
+      return sortDesc.value
+        ? b.app_name.toLowerCase().localeCompare(a.app_name.toLowerCase())
+        : a.app_name.toLowerCase().localeCompare(b.app_name.toLowerCase());
+    } else if (sortBy.value === 'stream') {
+      const streamA = a.stream?.stream_name?.toLowerCase() ?? '';
+      const streamB = b.stream?.stream_name?.toLowerCase() ?? '';
+      return sortDesc.value
+        ? streamB.localeCompare(streamA)
+        : streamA.localeCompare(streamB);
+    }
+    return 0;
+  });
+});
+
+function handleSearch() {
+  router.get(
+    window.location.pathname,
+    { search: searchQuery.value },
+    { preserveState: true }
+  );
+}
+
+function getSortIcon(column: string) {
+  if (sortBy.value !== column) {
+    return 'fa-solid fa-sort';
+  }
+  return sortDesc.value ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up';
+}
+
+function toggleSort(column: string) {
+  if (sortBy.value === column) {
+    sortDesc.value = !sortDesc.value;
+  } else {
+    sortBy.value = column;
+    sortDesc.value = false;
+  }
+}
 
 function deleteApp(appId: number) {
-  if (confirm('Are you sure you want to delete this application?')) {
+  if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
     router.delete(`/admin/apps/${appId}`);
   }
 }
@@ -106,8 +179,46 @@ function navigateToPage(url: string) {
 <style scoped>
 @import '../../../css/admin.css';
 
-.capitalize {
-  text-transform: capitalize;
+.admin-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.search-container {
+  flex: 1;
+  max-width: 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-light);
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 1.5rem;
+}
+
+.sort-icon {
+  font-size: 0.8em;
+  margin-left: 0.5rem;
+  opacity: 0.5;
+}
+
+.sorted .sort-icon {
+  opacity: 1;
 }
 
 .action-button {
@@ -119,6 +230,9 @@ function navigateToPage(url: string) {
   transition: all var(--transition-fast);
   font-size: 14px;
   color: var(--primary-color);
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--bg-color);
 }
 
 .edit-button {
@@ -129,11 +243,17 @@ function navigateToPage(url: string) {
   background-color: var(--primary-color-light);
 }
 
-.delete-button:hover {
+.delete-button {
+  color: var(--danger-color);
   opacity: 0.8;
 }
 
-/* Update the gap between buttons */
+.delete-button:hover {
+  opacity: 0.8;
+  background-color: var(--danger-color);
+  color: white;
+}
+
 .flex.justify-center.gap-2 {
   display: inline-flex;
   gap: 8px;

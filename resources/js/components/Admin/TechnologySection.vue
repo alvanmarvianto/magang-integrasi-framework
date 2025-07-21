@@ -7,12 +7,12 @@
         @click="$emit('add')"
         class="tech-section-add"
       >
-        <i class="fas fa-plus"></i> Add
+        <font-awesome-icon icon="fa-solid fa-plus" /> Add
       </button>
     </div>
 
     <div v-if="items.length === 0" class="tech-section-empty">
-      No items added
+      Tidak ada item yang ditambahkan
     </div>
 
     <div v-else class="tech-section-items">
@@ -35,7 +35,7 @@
         <input
           v-model="item.version"
           type="text"
-          placeholder="Version (optional)"
+          placeholder="Version/Deskripsi (opsional)"
           class="tech-section-input"
         >
 
@@ -44,7 +44,7 @@
           @click="$emit('remove', index)"
           class="tech-section-remove"
         >
-          <i class="fas fa-trash"></i>
+          <font-awesome-icon icon="fa-solid fa-trash" />
         </button>
       </div>
     </div>
@@ -52,6 +52,8 @@
 </template>
 
 <script setup lang="ts">
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+
 interface TechItem {
   name: string;
   version?: string;
