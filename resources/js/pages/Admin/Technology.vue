@@ -124,7 +124,6 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
-import { route } from 'ziggy-js';
 
 interface TechnologyData {
   vendors: string[];
@@ -199,7 +198,7 @@ const page = usePage<PageProps>();
 const { showSuccess, showError, showConfirm } = useNotification();
 
 async function checkEnumUsage(categoryName: keyof TechnologyData, value: string): Promise<UsageData> {
-  const response = await fetch(route('admin.technology.enum.check', { type: categoryName, value: value }));
+  const response = await fetch(`/admin/technology/${categoryName}/enum/${encodeURIComponent(value)}/check`);
   return await response.json();
 }
 
@@ -238,7 +237,7 @@ async function deleteItem(categoryName: keyof TechnologyData, value: string) {
     const confirmed = await showConfirm('Apakah anda yakin ingin menghapus item ini?');
     if (confirmed) {
       router.delete(
-        route('admin.technology.enum.delete', { type: categoryName, value: value }),
+        `/admin/technology/${categoryName}/enum/${encodeURIComponent(value)}`,
         {
           preserveScroll: true,
         }
@@ -255,10 +254,7 @@ function saveItem() {
 
   if (isEditing.value) {
     router.put(
-      route('admin.technology.enum.update', { 
-        type: currentCategoryName.value, 
-        value: formData.value.oldName 
-      }), 
+      `/admin/technology/${currentCategoryName.value}/enum/${encodeURIComponent(formData.value.oldName!)}`, 
       { name: formData.value.name },
       {
         preserveScroll: true,
@@ -269,9 +265,7 @@ function saveItem() {
     );
   } else {
     router.post(
-      route('admin.technology.enum.store', { 
-        type: currentCategoryName.value 
-      }), 
+      `/admin/technology/${currentCategoryName.value}/enum`, 
       { name: formData.value.name },
       {
         preserveScroll: true,

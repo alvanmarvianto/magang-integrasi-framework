@@ -11,7 +11,7 @@
             @input="handleSearch"
           />
         </div>
-        <a :href="route('admin.apps.create')" class="admin-action-button">
+        <a href="/admin/apps/create" class="admin-action-button">
           <font-awesome-icon icon="fa-solid fa-plus" />
           Tambah Aplikasi Baru
         </a>
@@ -46,7 +46,7 @@
             <td>
               <div class="flex justify-center gap-2">
                 <a 
-                  :href="route('admin.apps.edit', { app: app.app_id })" 
+                  :href="`/admin/apps/${app.app_id}/edit`" 
                   class="action-button edit-button"
                   title="Edit Aplikasi"
                 >
@@ -86,7 +86,6 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
-import { route } from 'ziggy-js';
 
 interface App {
   app_id: number;
@@ -142,7 +141,7 @@ const sortedAndFilteredApps = computed(() => {
 
 function handleSearch() {
   router.get(
-    route('admin.apps'),
+    window.location.pathname,
     { search: searchQuery.value },
     { preserveState: true }
   );
@@ -166,7 +165,7 @@ function toggleSort(column: string) {
 
 function deleteApp(appId: number) {
   if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
-    router.delete(route('admin.apps.destroy', { app: appId }));
+    router.delete(`/admin/apps/${appId}`);
   }
 }
 
