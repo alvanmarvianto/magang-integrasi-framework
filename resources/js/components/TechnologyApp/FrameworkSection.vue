@@ -1,21 +1,23 @@
 <template>
-  <div v-if="technology.framework" class="content-section framework-content">
+  <div v-if="technology?.framework?.length" class="content-section framework-content">
     <div class="content-items">
       <a
         v-for="item in technology.framework"
         :key="item.name"
         class="content-item"
-        :href="`/technology/framework/${item.name}`"
+        :data-tooltip="item.version ? `${item.name} - ${item.version}` : item.name"
+        :href="item.version ? `/technology/framework/${item.name}` : undefined"
         target="_blank"
         rel="noopener"
-        style="cursor:pointer;"
       >
-        {{ item.name }}<span v-if="item.version">&nbsp;{{ item.version }}</span>
+        {{ item.name }}
       </a>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ technology: any }>()
+defineProps<{
+  technology: any;
+}>();
 </script>

@@ -2,7 +2,7 @@
   <div id="container">
     <aside id="sidebar">
       <header>
-        <h1>Spesifikasi Teknologi</h1>
+        <h1 style="font-size: 1.75em;">Spesifikasi Teknologi</h1>
       </header>
       <div class="sidebar-content">
         <div class="navigation">
@@ -14,19 +14,6 @@
             <i class="fas fa-project-diagram"></i>
             <span>Integrasi App</span>
           </a>
-        </div>
-        
-        <!-- App Type and Stratification in Sidebar -->
-        <div v-if="technology" class="sidebar-tech-info">
-          <div v-if="technology.app_type" class="sidebar-tech-item">
-            <h4><i class="fas fa-cube"></i> Jenis Aplikasi</h4>
-            <p>{{ technology.app_type }}</p>
-          </div>
-          
-          <div v-if="technology.stratification" class="sidebar-tech-item">
-            <h4><i class="fas fa-layer-group"></i> Stratifikasi</h4>
-            <p>{{ technology.stratification }}</p>
-          </div>
         </div>
       </div>
     </aside>
@@ -41,50 +28,66 @@
           <p v-if="streamName" class="stream-info">{{ appDescription }}</p>
         </div>
 
-        <div v-if="!technology" class="no-data">
-          <i class="fas fa-info-circle"></i>
-          <p>Tidak ada data teknologi untuk aplikasi ini.</p>
+        <div v-if="!hasAnyTechnologyData" class="no-data-center">
+          <i class="fas fa-info-circle fa-2x"></i>
+          <p>Tidak ada data tersedia</p>
         </div>
 
         <div v-else class="tech-main-layout">
           <!-- Left Side - Tech Stack Labels -->
           <div class="tech-stack-labels">
-            <div v-if="technology.platform" class="stack-label platform-label">
-              <h3><i class="fas fa-cloud"></i> PLATFORM</h3>
+            <div v-if="technology.app_type" class="stack-label app-type-label">
+              <h3><i class="fas fa-cube"></i> JENIS APLIKASI</h3>
             </div>
-            <div v-if="technology.framework" class="stack-label framework-label">
-              <h3><i class="fas fa-tools"></i> FRAMEWORK</h3>
+            <div v-if="technology.stratification" class="stack-label stratification-label">
+              <h3><i class="fas fa-layer-group"></i> STRATIFIKASI</h3>
             </div>
-            <div v-if="technology.middleware" class="stack-label middleware-label">
-              <h3><i class="fas fa-exchange-alt"></i> MIDDLEWARE</h3>
+            <div v-if="technology.vendor?.length" class="stack-label vendor-label">
+              <h3><i class="fas fa-building"></i> VENDOR</h3>
             </div>
-            <div v-if="technology.third_party" class="stack-label third-party-label">
-              <h3><i class="fas fa-plug"></i> THIRD PARTY</h3>
-            </div>
-            <div v-if="technology.language" class="stack-label language-label">
-              <h3><i class="fas fa-code"></i> LANGUAGE</h3>
-            </div>
-            <div v-if="technology.database" class="stack-label database-label">
-              <h3><i class="fas fa-database"></i> DATABASE</h3>
-            </div>
-            <div v-if="technology.os" class="stack-label os-label">
+            <div v-if="technology.os?.length" class="stack-label os-label">
               <h3><i class="fas fa-desktop"></i> OPERATING SYSTEM</h3>
             </div>
-            <div v-if="technology.vendor" class="stack-label vendor-label">
-              <h3><i class="fas fa-building"></i> VENDOR</h3>
+            <div v-if="technology.database?.length" class="stack-label database-label">
+              <h3><i class="fas fa-database"></i> DATABASE</h3>
+            </div>
+            <div v-if="technology.language?.length" class="stack-label language-label">
+              <h3><i class="fas fa-code"></i> LANGUAGE</h3>
+            </div>
+            <div v-if="technology.framework?.length" class="stack-label framework-label">
+              <h3><i class="fas fa-tools"></i> FRAMEWORK</h3>
+            </div>
+            <div v-if="technology.middleware?.length" class="stack-label middleware-label">
+              <h3><i class="fas fa-exchange-alt"></i> MIDDLEWARE</h3>
+            </div>
+            <div v-if="technology.third_party?.length" class="stack-label third-party-label">
+              <h3><i class="fas fa-plug"></i> THIRD PARTY</h3>
+            </div>
+            <div v-if="technology.platform?.length" class="stack-label platform-label">
+              <h3><i class="fas fa-cloud"></i> PLATFORM</h3>
             </div>
           </div>
 
           <!-- Right Side - Tech Content -->
           <div class="tech-content-area">
-            <PlatformSection :technology="technology" />
+            <div v-if="technology.app_type" class="content-section app-type-content">
+              <div class="content-items">
+                <div class="content-item">{{ technology.app_type }}</div>
+              </div>
+            </div>
+            <div v-if="technology.stratification" class="content-section stratification-content">
+              <div class="content-items">
+                <div class="content-item">{{ technology.stratification }}</div>
+              </div>
+            </div>
+            <VendorSection :technology="technology" />
+            <OSSection :technology="technology" />
+            <DatabaseSection :technology="technology" />
+            <LanguageSection :technology="technology" />
             <FrameworkSection :technology="technology" />
             <MiddlewareSection :technology="technology" />
             <ThirdPartySection :technology="technology" />
-            <LanguageSection :technology="technology" />
-            <DatabaseSection :technology="technology" />
-            <OSSection :technology="technology" />
-            <VendorSection :technology="technology" />
+            <PlatformSection :technology="technology" />
           </div>
         </div>
       </div>
@@ -93,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-
+import { computed } from 'vue';
 import { useSidebar } from '../composables/useSidebar';
 import PlatformSection from '../components/TechnologyApp/PlatformSection.vue';
 import FrameworkSection from '../components/TechnologyApp/FrameworkSection.vue';
@@ -113,6 +116,23 @@ const props = defineProps<{
 }>()
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
+
+const hasAnyTechnologyData = computed(() => {
+  if (!props.technology) return false;
+  
+  return Boolean(
+    props.technology.platform?.length ||
+    props.technology.framework?.length ||
+    props.technology.middleware?.length ||
+    props.technology.third_party?.length ||
+    props.technology.language?.length ||
+    props.technology.database?.length ||
+    props.technology.os?.length ||
+    props.technology.vendor?.length ||
+    props.technology.app_type ||
+    props.technology.stratification
+  );
+});
 </script>
 
 <style scoped>
@@ -120,5 +140,25 @@ const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 
 .content-item {
   text-decoration: none !important;
+}
+
+.no-data-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 200px); /* Adjust based on your header height */
+  color: var(--text-muted);
+  text-align: center;
+  gap: 1rem;
+}
+
+.no-data-center i {
+  margin-bottom: 0.5rem;
+}
+
+.no-data-center p {
+  font-size: 1.2rem;
+  margin: 0;
 }
 </style>
