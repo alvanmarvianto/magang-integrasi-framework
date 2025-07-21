@@ -41,3 +41,4 @@ class App extends Model
         return $this->hasMany(OperatingSystem::class, 'app_id', 'app_id');
     }
 }
+
