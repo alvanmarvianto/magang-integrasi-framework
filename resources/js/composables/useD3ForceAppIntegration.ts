@@ -145,7 +145,6 @@ export function useD3ForceAppIntegration(integrationData: any) {
     link.enter()
       .insert('path', 'g')
       .attr('class', (d: any) => `link ${d.type || 'default'}`)
-      .style('stroke', '#8da4be')
       .style('stroke-width', 1.5)
       .style('fill', 'none');
 
