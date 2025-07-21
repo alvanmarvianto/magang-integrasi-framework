@@ -95,30 +95,24 @@ class TechnologyController extends Controller
 
     private function getAppByCondition(string $tableName, string $name): array
     {
-        $technologies = Technology::whereIn('technology_id', function ($query) use ($tableName, $name) {
-            $query->select('technology_id')
-                ->from($tableName)
-                ->where('name', $name);
-            })
-            ->get();
+        $appIds = DB::table($tableName)
+            ->where('name', $name)
+            ->pluck('app_id')
+            ->unique()
+            ->toArray();
 
-        $appIds = $technologies->pluck('app_id')->unique()->toArray();
-
-        $apps = App::whereIn('app_id', $appIds)
-            ->get();
+        /** @var App[] $apps */
+        $apps = App::whereIn('app_id', $appIds)->get();
 
         return $apps->map(function ($app) use ($tableName) {
-            $technologyId = $app->technology?->technology_id ?? $app->technology_id;
-            $version = optional(
-                DB::table($tableName)
-                    ->where('technology_id', $technologyId)
-                    ->first()
-            )->version;
+            $version = DB::table($tableName)
+                ->where('app_id', $app->getAttribute('app_id'))
+                ->value('version');
 
             return [
-                'id' => $app->app_id,
-                'name' => $app->app_name,
-                'description' => $app->description,
+                'id' => $app->getAttribute('app_id'),
+                'name' => $app->getAttribute('app_name'),
+                'description' => $app->getAttribute('description'),
                 'version' => $version
             ];
         })->toArray();
