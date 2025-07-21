@@ -12,7 +12,18 @@ class App extends Model
 {
     use HasFactory;
 
+    protected $table = 'apps';
     protected $primaryKey = 'app_id';
+    public $timestamps = false;
+
+    protected $fillable = [
+        'app_id',
+        'app_name',
+        'description',
+        'stream_id',
+        'app_type',
+        'stratification'
+    ];
 
     public function stream(): BelongsTo
     {
