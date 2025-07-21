@@ -165,6 +165,9 @@
 import { ref, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import TechnologySection from '@/components/Admin/TechnologySection.vue';
+import { useNotification } from '@/composables/useNotification';
+
+const { showSuccess, showError } = useNotification();
 
 // Define form type
 interface TechItem {
@@ -189,8 +192,23 @@ interface FormData {
   [key: string]: any; // Index signature for dynamic access
 }
 
-const props = defineProps<{
-  app?: any;
+interface Props {
+  app?: {
+    app_id: number;
+    app_name: string;
+    description: string;
+    stream_id: number;
+    app_type: string;
+    stratification: string;
+    vendors: TechItem[];
+    operating_systems: TechItem[];
+    databases: TechItem[];
+    programming_languages: TechItem[];
+    frameworks: TechItem[];
+    middlewares: TechItem[];
+    third_parties: TechItem[];
+    platforms: TechItem[];
+  };
   streams: any[];
   appTypes: string[];
   stratifications: string[];
@@ -202,7 +220,9 @@ const props = defineProps<{
   middlewares: string[];
   thirdParties: string[];
   platforms: string[];
-}>();
+}
+
+const props = defineProps<Props>();
 
 const form = ref<FormData>({
   app_name: '',
@@ -223,11 +243,11 @@ const form = ref<FormData>({
 onMounted(() => {
   if (props.app) {
     form.value = {
-      app_name: props.app.app_name,
-      description: props.app.description,
-      stream_id: props.app.stream_id,
-      app_type: props.app.app_type,
-      stratification: props.app.stratification,
+      app_name: props.app.app_name || '',
+      description: props.app.description || '',
+      stream_id: String(props.app.stream_id || ''),
+      app_type: props.app.app_type || '',
+      stratification: props.app.stratification || '',
       vendors: props.app.vendors || [],
       operating_systems: props.app.operating_systems || [],
       databases: props.app.databases || [],
@@ -249,11 +269,25 @@ function removeItem(type: string, index: number) {
 }
 
 function submit() {
-  const url = props.app 
-    ? `/admin/apps/${props.app.app_id}`
-    : '/admin/apps';
-
-  router.post(url, form.value);
+  if (props.app) {
+    router.put(`/admin/apps/${props.app.app_id}`, form.value, {
+      onSuccess: () => {
+        showSuccess('Aplikasi berhasil diperbarui');
+      },
+      onError: (errors) => {
+        showError('Gagal memperbarui aplikasi: ' + Object.values(errors).join(', '));
+      },
+    });
+  } else {
+    router.post('/admin/apps', form.value, {
+      onSuccess: () => {
+        showSuccess('Aplikasi berhasil dibuat');
+      },
+      onError: (errors) => {
+        showError('Gagal membuat aplikasi: ' + Object.values(errors).join(', '));
+      },
+    });
+  }
 }
 </script>
 

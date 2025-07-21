@@ -1,261 +1,72 @@
 <template>
   <div class="admin-container">
     <div class="admin-header">
-      <h1 class="admin-title">Manajemen Aplikasi</h1>
-      <div class="admin-controls">
-        <div class="search-container">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            placeholder="Cari aplikasi..." 
-            class="search-input"
-            @input="handleSearch"
-          />
-        </div>
-        <a href="/admin/apps/create" class="admin-action-button">
-          <font-awesome-icon icon="fa-solid fa-plus" />
-          Tambah Aplikasi Baru
-        </a>
-      </div>
+      <h1 class="admin-title">Panel Admin</h1>
     </div>
 
-    <div class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th @click="toggleSort('name')" class="sortable" :class="{ 'sorted': sortBy === 'name' }">
-              Nama
-              <font-awesome-icon 
-                :icon="getSortIcon('name')" 
-                class="sort-icon"
-              />
-            </th>
-            <th @click="toggleSort('stream')" class="sortable" :class="{ 'sorted': sortBy === 'stream' }">
-              Stream
-              <font-awesome-icon 
-                :icon="getSortIcon('stream')" 
-                class="sort-icon"
-              />
-            </th>
-            <th class="text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="app in sortedAndFilteredApps" :key="app.app_id">
-            <td>{{ app.app_name }}</td>
-            <td>{{ app.stream?.stream_name }}</td>
-            <td>
-              <div class="flex justify-center gap-2">
-                <a 
-                  :href="`/admin/apps/${app.app_id}/edit`" 
-                  class="action-button edit-button"
-                  title="Edit Aplikasi"
-                >
-                  <font-awesome-icon icon="fa-solid fa-pencil" />
-                </a>
-                <button 
-                  @click="deleteApp(app.app_id)" 
-                  class="action-button delete-button"
-                  title="Hapus Aplikasi"
-                >
-                  <font-awesome-icon icon="fa-solid fa-trash" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="admin-menu">
+      <a href="/admin/apps" class="admin-menu-card">
+        <font-awesome-icon icon="fa-solid fa-window-restore" class="admin-menu-icon" />
+        <h2 class="admin-menu-title">Manajemen Aplikasi</h2>
+        <p class="admin-menu-description">Kelola aplikasi dan integrasi antar aplikasi</p>
+      </a>
 
-      <div class="admin-pagination">
-        <div class="flex gap-2">
-          <button
-            v-for="link in apps.links"
-            :key="link.label"
-            class="admin-pagination-button"
-            :class="{ active: link.active }"
-            :disabled="!link.url"
-            @click="link.url && navigateToPage(link.url)"
-            v-html="link.label"
-          ></button>
-        </div>
-      </div>
+      <a href="/admin/technology" class="admin-menu-card">
+        <font-awesome-icon icon="fa-solid fa-microchip" class="admin-menu-icon" />
+        <h2 class="admin-menu-title">Manajemen Teknologi</h2>
+        <p class="admin-menu-description">Kelola komponen teknologi seperti database, framework, dll</p>
+      </a>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
-
-interface App {
-  app_id: number;
-  app_name: string;
-  stream?: {
-    stream_name: string;
-  };
-}
-
-interface PaginationLink {
-  url: string | null;
-  label: string;
-  active: boolean;
-}
-
-interface Props {
-  apps: {
-    data: App[];
-    links: PaginationLink[];
-  };
-}
-
-const props = defineProps<Props>();
-const searchQuery = ref('');
-const sortBy = ref('name'); // Default sort by name
-const sortDesc = ref(false);
-
-const sortedAndFilteredApps = computed(() => {
-  let filteredApps = props.apps.data;
-  
-  // Apply search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filteredApps = filteredApps.filter(app => 
-      app.app_name.toLowerCase().includes(query)
-    );
-  }
-
-  // Apply sorting
-  return [...filteredApps].sort((a, b) => {
-    if (sortBy.value === 'name') {
-      return sortDesc.value
-        ? b.app_name.toLowerCase().localeCompare(a.app_name.toLowerCase())
-        : a.app_name.toLowerCase().localeCompare(b.app_name.toLowerCase());
-    } else if (sortBy.value === 'stream') {
-      const streamA = a.stream?.stream_name?.toLowerCase() ?? '';
-      const streamB = b.stream?.stream_name?.toLowerCase() ?? '';
-      return sortDesc.value
-        ? streamB.localeCompare(streamA)
-        : streamA.localeCompare(streamB);
-    }
-    return 0;
-  });
-});
-
-function handleSearch() {
-  router.get(
-    window.location.pathname,
-    { search: searchQuery.value },
-    { preserveState: true }
-  );
-}
-
-function getSortIcon(column: string) {
-  if (sortBy.value !== column) {
-    return 'fa-solid fa-sort';
-  }
-  return sortDesc.value ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up';
-}
-
-function toggleSort(column: string) {
-  if (sortBy.value === column) {
-    sortDesc.value = !sortDesc.value;
-  } else {
-    sortBy.value = column;
-    sortDesc.value = false;
-  }
-}
-
-function deleteApp(appId: number) {
-  if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
-    router.delete(`/admin/apps/${appId}`);
-  }
-}
-
-function navigateToPage(url: string) {
-  router.get(url);
-}
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 </script>
 
 <style scoped>
 @import '../../../css/admin.css';
 
-.admin-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
+.admin-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
 }
 
-.search-container {
-  flex: 1;
-  max-width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--primary-color-light);
-}
-
-.sortable {
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  padding-right: 1.5rem;
-}
-
-.sort-icon {
-  font-size: 0.8em;
-  margin-left: 0.5rem;
-  opacity: 0.5;
-}
-
-.sorted .sort-icon {
-  opacity: 1;
-}
-
-.action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+.admin-menu-card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
   transition: all var(--transition-fast);
-  font-size: 14px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-color);
+}
+
+.admin-menu-icon {
+  font-size: 2.5rem;
   color: var(--primary-color);
-  border: none;
-  border-radius: var(--radius);
-  background-color: var(--bg-color);
 }
 
-.edit-button {
-  border-radius: 4px;
+.admin-menu-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
-.edit-button:hover {
-  background-color: var(--primary-color-light);
-}
-
-.delete-button {
-  color: var(--danger-color);
-  opacity: 0.8;
-}
-
-.delete-button:hover {
-  opacity: 0.8;
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.flex.justify-center.gap-2 {
-  display: inline-flex;
-  gap: 8px;
+.admin-menu-description {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 </style> 

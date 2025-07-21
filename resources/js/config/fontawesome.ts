@@ -6,7 +6,9 @@ import {
     faTrash,
     faSort,
     faSortUp,
-    faSortDown
+    faSortDown,
+    faWindowRestore,
+    faMicrochip
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -16,7 +18,9 @@ library.add(
     faTrash,
     faSort,
     faSortUp,
-    faSortDown
+    faSortDown,
+    faWindowRestore,
+    faMicrochip
 );
 
 export { FontAwesomeIcon }; 

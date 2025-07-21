@@ -34,13 +34,23 @@ Route::prefix('technology')->group(function () {
 
 // Admin routes
 Route::prefix('admin')->name('admin.')->group(function () {
+    // Main admin pages
+    Route::get('/', [AdminController::class, 'index'])->name('index');
+    
     // App management
-    Route::get('/apps', [AdminController::class, 'index'])->name('index');
-    Route::get('/apps/create', [AdminController::class, 'create'])->name('create');
-    Route::post('/apps', [AdminController::class, 'store'])->name('store');
-    Route::get('/apps/{app}/edit', [AdminController::class, 'edit'])->name('edit');
-    Route::put('/apps/{app}', [AdminController::class, 'update'])->name('update');
-    Route::delete('/apps/{app}', [AdminController::class, 'destroy'])->name('destroy');
+    Route::get('/apps', [AdminController::class, 'apps'])->name('apps');
+    Route::get('/apps/create', [AdminController::class, 'create'])->name('apps.create');
+    Route::post('/apps', [AdminController::class, 'store'])->name('apps.store');
+    Route::get('/apps/{app}/edit', [AdminController::class, 'edit'])->name('apps.edit');
+    Route::put('/apps/{app}', [AdminController::class, 'update'])->name('apps.update');
+    Route::delete('/apps/{app}', [AdminController::class, 'destroy'])->name('apps.destroy');
+
+    // Technology management
+    Route::get('/technology', [AdminController::class, 'technology'])->name('technology');
+    Route::get('/technology/{type}/enum/{value}/check', [AdminController::class, 'checkEnumUsage'])->name('technology.enum.check');
+    Route::post('/technology/{type}/enum', [AdminController::class, 'storeEnumValue'])->name('technology.enum.store');
+    Route::put('/technology/{type}/enum/{value}', [AdminController::class, 'updateEnumValue'])->name('technology.enum.update');
+    Route::delete('/technology/{type}/enum/{value}', [AdminController::class, 'deleteEnumValue'])->name('technology.enum.delete');
 
     // Stream management
     Route::get('/stream/{streamName}', [AdminController::class, 'showStream'])->name('stream.show');

@@ -55,5 +55,35 @@ class App extends Model
     {
         return $this->hasMany(OperatingSystem::class, 'app_id', 'app_id');
     }
+
+    public function databases(): HasMany
+    {
+        return $this->hasMany(Database::class, 'app_id', 'app_id');
+    }
+
+    public function programmingLanguages(): HasMany
+    {
+        return $this->hasMany(ProgrammingLanguage::class, 'app_id', 'app_id');
+    }
+
+    public function frameworks(): HasMany
+    {
+        return $this->hasMany(Framework::class, 'app_id', 'app_id');
+    }
+
+    public function middlewares(): HasMany
+    {
+        return $this->hasMany(Middleware::class, 'app_id', 'app_id');
+    }
+
+    public function thirdParties(): HasMany
+    {
+        return $this->hasMany(ThirdParty::class, 'app_id', 'app_id');
+    }
+
+    public function platforms(): HasMany
+    {
+        return $this->hasMany(Platform::class, 'app_id', 'app_id');
+    }
 }
 

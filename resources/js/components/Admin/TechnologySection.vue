@@ -26,7 +26,7 @@
           class="tech-section-select"
           required
         >
-          <option value="">Select {{ title }}</option>
+          <option value="">Pilih {{ title }}</option>
           <option v-for="name in availableItems" :key="name" :value="name">
             {{ name }}
           </option>
@@ -73,4 +73,97 @@ defineEmits<{
 
 <style scoped>
 @import '../../../css/components.css';
+
+.tech-section {
+  margin-top: 2rem;
+}
+
+.tech-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tech-section-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.tech-section-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--primary-color);
+  background-color: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+}
+
+.tech-section-add:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.tech-section-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  background-color: var(--bg-alt);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.tech-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tech-section-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.tech-section-select,
+.tech-section-input {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background-color: white;
+}
+
+.tech-section-select:focus,
+.tech-section-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-light);
+}
+
+.tech-section-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--danger-color);
+  background-color: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+}
+
+.tech-section-remove:hover {
+  background-color: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
 </style> 
