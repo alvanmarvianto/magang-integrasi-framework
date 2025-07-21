@@ -78,7 +78,7 @@
         </div>
 
         <div class="stream-links">
-          <h3>Admin - Layout Editor</h3>
+          <h3>Back Office - Layout Editor</h3>
           <div class="stream-buttons">
             <a href="/admin/stream/sp" class="stream-link admin-link">
               <i class="fas fa-edit"></i>
