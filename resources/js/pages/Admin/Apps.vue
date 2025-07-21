@@ -46,7 +46,7 @@
             <td>
               <div class="flex justify-center gap-2">
                 <a 
-                  :href="route('admin.apps.edit', { appId: app.app_id })" 
+                  :href="route('admin.apps.edit', { app: app.app_id })" 
                   class="action-button edit-button"
                   title="Edit Aplikasi"
                 >
@@ -166,7 +166,7 @@ function toggleSort(column: string) {
 
 function deleteApp(appId: number) {
   if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
-    router.delete(route('admin.apps.destroy', { appId }));
+    router.delete(route('admin.apps.destroy', { app: appId }));
   }
 }
 
