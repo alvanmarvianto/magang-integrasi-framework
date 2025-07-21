@@ -101,16 +101,16 @@ import { PanOnScrollMode } from '@vue-flow/core'
 import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
-import { useAutoSave } from '../composables/useAutoSave'
-import { useStatusMessage } from '../composables/useStatusMessage'
-import { useAdminEdgeHandling } from '../composables/useAdminEdgeHandling'
+import { useAutoSave } from '@/composables/useAutoSave'
+import { useStatusMessage } from '@/composables/useStatusMessage'
+import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
   removeDuplicateEdges,
   fitView as sharedFitView,
   initializeNodesWithLayout,
   applyAutomaticLayoutWithConstraints,
   validateAndCleanNodes
-} from '../composables/useVueFlowCommon'
+} from '@/composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
 
 // Props
@@ -784,6 +784,7 @@ function onStreamResize(event: { width: number, height: number }) {
 :deep(.vue-flow__node-streamParent) {
   cursor: move !important;
 }
+
 .status-message {
   position: fixed;
   bottom: 2rem;
@@ -883,5 +884,6 @@ function onStreamResize(event: { width: number, height: number }) {
 </style>
 
 <style scoped>
-@import '../../css/vue-flow-integration.css';
+@import '@vue-flow/core/dist/style.css';
+@import '@/../css/vue-flow-integration.css';
 </style>

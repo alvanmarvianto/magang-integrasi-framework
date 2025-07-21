@@ -309,7 +309,7 @@ watch(() => page.props.flash, (newFlash) => {
 </script>
 
 <style scoped>
-@import '../../../css/admin.css';
+@import '@/../css/admin.css';
 
 .tech-grid {
   display: grid;

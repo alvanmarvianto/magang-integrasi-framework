@@ -434,7 +434,7 @@ class AdminController extends Controller
 
         $data = $this->diagramController->getVueFlowAdminData($streamName);
 
-        return Inertia::render('AdminVueFlowStream', [
+        return Inertia::render('Admin/Diagram', [
             'streamName' => $streamName,
             'nodes' => $data['nodes'],
             'edges' => $data['edges'],

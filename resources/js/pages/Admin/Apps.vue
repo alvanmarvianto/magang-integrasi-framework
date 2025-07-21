@@ -175,7 +175,7 @@ function navigateToPage(url: string) {
 </script>
 
 <style scoped>
-@import '../../../css/admin.css';
+@import '@/../css/admin.css';
 
 .admin-controls {
   display: flex;
@@ -217,43 +217,5 @@ function navigateToPage(url: string) {
 
 .sorted .sort-icon {
   opacity: 1;
-}
-
-.action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  transition: all var(--transition-fast);
-  font-size: 14px;
-  color: var(--primary-color);
-  border: none;
-  border-radius: var(--radius);
-  background-color: var(--bg-color);
-}
-
-.edit-button {
-  border-radius: 4px;
-}
-
-.edit-button:hover {
-  background-color: var(--primary-color-light);
-}
-
-.delete-button {
-  color: var(--danger-color);
-  opacity: 0.8;
-}
-
-.delete-button:hover {
-  opacity: 0.8;
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.flex.justify-center.gap-2 {
-  display: inline-flex;
-  gap: 8px;
 }
 </style> 

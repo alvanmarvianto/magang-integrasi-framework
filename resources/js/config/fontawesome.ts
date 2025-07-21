@@ -8,7 +8,9 @@ import {
     faSortUp,
     faSortDown,
     faWindowRestore,
-    faMicrochip
+    faMicrochip,
+    faProjectDiagram,
+    faNetworkWired
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -20,7 +22,9 @@ library.add(
     faSortUp,
     faSortDown,
     faWindowRestore,
-    faMicrochip
+    faMicrochip,
+    faProjectDiagram,
+    faNetworkWired
 );
 
 export { FontAwesomeIcon }; 

@@ -1,4 +1,5 @@
 import '../css/app.css';
+import '@vue-flow/core/dist/style.css';
 
 import { createApp, h, type DefineComponent } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';

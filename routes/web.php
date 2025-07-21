@@ -53,6 +53,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete('/technology/{type}/enum/{value}', [AdminController::class, 'deleteEnumValue'])->name('technology.enum.delete');
 
     // Stream management
-    Route::get('/stream/{streamName}', [AdminController::class, 'showStream'])->name('stream.show');
-    Route::post('/stream/{streamName}/layout', [AdminController::class, 'saveLayout'])->name('stream.layout.save');
+    Route::get('/stream/{streamName}', [AdminController::class, 'showStream'])->name('diagrams.show');
+    Route::post('/stream/{streamName}/layout', [AdminController::class, 'saveLayout'])->name('diagrams.save');
 });

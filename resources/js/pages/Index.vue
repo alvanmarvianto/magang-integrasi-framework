@@ -52,27 +52,11 @@
         </div>
 
         <div class="stream-links">
-          <h3>Back Office - Layout Editor</h3>
+          <h3>Back Office</h3>
           <div class="stream-buttons">
-            <a href="/admin/stream/sp" class="stream-link admin-link">
+            <a href="/admin" class="stream-link admin-link">
               <i class="fas fa-edit"></i>
-              <span>SP Admin</span>
-            </a>
-            <a href="/admin/stream/mi" class="stream-link admin-link">
-              <i class="fas fa-edit"></i>
-              <span>MI Admin</span>
-            </a>
-            <a href="/admin/stream/ssk" class="stream-link admin-link">
-              <i class="fas fa-edit"></i>
-              <span>SSK Admin</span>
-            </a>
-            <a href="/admin/stream/moneter" class="stream-link admin-link">
-              <i class="fas fa-edit"></i>
-              <span>Moneter Admin</span>
-            </a>
-            <a href="/admin/stream/market" class="stream-link admin-link">
-              <i class="fas fa-edit"></i>
-              <span>Market Admin</span>
+              <span>Halaman Back Office</span>
             </a>
           </div>
         </div>
