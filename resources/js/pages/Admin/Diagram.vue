@@ -1,9 +1,7 @@
 <template>
   <div class="admin-vue-flow-container">
-    <!-- Header -->
-    <div class="admin-header">
-      <h1 class="title">Admin - {{ streamName.toUpperCase() }} Stream Layout</h1>
-      <div class="header-controls">
+    <AdminNavbar :title="`Admin - ${streamName.toUpperCase()} Stream Layout`" :showBackButton="true">
+      <template #controls>
         <!-- Auto-save status indicator -->
         <div v-if="autoSaveTimeout" class="status-indicator auto-saving">
           <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -34,8 +32,8 @@
           {{ saving ? 'Saving...' : 'Save Layout' }}
         </button>
         <button @click="resetLayout" class="reset-btn">Reset Layout</button>
-      </div>
-    </div>
+      </template>
+    </AdminNavbar>
 
     <!-- Vue Flow -->
     <div class="vue-flow-wrapper">
@@ -101,6 +99,7 @@ import { PanOnScrollMode } from '@vue-flow/core'
 import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
 import { useAutoSave } from '@/composables/useAutoSave'
 import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'

@@ -1,8 +1,9 @@
 <template>
   <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">Manajemen Teknologi</h1>
-    </div>
+    <AdminNavbar 
+      title="Manajemen Teknologi"
+      :showBackButton="true"
+    />
 
     <div class="tech-grid">
       <div v-for="category in categories" :key="category.name" class="tech-card">
@@ -122,6 +123,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 
 interface TechnologyData {
   vendors: string[];

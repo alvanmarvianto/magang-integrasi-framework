@@ -1,8 +1,7 @@
 <template>
   <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">Manajemen Aplikasi</h1>
-      <div class="admin-controls">
+    <AdminNavbar title="Manajemen Aplikasi" :showBackButton="true">
+      <template #controls>
         <div class="search-container">
           <input 
             type="text" 
@@ -16,8 +15,8 @@
           <font-awesome-icon icon="fa-solid fa-plus" />
           Tambah Aplikasi Baru
         </a>
-      </div>
-    </div>
+      </template>
+    </AdminNavbar>
 
     <div class="admin-table-container">
       <table class="admin-table">
@@ -86,6 +85,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 
 interface App {
   app_id: number;

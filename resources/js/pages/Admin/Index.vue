@@ -1,8 +1,10 @@
 <template>
   <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">Panel Admin</h1>
-    </div>
+    <AdminNavbar 
+      title="Panel Admin" 
+      :showBackButton="true"
+      backUrl="/"
+    />
 
     <div class="admin-menu">
       <a href="/admin/apps" class="admin-menu-card">
@@ -34,6 +36,7 @@
 
 <script setup lang="ts">
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 </script>
 
 <style scoped>

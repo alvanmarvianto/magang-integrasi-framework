@@ -10,7 +10,8 @@ import {
     faWindowRestore,
     faMicrochip,
     faProjectDiagram,
-    faNetworkWired
+    faNetworkWired,
+    faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -24,7 +25,8 @@ library.add(
     faWindowRestore,
     faMicrochip,
     faProjectDiagram,
-    faNetworkWired
+    faNetworkWired,
+    faArrowLeft
 );
 
 export { FontAwesomeIcon }; 
