@@ -91,11 +91,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { VueFlow } from '@vue-flow/core'
+import { ref, onMounted, watch, nextTick } from 'vue'
+import { VueFlow, PanOnScrollMode } from '@vue-flow/core'
 import { Background, BackgroundVariant } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import { PanOnScrollMode } from '@vue-flow/core'
 import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
@@ -105,7 +104,6 @@ import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
   removeDuplicateEdges,
-  fitView as sharedFitView,
   initializeNodesWithLayout,
   applyAutomaticLayoutWithConstraints,
   validateAndCleanNodes
@@ -345,8 +343,13 @@ function onEdgeUpdate(params: any, newConnection?: any) {
         try {
           vueFlowRef.value.updateEdge(oldEdge.id, updatedEdge)
         } catch (error) {
-          console.log('VueFlow updateEdge method not available, forcing re-render')
-          vueFlowKey.value += 1 // Force re-render of VueFlow component
+          console.error('VueFlow updateEdge error:', error);
+          // Fallback: Force re-render of VueFlow component
+          vueFlowKey.value += 1;
+          // Show user feedback
+          showStatus('Terjadi kesalahan saat memperbarui edge, mencoba metode alternatif', 'info');
+          // Re-apply edge styles after re-render
+          edges.value = updateAdminEdgeStyles(edges.value);
         }
       }
     })

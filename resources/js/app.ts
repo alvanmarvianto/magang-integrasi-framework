@@ -6,6 +6,7 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import './config/fontawesome';
+import { ZiggyVue } from 'ziggy-js';
 
 // Import SweetAlert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -19,6 +20,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
         app.use(plugin);
+        app.use(ZiggyVue);
         app.use(VueSweetalert2, {
             confirmButtonColor: 'var(--primary-color)',
             cancelButtonColor: 'var(--danger-color)',
