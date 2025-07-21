@@ -6,7 +6,7 @@
         :key="item.name"
         class="content-item"
         :data-tooltip="item.version ? `${item.name} - ${item.version}` : item.name"
-        :href="item.version ? `/technology/language/${item.name}` : undefined"
+        :href="`/technology/language/${item.name}`"
         target="_blank"
         rel="noopener"
       >

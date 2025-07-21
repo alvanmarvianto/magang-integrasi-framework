@@ -8,7 +8,7 @@
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <link rel="icon" type="image/png" href="/favicon.ico">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-        @vite(['resources/js/app.ts', 'resources/css/app.css'])
+        @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
