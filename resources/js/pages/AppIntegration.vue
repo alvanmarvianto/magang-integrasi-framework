@@ -12,11 +12,11 @@
       </header>
       <div class="sidebar-content">
         <div class="navigation">
-          <a @click.prevent="$inertia.visit('/')" class="nav-link">
+          <a class="nav-link" @click.prevent="$inertia.visit('/')">
             <i class="fas fa-home"></i>
             <span>Halaman Utama</span>
           </a>
-          <a @click.prevent="$inertia.visit(`/technology/${parentAppId}`)" class="nav-link">
+          <a class="nav-link" @click.prevent="$inertia.visit(`/technology/${parentAppId}`)">
             <i class="fas fa-project-diagram"></i>
             <span>Halaman Teknologi</span>
           </a>
@@ -62,7 +62,6 @@
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
         <i class="fas fa-bars"></i>
       </div>
-      <!-- <div id="loader" vif="loading"></div> -->
       <div id="body"></div>
       <p id="error-message" style="display: none"></p>
     </main>
