@@ -114,56 +114,6 @@ class AppController extends Controller
         ]);
     }
 
-    public function streamIntegrations(string $streamName): Response
-    {
-        $allowedNames = ['ssk', 'moneter', 'mi', 'sp', 'market'];
-        if (!in_array(strtolower($streamName), $allowedNames)) {
-            abort(404, 'Stream not found');
-        }
-
-        $stream = Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->firstOrFail();
-
-        $homeApps = $stream->apps;
-        $homeAppIds = $homeApps->pluck('app_id');
-
-        $outgoingAppIds = AppIntegration::whereIn('source_app_id', $homeAppIds)->pluck('target_app_id');
-        $incomingAppIds = AppIntegration::whereIn('target_app_id', $homeAppIds)->pluck('source_app_id');
-
-        $allAppIds = $homeAppIds->concat($outgoingAppIds)->concat($incomingAppIds)->unique();
-
-        $allAppsInGraph = App::with('stream')->whereIn('app_id', $allAppIds)->get();
-
-        $nodes = $allAppsInGraph->map(fn($app) => [
-            'id' => $app->app_id,
-            'stream_id' => $app->stream?->stream_id,
-            'name' => $app->app_name,
-            'lingkup' => $app->stream?->stream_name ?? 'external',
-        ]);
-
-        $links = AppIntegration::with('connectionType')
-            ->where(function ($query) use ($homeAppIds) {
-                $query->whereIn('source_app_id', $homeAppIds)
-                    ->orWhereIn('target_app_id', $homeAppIds);
-            })
-            ->whereIn('source_app_id', $allAppIds)
-            ->whereIn('target_app_id', $allAppIds)
-            ->get()
-            ->map(fn($integration) => [
-                'source' => $integration->source_app_id,
-                'target' => $integration->target_app_id,
-                'type' => $integration->connectionType?->type_name,
-            ])
-            ->values();
-
-        return Inertia::render('StreamIntegration', [
-            'streamName' => $stream->stream_name,
-            'graphData' => [
-                'nodes' => $nodes,
-                'links' => $links,
-            ],
-        ]);
-    }
-
     public function vueFlowStreamIntegrations(string $streamName): Response
     {
         $diagramController = new DiagramController();
