@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('technology_vendors', function (Blueprint $table) {
             $table->id();
-            $table->integer('technology_id');
+            $table->integer('app_id');
             $table->enum('name', [
                 'PT. Praweda Ciptakarsa Informatika',
                 'CMA Small Systems AB',
@@ -25,7 +25,7 @@ return new class extends Migration
             ]);
             $table->string('version')->nullable();
 
-            $table->foreign('technology_id')->references('technology_id')->on('technologies')->onDelete('cascade');
+            $table->foreign('app_id')->references('app_id')->on('apps')->onDelete('cascade');
         });
     }
 

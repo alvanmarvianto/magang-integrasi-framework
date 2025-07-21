@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('technology_platforms', function (Blueprint $table) {
             $table->id();
-            $table->integer('technology_id');
+            $table->integer('app_id');
             $table->enum('name', [
                 'Web Based',
                 'STP',
@@ -24,8 +24,8 @@ return new class extends Migration
             ]);
             $table->string('version')->nullable();
 
-            $table->foreign('technology_id')->references('technology_id')->on('technologies')->onDelete('cascade');
-        });
+            $table->foreign('app_id')->references('app_id')->on('apps')->onDelete('cascade');
+            });
     }
 
     /**
