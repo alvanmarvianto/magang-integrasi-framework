@@ -12,47 +12,43 @@ class TechnologyController extends Controller
 {
     public function show($appId): Response
     {
-        $app = App::with(['stream', 'technology'])
+        /** @var App $app */
+        $app = App::with(['stream'])
             ->findOrFail($appId);
-
-        $technology = $app->technology;
         
         // Fetch normalized technology data
-        $technologyData = null;
-        if ($technology) {
-            $technologyData = [
-                'app_type' => $technology->app_type,
-                'stratification' => $technology->stratification,
-                'vendor' => $this->getTechnologyData('technology_vendors', $technology->technology_id),
-                'os' => $this->getTechnologyData('technology_operating_systems', $technology->technology_id),
-                'database' => $this->getTechnologyData('technology_databases', $technology->technology_id),
-                'language' => $this->getTechnologyData('technology_programming_languages', $technology->technology_id),
-                'third_party' => $this->getTechnologyData('technology_third_parties', $technology->technology_id),
-                'middleware' => $this->getTechnologyData('technology_middlewares', $technology->technology_id),
-                'framework' => $this->getTechnologyData('technology_frameworks', $technology->technology_id),
-                'platform' => $this->getTechnologyData('technology_platforms', $technology->technology_id),
-            ];
-        }
+        $technologyData = [
+            'app_type' => $app->getAttribute('app_type'),
+            'stratification' => $app->getAttribute('stratification'),
+            'vendor' => $this->getTechnologyData('technology_vendors', $app->getAttribute('app_id')),
+            'os' => $this->getTechnologyData('technology_operating_systems', $app->getAttribute('app_id')),
+            'database' => $this->getTechnologyData('technology_databases', $app->getAttribute('app_id')),
+            'language' => $this->getTechnologyData('technology_programming_languages', $app->getAttribute('app_id')),
+            'third_party' => $this->getTechnologyData('technology_third_parties', $app->getAttribute('app_id')),
+            'middleware' => $this->getTechnologyData('technology_middlewares', $app->getAttribute('app_id')),
+            'framework' => $this->getTechnologyData('technology_frameworks', $app->getAttribute('app_id')),
+            'platform' => $this->getTechnologyData('technology_platforms', $app->getAttribute('app_id')),
+        ];
 
         return Inertia::render('Technology', [
             'app' => $app,
-            'appDescription' => $app->description,
+            'appDescription' => $app->getAttribute('description'),
             'technology' => $technologyData,
-            'appName' => $app->app_name,
+            'appName' => $app->getAttribute('app_name'),
             'streamName' => $app->stream?->stream_name,
         ]);
     }
 
-    private function getTechnologyData($tableName, $technologyId)
+    private function getTechnologyData($tableName, $appId)
     {
         $results = DB::table($tableName)
-            ->where('technology_id', $technologyId)
+            ->where('app_id', $appId)
             ->get(['name', 'version']);
 
         return $results->map(function (object $item) {
             return [
-            'name' => $item->name,
-            'version' => $item->version,
+                'name' => $item->name,
+                'version' => $item->version,
             ];
         })->toArray();
     }
