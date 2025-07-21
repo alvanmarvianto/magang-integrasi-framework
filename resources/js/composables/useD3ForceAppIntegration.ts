@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import * as d3 from 'd3';
 
 interface NodeData {
@@ -24,7 +24,6 @@ interface NodeData {
 export function useD3ForceAppIntegration(integrationData: any) {
   let root: NodeData | null = null;
   let i = 0;
-  const duration = 750;
   let simulation: any, vis: any;
   let nodes: any[] = [];
   let links: any[] = [];
