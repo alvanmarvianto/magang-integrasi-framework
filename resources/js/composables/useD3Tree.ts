@@ -88,7 +88,7 @@ export function useD3Tree(appData) {
 
     vis = svg.append('g');
 
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 4.25, height / 2));
 
     update(root);
   }
