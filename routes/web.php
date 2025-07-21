@@ -17,8 +17,6 @@ Route::get('dashboard', function () {
 
 Route::get('/', [AppController::class, 'index']);
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
-Route::get('/integration/stream/{stream}', [AppController::class, 'streamIntegrations'])
-    ->name('stream.integrations');
 Route::get('/diagram/stream/{stream}', [AppController::class, 'vueFlowStreamIntegrations'])
     ->name('diagram.stream.integrations');
 
