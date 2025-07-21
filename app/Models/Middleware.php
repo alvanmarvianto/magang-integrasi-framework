@@ -2,50 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Middleware extends Model
 {
-    use HasFactory;
-
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'middlewares';
-
-    /**
-     * The primary key associated with the table.
-     *
-     * @var string
-     */
+    protected $table = 'technology_middlewares';
     protected $primaryKey = 'middleware_id';
-
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
     public $timestamps = false;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
+        'app_id',
         'name',
-        'version',
+        'version'
     ];
 
-    /**
-     * Get the technologies that use this middleware.
-     */
-    public function technologies(): BelongsToMany
+    public function app(): BelongsTo
     {
-        return $this->belongsToMany(Technology::class, 'technology_middlewares', 'middleware_id', 'technology_id');
+        return $this->belongsTo(App::class, 'app_id', 'app_id');
     }
 }

@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\AppController;
-use App\Http\Controllers\AdminVueFlowController;
 use App\Http\Controllers\TechnologyController;
+use App\Http\Controllers\AdminController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -32,7 +32,17 @@ Route::prefix('technology')->group(function () {
     Route::get('/{app_id}', [TechnologyController::class, 'show'])->name('technology.app');
 });
 
-Route::prefix('admin')->group(function () {
-    Route::get('/stream/{stream}', [AdminVueFlowController::class, 'show'])->name('admin.stream.show');
-    Route::post('/stream/{stream}/layout', [AdminVueFlowController::class, 'saveLayout'])->name('admin.stream.layout');
+// Admin routes
+Route::prefix('admin')->name('admin.')->group(function () {
+    // App management
+    Route::get('/apps', [AdminController::class, 'index'])->name('index');
+    Route::get('/apps/create', [AdminController::class, 'create'])->name('create');
+    Route::post('/apps', [AdminController::class, 'store'])->name('store');
+    Route::get('/apps/{app}/edit', [AdminController::class, 'edit'])->name('edit');
+    Route::put('/apps/{app}', [AdminController::class, 'update'])->name('update');
+    Route::delete('/apps/{app}', [AdminController::class, 'destroy'])->name('destroy');
+
+    // Stream management
+    Route::get('/stream/{streamName}', [AdminController::class, 'showStream'])->name('stream.show');
+    Route::post('/stream/{streamName}/layout', [AdminController::class, 'saveLayout'])->name('stream.layout.save');
 });
