@@ -13,6 +13,7 @@ class App extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'app_id',
         'app_name',
         'description',
         'stream_id',
@@ -38,35 +39,5 @@ class App extends Model
     public function operatingSystems(): HasMany
     {
         return $this->hasMany(OperatingSystem::class, 'app_id', 'app_id');
-    }
-
-    public function databases(): HasMany
-    {
-        return $this->hasMany(Database::class, 'app_id', 'app_id');
-    }
-
-    public function programmingLanguages(): HasMany
-    {
-        return $this->hasMany(ProgrammingLanguage::class, 'app_id', 'app_id');
-    }
-
-    public function frameworks(): HasMany
-    {
-        return $this->hasMany(Framework::class, 'app_id', 'app_id');
-    }
-
-    public function middlewares(): HasMany
-    {
-        return $this->hasMany(Middleware::class, 'app_id', 'app_id');
-    }
-
-    public function thirdParties(): HasMany
-    {
-        return $this->hasMany(ThirdParty::class, 'app_id', 'app_id');
-    }
-
-    public function platforms(): HasMany
-    {
-        return $this->hasMany(Platform::class, 'app_id', 'app_id');
     }
 }
