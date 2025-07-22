@@ -2,19 +2,10 @@
   <div class="admin-vue-flow-container">
     <AdminNavbar :title="`Admin - ${streamName.toUpperCase()} Stream Layout`" :showBackButton="true">
       <template #controls>
-        <!-- Auto-save status indicator -->
-        <div v-if="autoSaveTimeout" class="status-indicator auto-saving">
-          <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Auto-saving...
-        </div>
-        
         <!-- Layout changed indicator -->
-        <div v-else-if="layoutChanged" class="status-indicator unsaved">
+        <div v-if="layoutChanged" class="status-indicator unsaved">
           <div class="indicator-dot"></div>
-          Belum tersimpan
+          Perubahan belum tersimpan
         </div>
         
         <!-- Saved indicator -->
@@ -100,7 +91,6 @@ import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
-import { useAutoSave } from '@/composables/useAutoSave'
 import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
@@ -140,8 +130,24 @@ const vueFlowKey = ref(0) // Key to force VueFlow re-render
 // Use admin-specific edge handling
 const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges } = useAdminEdgeHandling()
 
-// Use auto-save functionality
-const { autoSaveTimeout, scheduleAutoSave} = useAutoSave()
+// Add event listener for beforeunload
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+// Remove event listener on component unmount
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
+
+// Handle beforeunload event
+function handleBeforeUnload(e: BeforeUnloadEvent) {
+  if (layoutChanged.value) {
+    e.preventDefault()
+    e.returnValue = 'Ada perubahan yang belum tersimpan. Anda yakin ingin meninggalkan halaman ini?'
+    return e.returnValue
+  }
+}
 
 // Use status messages
 const { statusMessage, statusType, showStatus } = useStatusMessage()
@@ -165,6 +171,9 @@ watch(() => props.streamName, () => {
 })
 
 function initializeLayout() {
+  // Reset layout changed status to show "Tersimpan" initially
+  layoutChanged.value = false
+  
   // Store original layout
   originalLayout.value = props.savedLayout ? JSON.parse(JSON.stringify(props.savedLayout)) : null
   const cleanedNodes = validateAndCleanNodes(props.nodes);
@@ -191,19 +200,13 @@ function initializeLayout() {
     removeDuplicateEdges
   )
 
-  // Apply layout and auto-save if needed
+  // Apply layout
   setTimeout(() => {
-    if (!hasSavedLayout && nodes.value.length > 0) {
-      // Schedule auto-save for generated layout (immediate, but still debounced)
-      markLayoutChanged()
-      scheduleAutoSave(autoSaveLayout)
-    }
     fitView()
   }, 100)
   
   // Reset status indicators
   layoutChanged.value = false
-  autoSaveTimeout.value = 0
 }
 
 function fitView() {
@@ -238,7 +241,6 @@ function onNodeDragStop(event: any) {
   }
   
   markLayoutChanged()
-  scheduleAutoSave(autoSaveLayout) // Schedule debounced auto-save
 }
 
 function onEdgeUpdate(params: any, newConnection?: any) {
@@ -362,7 +364,6 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     })
 
     markLayoutChanged()
-    scheduleAutoSave(autoSaveLayout)
   } else {
     console.error('Edge not found for update:', oldEdge.id)
     showStatus('Gagal memperbarui koneksi', 'error')
@@ -470,7 +471,6 @@ function onEdgesChange(changes: any[]) {
   // Mark layout as changed if there are actual changes
   if (changes.length > 0) {
     markLayoutChanged()
-    scheduleAutoSave(autoSaveLayout)
   }
 }
 
@@ -537,7 +537,6 @@ async function saveLayout() {
       preserveState: true,
       onSuccess: () => {
         layoutChanged.value = false
-        autoSaveTimeout.value = null // Clear auto-save indicator
         showStatus('Layout berhasil disimpan!', 'success')
       },
       onError: (errors) => {
@@ -553,92 +552,7 @@ async function saveLayout() {
   }
 }
 
-async function autoSaveLayout() {
-  if (saving.value) {
-    return
-  }
-  
-  try {
-    // Set auto-save status
-    autoSaveTimeout.value = 1
 
-    // Prepare nodes layout for auto-save
-    const nodesLayout: Record<string, any> = {}
-    nodes.value.forEach(node => {
-      nodesLayout[node.id] = {
-        position: node.position,
-        style: node.style,
-        parentNode: node.parentNode,
-        extent: node.extent,
-        ...(node.data.is_parent_node && {
-          dimensions: {
-            width: parseInt((node.style as any)?.width?.toString().replace('px', '') || '600'),
-            height: parseInt((node.style as any)?.height?.toString().replace('px', '') || '400')
-          }
-        })
-      }
-    })
-
-    // Ensure we have at least one node layout
-    if (Object.keys(nodesLayout).length === 0) {
-      autoSaveTimeout.value = null
-      return
-    }
-
-    // Prepare edges layout for auto-save
-    const edgesLayout = edges.value.map(edge => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle: edge.sourceHandle,
-      targetHandle: edge.targetHandle,
-      type: edge.type,
-      style: edge.style,
-      data: edge.data
-    }))
-
-    console.log('Auto-saving edges layout:', edgesLayout)
-
-    // Prepare stream config
-    const streamConfig = {
-      lastUpdated: new Date().toISOString(),
-      totalNodes: nodes.value.length,
-      totalEdges: edges.value.length,
-      autoSaved: true
-    }
-
-    // Auto-save to backend
-    saving.value = true
-    await router.post(`/admin/stream/${props.streamName}/layout`, {
-      nodes_layout: nodesLayout,
-      edges_layout: edgesLayout,
-      stream_config: streamConfig
-    }, {
-      preserveState: true,
-      onSuccess: () => {
-        originalLayout.value = { 
-          nodes_layout: nodesLayout, 
-          edges_layout: edgesLayout,
-          stream_config: streamConfig 
-        }
-        layoutChanged.value = false // Mark as saved
-        autoSaveTimeout.value = null // Clear auto-save indicator
-        showStatus('Layout auto-saved', 'success')
-      },
-      onError: (errors) => {
-        console.error('Auto-save failed:', errors)
-        autoSaveTimeout.value = null // Clear auto-save indicator on error
-        showStatus('Auto-save gagal', 'error')
-      }
-    })
-  } catch (error) {
-    console.error('Auto-save error:', error)
-    autoSaveTimeout.value = null // Clear auto-save indicator on error
-    showStatus('Auto-save error', 'error')
-  } finally {
-    saving.value = false
-  }
-}
 
 function resetLayout() {
   if (originalLayout.value) {
@@ -690,7 +604,6 @@ function onStreamResize(event: { width: number, height: number }) {
     nodes.value.splice(streamNodeIndex, 1, updatedNode)
     
     markLayoutChanged()
-    scheduleAutoSave(autoSaveLayout)
   } else {
     console.warn('Stream node not found for resize')
   }
