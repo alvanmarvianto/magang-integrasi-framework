@@ -32,4 +32,14 @@ class AppIntegration extends Pivot
     {
         return $this->belongsTo(ConnectionType::class, 'connection_type_id', 'connection_type_id');
     }
+
+    public function sourceApp(): BelongsTo
+    {
+        return $this->belongsTo(App::class, 'source_app_id', 'app_id');
+    }
+
+    public function targetApp(): BelongsTo
+    {
+        return $this->belongsTo(App::class, 'target_app_id', 'app_id');
+    }
 }

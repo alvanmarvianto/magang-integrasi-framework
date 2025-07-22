@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\TechnologyController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminIntegrationController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -39,6 +40,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Main admin pages
     Route::get('/', [AdminController::class, 'index'])->name('index');
     
+    // Integration management
+    Route::get('/integrations', [AdminIntegrationController::class, 'index'])->name('integrations');
+    Route::get('/integrations/create', [AdminIntegrationController::class, 'create'])->name('integrations.create');
+    Route::post('/integrations', [AdminIntegrationController::class, 'store'])->name('integrations.store');
+    Route::get('/integrations/{id}/edit', [AdminIntegrationController::class, 'edit'])->name('integrations.edit');
+    Route::put('/integrations/{id}', [AdminIntegrationController::class, 'update'])->name('integrations.update');
+    Route::delete('/integrations/{id}', [AdminIntegrationController::class, 'destroy'])->name('integrations.destroy');
+    
+    // Connection types management
+    Route::get('/connection-types', [AdminIntegrationController::class, 'connectionTypes'])->name('connection-types');
+    Route::post('/connection-types', [AdminIntegrationController::class, 'storeConnectionType'])->name('connection-types.store');
+    Route::put('/connection-types/{id}', [AdminIntegrationController::class, 'updateConnectionType'])->name('connection-types.update');
+    Route::delete('/connection-types/{id}', [AdminIntegrationController::class, 'destroyConnectionType'])->name('connection-types.destroy');
+
     // App management
     Route::get('/apps', [AdminController::class, 'apps'])->name('apps');
     Route::get('/apps/create', [AdminController::class, 'create'])->name('apps.create');
