@@ -1,19 +1,19 @@
 <template>
   <div class="admin-container">
-    <AdminNavbar title="Integration Management" :showBackButton="true">
+    <AdminNavbar title="Manajemen Integrasi" :showBackButton="true">
       <template #controls>
         <div class="search-container">
           <input 
             type="text" 
             v-model="searchQuery" 
-            placeholder="Search integrations..." 
+            placeholder="Cari integrasi..." 
             class="search-input"
             @input="handleSearch"
           />
         </div>
         <a href="/admin/integrations/create" class="admin-action-button">
           <font-awesome-icon icon="fa-solid fa-plus" />
-          Add Integration
+          Tambah Integrasi
         </a>
       </template>
     </AdminNavbar>
@@ -23,7 +23,7 @@
     </div>
 
     <div v-else-if="props.integrations.data.length === 0" class="p-4 text-center">
-      No integrations found.
+      Tidak ada integrasi.
     </div>
 
     <div v-else class="admin-table-container">
@@ -163,29 +163,4 @@ function navigateToPage(url: string) {
 
 <style scoped>
 @import '@/../css/admin.css';
-
-.admin-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.search-container {
-  flex: 1;
-  max-width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--primary-color-light);
-}
 </style>

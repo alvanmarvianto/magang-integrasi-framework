@@ -1,20 +1,13 @@
 <template>
   <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">{{ isEditing ? 'Edit Integration' : 'Create Integration' }}</h1>
-      <a href="/admin/integrations" class="admin-action-button">
-        Back to List
-      </a>
-    </div>
+    <AdminNavbar :title="(isEditing ? 'Edit' : 'Buat') + ' Integrasi'" :showBackButton="true" backUrl="/admin/integrations" />
 
-    <form @submit.prevent="submit" class="admin-form">
-      <div class="admin-form-section">
-        <h2 class="admin-form-title">Integration Details</h2>
-        
-        <div class="admin-form-grid">
-          <div class="admin-form-field">
-            <label class="admin-form-label">Source App</label>
+    <AdminForm @submit="submit">
+      <AdminFormSection title="Detail Integrasi" class="integration-section">
+        <div class="admin-form-grid integration-single-column">
+          <AdminFormField label="Source App" id="source_app_id">
             <select
+              id="source_app_id"
               v-model="form.source_app_id"
               class="admin-form-select"
               required
@@ -29,11 +22,11 @@
                 {{ app.app_name }}
               </option>
             </select>
-          </div>
+          </AdminFormField>
 
-          <div class="admin-form-field">
-            <label class="admin-form-label">Target App</label>
+          <AdminFormField label="Target App" id="target_app_id">
             <select
+              id="target_app_id"
               v-model="form.target_app_id"
               class="admin-form-select"
               required
@@ -49,11 +42,11 @@
                 {{ app.app_name }}
               </option>
             </select>
-          </div>
+          </AdminFormField>
 
-          <div class="admin-form-field">
-            <label class="admin-form-label">Connection Type</label>
+          <AdminFormField label="Connection Type" id="connection_type_id">
             <select
+              id="connection_type_id"
               v-model="form.connection_type_id"
               class="admin-form-select"
               required
@@ -67,18 +60,23 @@
                 {{ type.type_name }}
               </option>
             </select>
-          </div>
+          </AdminFormField>
         </div>
+      </AdminFormSection>
+      <div class="flex justify-end">
+        <button type="submit" class="admin-form-submit integration-submit">
+          {{ isEditing ? 'Perbarui Integrasi' : 'Buat Integrasi' }}
+        </button>
       </div>
-
-      <button type="submit" class="admin-form-submit">
-        {{ isEditing ? 'Update Integration' : 'Create Integration' }}
-      </button>
-    </form>
+    </AdminForm>
   </div>
 </template>
 
 <script setup>
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+import AdminForm from '@/components/Admin/AdminForm.vue';
+import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
+import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
@@ -118,29 +116,4 @@ function submit() {
 
 <style scoped>
 @import '@/../css/admin.css';
-
-/* Additional custom styles if needed */
-.admin-form-grid {
-  /* Override to single column for this form since we have fewer fields */
-  grid-template-columns: 1fr;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-@media (min-width: 768px) {
-  .admin-form-grid {
-    grid-template-columns: 1fr; /* Keep single column even on larger screens */
-  }
-}
-
-/* Add some spacing between form sections */
-.admin-form-section {
-  margin-bottom: 2rem;
-}
-
-/* Ensure consistent button alignment */
-.admin-form-submit {
-  margin-top: 1.5rem;
-  align-self: center; /* Center the submit button */
-}
 </style>

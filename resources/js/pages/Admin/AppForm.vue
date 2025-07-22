@@ -1,31 +1,21 @@
 <template>
   <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">{{ app ? 'Edit' : 'Buat' }} Aplikasi</h1>
-      <a href="/admin/apps" class="admin-action-button">
-        Kembali
-      </a>
-    </div>
+    <AdminNavbar :title="(app ? 'Edit' : 'Buat') + ' Aplikasi'" :showBackButton="true" backUrl="/admin/apps" />
 
-    <form @submit.prevent="submit" class="admin-form">
-      <!-- Basic Information -->
-      <div class="admin-form-section">
-        <h2 class="admin-form-title">Informasi Dasar</h2>
-        
+    <AdminForm @submit="submit">
+      <AdminFormSection title="Informasi Dasar">
         <div class="admin-form-grid">
-          <div class="admin-form-field">
-            <label for="app_name" class="admin-form-label">Nama Aplikasi</label>
+          <AdminFormField label="Nama Aplikasi" id="app_name">
             <input
               id="app_name"
               v-model="form.app_name"
               type="text"
               class="admin-form-input"
               required
-            >
-          </div>
+            />
+          </AdminFormField>
 
-          <div class="admin-form-field">
-            <label for="stream_id" class="admin-form-label">Stream</label>
+          <AdminFormField label="Stream" id="stream_id">
             <select
               id="stream_id"
               v-model="form.stream_id"
@@ -37,27 +27,22 @@
                 {{ stream.data.stream_name }}
               </option>
             </select>
-          </div>
+          </AdminFormField>
 
-          <div class="col-span-2">
-            <label for="description" class="admin-form-label">Deskripsi</label>
+          <AdminFormField label="Deskripsi" id="description" class="col-span-2">
             <textarea
               id="description"
               v-model="form.description"
               rows="3"
               class="admin-form-textarea"
             ></textarea>
-          </div>
+          </AdminFormField>
         </div>
-      </div>
+      </AdminFormSection>
 
-      <!-- Technology Components -->
-      <div class="admin-form-section">
-        <h2 class="admin-form-title">Informasi Detail</h2>
-
+      <AdminFormSection title="Informasi Detail">
         <div class="admin-form-grid">
-          <div class="admin-form-field">
-            <label for="app_type" class="admin-form-label">Tipe Aplikasi</label>
+          <AdminFormField label="Tipe Aplikasi" id="app_type">
             <select
               id="app_type"
               v-model="form.app_type"
@@ -69,10 +54,9 @@
                 {{ type }}
               </option>
             </select>
-          </div>
+          </AdminFormField>
 
-          <div class="admin-form-field">
-            <label for="stratification" class="admin-form-label">Stratifikasi</label>
+          <AdminFormField label="Stratifikasi" id="stratification">
             <select
               id="stratification"
               v-model="form.stratification"
@@ -84,7 +68,7 @@
                 {{ strat }}
               </option>
             </select>
-          </div>
+          </AdminFormField>
         </div>
 
         <TechnologySection
@@ -150,20 +134,24 @@
           @add="addItem('platforms')"
           @remove="removeItem('platforms', $event)"
         />
-      </div>
+      </AdminFormSection>
 
       <div class="flex justify-end">
         <button type="submit" class="admin-form-submit">
           {{ app ? 'Update' : 'Buat' }} Aplikasi
         </button>
       </div>
-    </form>
+    </AdminForm>
   </div>
 </template>
 
 <script setup lang="ts">
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import { ref, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+import AdminForm from '@/components/Admin/AdminForm.vue';
+import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
+import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import TechnologySection from '@/components/Admin/TechnologySection.vue';
 import { useNotification } from '@/composables/useNotification';
 
