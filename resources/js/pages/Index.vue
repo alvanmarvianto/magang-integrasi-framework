@@ -7,7 +7,7 @@
       <header>
         <h1>
           <i class="fas fa-sitemap"></i>
-          Aplikasi BI
+          Aplikasi BI-DLDS
         </h1>
       </header>
       <div class="sidebar-content">
