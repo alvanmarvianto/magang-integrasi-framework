@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\App;
 use App\Http\Resources\AppResource;
 use App\Repositories\Interfaces\AppRepositoryInterface;
-use Illuminate\Support\Collection;
 
 class AppService
 {

@@ -178,22 +178,6 @@ function handleSearch() {
   );
 }
 
-function getSortIcon(column: string) {
-  if (sortBy.value !== column) {
-    return 'fa-solid fa-sort';
-  }
-  return sortDesc.value ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up';
-}
-
-function toggleSort(column: string) {
-  if (sortBy.value === column) {
-    sortDesc.value = !sortDesc.value;
-  } else {
-    sortBy.value = column;
-    sortDesc.value = false;
-  }
-}
-
 function deleteApp(appId: number) {
   if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
     router.delete(`/admin/apps/${appId}`);

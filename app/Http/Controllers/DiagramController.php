@@ -6,7 +6,6 @@ use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\StreamLayout;
 use App\Models\Stream;
-use App\Models\ConnectionType;
 use Illuminate\Http\Request;
 
 class DiagramController extends Controller

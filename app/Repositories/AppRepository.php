@@ -5,7 +5,6 @@ namespace App\Repositories;
 use App\Models\App;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
 
 class AppRepository implements AppRepositoryInterface
 {

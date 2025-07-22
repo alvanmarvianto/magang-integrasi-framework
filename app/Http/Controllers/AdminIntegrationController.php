@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\App;
 use App\Models\AppIntegration;
-use App\Models\ConnectionType;
 use App\Services\IntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;

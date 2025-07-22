@@ -4,7 +4,6 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\App;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
 
 interface AppRepositoryInterface
 {

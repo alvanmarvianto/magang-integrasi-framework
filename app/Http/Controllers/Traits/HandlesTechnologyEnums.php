@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Traits;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 trait HandlesTechnologyEnums
 {
