@@ -120,11 +120,11 @@
         />
 
         <TechnologySection
-          title="Frameworks"
-          :items="form.frameworks"
-          :available-items="frameworks"
-          @add="addItem('frameworks')"
-          @remove="removeItem('frameworks', $event)"
+          title="Third Party"
+          :items="form.third_parties"
+          :available-items="thirdParties"
+          @add="addItem('third_parties')"
+          @remove="removeItem('third_parties', $event)"
         />
 
         <TechnologySection
@@ -136,11 +136,11 @@
         />
 
         <TechnologySection
-          title="Third Party"
-          :items="form.third_parties"
-          :available-items="thirdParties"
-          @add="addItem('third_parties')"
-          @remove="removeItem('third_parties', $event)"
+          title="Frameworks"
+          :items="form.frameworks"
+          :available-items="frameworks"
+          @add="addItem('frameworks')"
+          @remove="removeItem('frameworks', $event)"
         />
 
         <TechnologySection
@@ -253,18 +253,10 @@ const form = ref<FormData>({
 
 onMounted(() => {
   try {
-    console.log('Props received:', props);
-    console.log('App data:', props.app);
-    console.log('Streams:', props.streams);
-
     if (props.app) {
       // Get raw values from the Proxy object
       const rawApp = JSON.parse(JSON.stringify(props.app));
-      console.log('Raw app data:', rawApp);
-
-      const rawStreams = JSON.parse(JSON.stringify(props.streams));
-      console.log('Raw streams:', rawStreams);
-
+      
       // Initialize form with app data
       const appData = rawApp.data;  // Access the nested data property
       form.value = {

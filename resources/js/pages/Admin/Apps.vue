@@ -49,8 +49,8 @@
         </thead>
         <tbody>
           <tr v-for="app in sortedAndFilteredApps" :key="app.app_id">
-            <td>{{ app.app_name }}</td>
-            <td>{{ app.stream?.stream_name }}</td>
+                        <td>{{ app.app_name }}</td>
+            <td>{{ getStreamName(app.stream_id) }}</td>
             <td>
               <div class="flex justify-center gap-2">
                 <a 
@@ -96,9 +96,11 @@ import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 
 interface Stream {
-  stream_id: number;
-  stream_name: string;
-  description: string | null;
+  data: {
+    stream_id: number;
+    stream_name: string;
+    description: string | null;
+  };
 }
 
 interface App {
@@ -143,8 +145,16 @@ const searchQuery = ref('');
 const sortBy = ref('name');
 const sortDesc = ref(false);
 
+function getStreamName(streamId: number): string {
+  if (!props.streams) return '-';
+  const stream = props.streams.find(s => s.data?.stream_id === streamId);
+  return stream?.data?.stream_name ?? '-';
+}
+
 onMounted(() => {
   console.log('Props received:', props);
+  console.log('Apps:', props.apps?.data);
+  console.log('Streams:', props.streams);
 });
 
 const sortedAndFilteredApps = computed(() => {
@@ -167,8 +177,8 @@ const sortedAndFilteredApps = computed(() => {
         ? b.app_name.toLowerCase().localeCompare(a.app_name.toLowerCase())
         : a.app_name.toLowerCase().localeCompare(b.app_name.toLowerCase());
     } else if (sortBy.value === 'stream') {
-      const streamA = a.stream?.stream_name?.toLowerCase() ?? '';
-      const streamB = b.stream?.stream_name?.toLowerCase() ?? '';
+      const streamA = getStreamName(a.stream_id).toLowerCase();
+      const streamB = getStreamName(b.stream_id).toLowerCase();
       return sortDesc.value
         ? streamB.localeCompare(streamA)
         : streamA.localeCompare(streamB);
