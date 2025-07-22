@@ -18,7 +18,15 @@
       </template>
     </AdminNavbar>
 
-    <div class="admin-table-container">
+    <div v-if="!props.apps?.data" class="p-4 text-center">
+      Loading...
+    </div>
+
+    <div v-else-if="props.apps.data.length === 0" class="p-4 text-center">
+      No applications found.
+    </div>
+
+    <div v-else class="admin-table-container">
       <table class="admin-table">
         <thead>
           <tr>
@@ -65,10 +73,10 @@
         </tbody>
       </table>
 
-      <div class="admin-pagination">
+      <div v-if="props.apps.meta?.links" class="admin-pagination">
         <div class="flex gap-2">
           <button
-            v-for="link in apps.links"
+            v-for="link in props.apps.meta.links"
             :key="link.label"
             class="admin-pagination-button"
             :class="{ active: link.active }"
@@ -83,16 +91,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+
+interface Stream {
+  stream_id: number;
+  stream_name: string;
+  description: string | null;
+}
 
 interface App {
   app_id: number;
   app_name: string;
+  description: string | null;
   stream?: {
+    stream_id: number;
     stream_name: string;
   };
+  stream_id: number;
+  app_type: string | null;
+  stratification: string | null;
+  vendors: Array<{ name: string; version: string | null; }>;
+  operating_systems: Array<{ name: string; version: string | null; }>;
+  databases: Array<{ name: string; version: string | null; }>;
+  programming_languages: Array<{ name: string; version: string | null; }>;
+  frameworks: Array<{ name: string; version: string | null; }>;
+  middlewares: Array<{ name: string; version: string | null; }>;
+  third_parties: Array<{ name: string; version: string | null; }>;
+  platforms: Array<{ name: string; version: string | null; }>;
 }
 
 interface PaginationLink {
@@ -102,10 +129,13 @@ interface PaginationLink {
 }
 
 interface Props {
-  apps: {
+  apps?: {
     data: App[];
-    links: PaginationLink[];
+    meta?: {
+      links: PaginationLink[];
+    };
   };
+  streams?: Stream[];
 }
 
 const props = defineProps<Props>();
@@ -113,7 +143,15 @@ const searchQuery = ref('');
 const sortBy = ref('name');
 const sortDesc = ref(false);
 
+onMounted(() => {
+  console.log('Props received:', props);
+});
+
 const sortedAndFilteredApps = computed(() => {
+  if (!props.apps?.data) {
+    return [];
+  }
+
   let filteredApps = props.apps.data;
   
   if (searchQuery.value) {

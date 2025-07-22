@@ -33,8 +33,8 @@
               required
             >
               <option value="">Pilih Stream</option>
-              <option v-for="stream in streams" :key="stream.stream_id" :value="stream.stream_id">
-                {{ stream.stream_name }}
+              <option v-for="stream in streams" :key="stream.data.stream_id" :value="stream.data.stream_id">
+                {{ stream.data.stream_name }}
               </option>
             </select>
           </div>
@@ -175,12 +175,17 @@ interface TechItem {
   version?: string;
 }
 
+interface RawTechItem {
+  name: string | null;
+  version: string | null;
+}
+
 interface FormData {
   app_name: string;
-  description: string;
-  stream_id: string;
-  app_type: string;
-  stratification: string;
+  description: string | null;
+  stream_id: number | null;
+  app_type: string | null;
+  stratification: string | null;
   vendors: TechItem[];
   operating_systems: TechItem[];
   databases: TechItem[];
@@ -196,20 +201,26 @@ interface Props {
   app?: {
     app_id: number;
     app_name: string;
-    description: string;
+    description: string | null;
     stream_id: number;
-    app_type: string;
-    stratification: string;
-    vendors: TechItem[];
-    operating_systems: TechItem[];
-    databases: TechItem[];
-    programming_languages: TechItem[];
-    frameworks: TechItem[];
-    middlewares: TechItem[];
-    third_parties: TechItem[];
-    platforms: TechItem[];
+    app_type: string | null;
+    stratification: string | null;
+    vendors: RawTechItem[];
+    operating_systems: RawTechItem[];
+    databases: RawTechItem[];
+    programming_languages: RawTechItem[];
+    frameworks: RawTechItem[];
+    middlewares: RawTechItem[];
+    third_parties: RawTechItem[];
+    platforms: RawTechItem[];
   };
-  streams: any[];
+  streams: {
+    data: {
+      stream_id: number;
+      stream_name: string;
+      description: string | null;
+    };
+  }[];
   appTypes: string[];
   stratifications: string[];
   vendors: string[];
@@ -226,10 +237,10 @@ const props = defineProps<Props>();
 
 const form = ref<FormData>({
   app_name: '',
-  description: '',
-  stream_id: '',
-  app_type: '',
-  stratification: '',
+  description: null,
+  stream_id: null,
+  app_type: null,
+  stratification: null,
   vendors: [],
   operating_systems: [],
   databases: [],
@@ -241,27 +252,70 @@ const form = ref<FormData>({
 });
 
 onMounted(() => {
-  if (props.app) {
-    form.value = {
-      app_name: props.app.app_name || '',
-      description: props.app.description || '',
-      stream_id: String(props.app.stream_id || ''),
-      app_type: props.app.app_type || '',
-      stratification: props.app.stratification || '',
-      vendors: props.app.vendors || [],
-      operating_systems: props.app.operating_systems || [],
-      databases: props.app.databases || [],
-      languages: props.app.programming_languages || [],
-      frameworks: props.app.frameworks || [],
-      middlewares: props.app.middlewares || [],
-      third_parties: props.app.third_parties || [],
-      platforms: props.app.platforms || [],
-    };
+  try {
+    console.log('Props received:', props);
+    console.log('App data:', props.app);
+    console.log('Streams:', props.streams);
+
+    if (props.app) {
+      // Get raw values from the Proxy object
+      const rawApp = JSON.parse(JSON.stringify(props.app));
+      console.log('Raw app data:', rawApp);
+
+      const rawStreams = JSON.parse(JSON.stringify(props.streams));
+      console.log('Raw streams:', rawStreams);
+
+      // Initialize form with app data
+      const appData = rawApp.data;  // Access the nested data property
+      form.value = {
+        app_name: appData.app_name,
+        description: appData.description,
+        stream_id: appData.stream_id,
+        app_type: appData.app_type,
+        stratification: appData.stratification,
+        vendors: (appData.vendors || []).map((v: RawTechItem) => ({ 
+          name: v.name || '', 
+          version: v.version || undefined 
+        })),
+        operating_systems: (appData.operating_systems || []).map((os: RawTechItem) => ({ 
+          name: os.name || '', 
+          version: os.version || undefined 
+        })),
+        databases: (appData.databases || []).map((db: RawTechItem) => ({ 
+          name: db.name || '', 
+          version: db.version || undefined 
+        })),
+        languages: (appData.programming_languages || []).map((lang: RawTechItem) => ({ 
+          name: lang.name || '', 
+          version: lang.version || undefined 
+        })),
+        frameworks: (appData.frameworks || []).map((fw: RawTechItem) => ({ 
+          name: fw.name || '', 
+          version: fw.version || undefined 
+        })),
+        middlewares: (appData.middlewares || []).map((mw: RawTechItem) => ({ 
+          name: mw.name || '', 
+          version: mw.version || undefined 
+        })),
+        third_parties: (appData.third_parties || []).map((tp: RawTechItem) => ({ 
+          name: tp.name || '', 
+          version: tp.version || undefined 
+        })),
+        platforms: (appData.platforms || []).map((p: RawTechItem) => ({ 
+          name: p.name || '', 
+          version: p.version || undefined 
+        })),
+      };
+
+      console.log('Form data set:', form.value);
+    }
+  } catch (error) {
+    console.error('Error in onMounted:', error);
   }
 });
 
 function addItem(type: string) {
-  form.value[type].push({ name: '', version: '' });
+  form.value[type].push({ name: '', version: undefined });
 }
 
 function removeItem(type: string, index: number) {
@@ -270,7 +324,7 @@ function removeItem(type: string, index: number) {
 
 function submit() {
   if (props.app) {
-    router.put(`/admin/apps/${props.app.app_id}`, form.value, {
+    router.put(`/admin/apps/${JSON.parse(JSON.stringify(props.app)).data.app_id}`, form.value, {
       onSuccess: () => {
         showSuccess('Aplikasi berhasil diperbarui');
       },

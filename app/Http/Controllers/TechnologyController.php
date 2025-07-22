@@ -3,13 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\App;
-use Illuminate\Support\Facades\DB;
+use App\Services\TechnologyService;
+use App\Http\Resources\AppResource;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TechnologyController extends Controller
 {
-    public function show($appId): Response
+    protected TechnologyService $technologyService;
+
+    public function __construct(TechnologyService $technologyService)
+    {
+        $this->technologyService = $technologyService;
+    }
+
+    public function show(int $appId): Response
     {
         /** @var App $app */
         $app = App::with(['stream'])
@@ -19,18 +28,18 @@ class TechnologyController extends Controller
         $technologyData = [
             'app_type' => $app->getAttribute('app_type'),
             'stratification' => $app->getAttribute('stratification'),
-            'vendor' => $this->getTechnologyData('technology_vendors', $app->getAttribute('app_id')),
-            'os' => $this->getTechnologyData('technology_operating_systems', $app->getAttribute('app_id')),
-            'database' => $this->getTechnologyData('technology_databases', $app->getAttribute('app_id')),
-            'language' => $this->getTechnologyData('technology_programming_languages', $app->getAttribute('app_id')),
-            'third_party' => $this->getTechnologyData('technology_third_parties', $app->getAttribute('app_id')),
-            'middleware' => $this->getTechnologyData('technology_middlewares', $app->getAttribute('app_id')),
-            'framework' => $this->getTechnologyData('technology_frameworks', $app->getAttribute('app_id')),
-            'platform' => $this->getTechnologyData('technology_platforms', $app->getAttribute('app_id')),
+            'vendor' => $this->technologyService->getTechnologyData('technology_vendors', $app->getAttribute('app_id')),
+            'os' => $this->technologyService->getTechnologyData('technology_operating_systems', $app->getAttribute('app_id')),
+            'database' => $this->technologyService->getTechnologyData('technology_databases', $app->getAttribute('app_id')),
+            'language' => $this->technologyService->getTechnologyData('technology_programming_languages', $app->getAttribute('app_id')),
+            'third_party' => $this->technologyService->getTechnologyData('technology_third_parties', $app->getAttribute('app_id')),
+            'middleware' => $this->technologyService->getTechnologyData('technology_middlewares', $app->getAttribute('app_id')),
+            'framework' => $this->technologyService->getTechnologyData('technology_frameworks', $app->getAttribute('app_id')),
+            'platform' => $this->technologyService->getTechnologyData('technology_platforms', $app->getAttribute('app_id')),
         ];
 
         return Inertia::render('Technology', [
-            'app' => $app,
+            'app' => new AppResource($app),
             'appDescription' => $app->getAttribute('description'),
             'technology' => $technologyData,
             'appName' => $app->getAttribute('app_name'),
@@ -38,82 +47,43 @@ class TechnologyController extends Controller
         ]);
     }
 
-    private function getTechnologyData($tableName, $appId)
+    public function getAppByVendor(string $vendorName): JsonResponse
     {
-        $results = DB::table($tableName)
-            ->where('app_id', $appId)
-            ->get(['name', 'version']);
-
-        return $results->map(function (object $item) {
-            return [
-                'name' => $item->name,
-                'version' => $item->version,
-            ];
-        })->toArray();
+        return response()->json($this->technologyService->getAppByCondition('technology_vendors', $vendorName));
     }
 
-    public function getAppByVendor($vendorName)
+    public function getAppByOS(string $osName): JsonResponse
     {
-        return $this->getAppByCondition('technology_vendors', $vendorName);
+        return response()->json($this->technologyService->getAppByCondition('technology_operating_systems', $osName));
     }
 
-    public function getAppByOS($osName): array
+    public function getAppByDatabase(string $databaseName): JsonResponse
     {
-        return $this->getAppByCondition('technology_operating_systems', $osName);
+        return response()->json($this->technologyService->getAppByCondition('technology_databases', $databaseName));
     }
 
-    public function getAppByDatabase($databaseName): array
+    public function getAppByLanguage(string $languageName): JsonResponse
     {
-        return $this->getAppByCondition('technology_databases', $databaseName);
+        return response()->json($this->technologyService->getAppByCondition('technology_programming_languages', $languageName));
     }
 
-    public function getAppByLanguage($languageName): array
+    public function getAppByThirdParty(string $thirdPartyName): JsonResponse
     {
-        return $this->getAppByCondition('technology_programming_languages', $languageName);
+        return response()->json($this->technologyService->getAppByCondition('technology_third_parties', $thirdPartyName));
     }
 
-    public function getAppByThirdParty($thirdPartyName): array
+    public function getAppByMiddleware(string $middlewareName): JsonResponse
     {
-        return $this->getAppByCondition('technology_third_parties', $thirdPartyName);
+        return response()->json($this->technologyService->getAppByCondition('technology_middlewares', $middlewareName));
     }
 
-    public function getAppByMiddleware($middlewareName): array
+    public function getAppByFramework(string $frameworkName): JsonResponse
     {
-        return $this->getAppByCondition('technology_middlewares', $middlewareName);
+        return response()->json($this->technologyService->getAppByCondition('technology_frameworks', $frameworkName));
     }
 
-    public function getAppByFramework($frameworkName): array
+    public function getAppByPlatform(string $platformName): JsonResponse
     {
-        return $this->getAppByCondition('technology_frameworks', $frameworkName);
-    }
-
-    public function getAppByPlatform($platformName): array
-    {
-        return $this->getAppByCondition('technology_platforms', $platformName);
-    }
-
-    private function getAppByCondition(string $tableName, string $name): array
-    {
-        $appIds = DB::table($tableName)
-            ->where('name', $name)
-            ->pluck('app_id')
-            ->unique()
-            ->toArray();
-
-        /** @var App[] $apps */
-        $apps = App::whereIn('app_id', $appIds)->get();
-
-        return $apps->map(function ($app) use ($tableName) {
-            $version = DB::table($tableName)
-                ->where('app_id', $app->getAttribute('app_id'))
-                ->value('version');
-
-            return [
-                'id' => $app->getAttribute('app_id'),
-                'name' => $app->getAttribute('app_name'),
-                'description' => $app->getAttribute('description'),
-                'version' => $version
-            ];
-        })->toArray();
+        return response()->json($this->technologyService->getAppByCondition('technology_platforms', $platformName));
     }
 }

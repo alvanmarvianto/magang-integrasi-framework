@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\App;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class TechnologyService
+{
+    /**
+     * Get table name for technology type
+     */
+    public function getTableName(string $type): string
+    {
+        return match ($type) {
+            'vendors' => 'technology_vendors',
+            'operatingSystems' => 'technology_operating_systems',
+            'databases' => 'technology_databases',
+            'languages' => 'technology_programming_languages',
+            'frameworks' => 'technology_frameworks',
+            'middlewares' => 'technology_middlewares',
+            'thirdParties' => 'technology_third_parties',
+            'platforms' => 'technology_platforms',
+            default => throw new \InvalidArgumentException('Invalid technology type'),
+        };
+    }
+
+    /**
+     * Get enum values from a technology table
+     */
+    public function getEnumValues(string $tableName): array
+    {
+        $type = DB::table('information_schema.COLUMNS')
+            ->where('TABLE_NAME', $tableName)
+            ->where('COLUMN_NAME', 'name')
+            ->value('COLUMN_TYPE');
+
+        preg_match('/^enum\((.*)\)$/', $type, $matches);
+        $values = str_getcsv($matches[1], ',', "'");
+
+        return array_map(function ($value) {
+            return trim($value);
+        }, $values);
+    }
+
+    /**
+     * Get technology data for an app
+     */
+    public function getTechnologyData(string $tableName, int $appId): array
+    {
+        $results = DB::table($tableName)
+            ->where('app_id', $appId)
+            ->get(['name', 'version']);
+
+        return $results->map(function (object $item) {
+            return [
+                'name' => $item->name,
+                'version' => $item->version,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get apps by technology condition
+     */
+    public function getAppByCondition(string $tableName, string $name): array
+    {
+        $appIds = DB::table($tableName)
+            ->where('name', $name)
+            ->pluck('app_id')
+            ->unique()
+            ->toArray();
+
+        /** @var App[] $apps */
+        $apps = App::whereIn('app_id', $appIds)->get();
+
+        return $apps->map(function ($app) use ($tableName) {
+            $version = DB::table($tableName)
+                ->where('app_id', $app->getAttribute('app_id'))
+                ->value('version');
+
+            return [
+                'id' => $app->getAttribute('app_id'),
+                'name' => $app->getAttribute('app_name'),
+                'description' => $app->getAttribute('description'),
+                'version' => $version
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Store new enum value
+     */
+    public function storeEnumValue(string $type, string $name): bool
+    {
+        try {
+            $tableName = $this->getTableName($type);
+            $currentValues = $this->getEnumValues($tableName);
+            
+            if (in_array($name, $currentValues)) {
+                throw new \Exception('Nilai enum sudah ada');
+            }
+            
+            $newValues = array_merge($currentValues, [$name]);
+
+            DB::statement("ALTER TABLE {$tableName} MODIFY COLUMN name ENUM(" .
+                implode(',', array_map(fn($val) => "'" . addslashes($val) . "'", $newValues)) .
+            ")");
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error adding enum: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Update existing enum value
+     */
+    public function updateEnumValue(string $type, string $oldValue, string $newValue): bool
+    {
+        try {
+            $tableName = $this->getTableName($type);
+            $currentValues = $this->getEnumValues($tableName);
+            
+            if ($newValue !== $oldValue && in_array($newValue, $currentValues)) {
+                throw new \Exception('Nilai enum sudah ada');
+            }
+
+            if ($this->isEnumValueInUse($tableName, $oldValue)) {
+                throw new \Exception('Nilai enum sedang digunakan');
+            }
+
+            $newValues = array_map(
+                fn($val) => $val === $oldValue ? $newValue : $val,
+                $currentValues
+            );
+
+            DB::statement("ALTER TABLE {$tableName} MODIFY COLUMN name ENUM(" .
+                implode(',', array_map(fn($val) => "'" . addslashes($val) . "'", $newValues)) .
+            ")");
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error updating enum: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Delete enum value
+     */
+    public function deleteEnumValue(string $type, string $value): bool
+    {
+        try {
+            $tableName = $this->getTableName($type);
+            
+            if ($this->isEnumValueInUse($tableName, $value)) {
+                throw new \Exception('Nilai enum sedang digunakan dan tidak dapat dihapus');
+            }
+
+            $currentValues = $this->getEnumValues($tableName);
+            $newValues = array_values(array_filter($currentValues, fn($val) => $val !== $value));
+            
+            if (count($newValues) === 0) {
+                throw new \Exception('Tidak dapat menghapus nilai enum terakhir');
+            }
+
+            DB::statement("ALTER TABLE {$tableName} MODIFY COLUMN name ENUM(" .
+                implode(',', array_map(fn($val) => "'" . addslashes($val) . "'", $newValues)) .
+            ")");
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error in deleteEnumValue: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Check if enum value is in use
+     */
+    public function isEnumValueInUse(string $tableName, string $value): bool
+    {
+        return DB::table($tableName)->where('name', $value)->exists();
+    }
+
+    /**
+     * Get apps using specific enum value
+     */
+    public function getAppsUsingEnum(string $tableName, string $value): array
+    {
+        $apps = DB::table($tableName)
+            ->join('apps', $tableName . '.app_id', '=', 'apps.app_id')
+            ->where($tableName . '.name', $value)
+            ->select('apps.app_id', 'apps.app_name')
+            ->get();
+
+        return $apps->map(function($app) {
+            return [
+                'id' => $app->app_id,
+                'name' => $app->app_name,
+                'edit_url' => route('admin.apps.edit', $app->app_id)
+            ];
+        })->all();
+    }
+} 
