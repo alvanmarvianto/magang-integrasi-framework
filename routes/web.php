@@ -49,7 +49,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete('/integrations/{id}', [AdminIntegrationController::class, 'destroy'])->name('integrations.destroy');
     
     // Connection types management
-    Route::get('/connection-types', [AdminIntegrationController::class, 'connectionTypes'])->name('connection-types');
+    Route::get('"/connection-types"', [AdminIntegrationController::class, 'connectionTypes'])->name('connection-types');
     Route::post('/connection-types', [AdminIntegrationController::class, 'storeConnectionType'])->name('connection-types.store');
     Route::put('/connection-types/{id}', [AdminIntegrationController::class, 'updateConnectionType'])->name('connection-types.update');
     Route::delete('/connection-types/{id}', [AdminIntegrationController::class, 'destroyConnectionType'])->name('connection-types.destroy');

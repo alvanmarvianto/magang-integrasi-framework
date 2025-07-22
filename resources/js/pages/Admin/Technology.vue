@@ -15,39 +15,33 @@
           </button>
         </div>
 
-        <div class="tech-table-container">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th class="text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="value in props.enums[category.name]" :key="value">
-                <td>{{ value }}</td>
-                <td>
-                  <div class="flex justify-center gap-2">
-                    <button 
-                      @click="editItem(category.name, value)"
-                      class="action-button edit-button"
-                      title="Edit Item"
-                    >
-                      <font-awesome-icon icon="fa-solid fa-pencil" />
-                    </button>
-                    <button 
-                      @click="deleteItem(category.name, value)"
-                      class="action-button delete-button"
-                      title="Hapus Item"
-                    >
-                      <font-awesome-icon icon="fa-solid fa-trash" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <AdminTable
+          :columns="tableColumns"
+          :items="getTableItems(category.name)"
+        >
+          <template #column:name="{ item }">
+            {{ item.name }}
+          </template>
+          
+          <template #column:actions="{ item }">
+            <div class="flex justify-center gap-2">
+              <button 
+                @click="editItem(category.name, item.name)"
+                class="action-button edit-button"
+                title="Edit Item"
+              >
+                <font-awesome-icon icon="fa-solid fa-pencil" />
+              </button>
+              <button 
+                @click="deleteItem(category.name, item.name)"
+                class="action-button delete-button"
+                title="Hapus Item"
+              >
+                <font-awesome-icon icon="fa-solid fa-trash" />
+              </button>
+            </div>
+          </template>
+        </AdminTable>
       </div>
     </div>
 
@@ -124,6 +118,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+import AdminTable from '@/components/Admin/AdminTable.vue';
 
 interface TechnologyData {
   vendors: string[];
@@ -171,6 +166,18 @@ interface PageProps {
 }
 
 const props = defineProps<Props>();
+
+const tableColumns = [
+  { key: 'name', label: 'Nama', sortable: true },
+  { key: 'actions', label: 'Aksi', centered: true }
+];
+
+function getTableItems(categoryName: keyof TechnologyData) {
+  return (props.enums[categoryName] || []).map(name => ({
+    id: name,
+    name: name
+  }));
+}
 
 const categories = computed<Category[]>(() => [
   { name: 'vendors', title: 'Vendor' },

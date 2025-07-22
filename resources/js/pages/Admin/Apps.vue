@@ -26,66 +26,42 @@
       No applications found.
     </div>
 
-    <div v-else class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th @click="toggleSort('name')" class="sortable" :class="{ 'sorted': sortBy === 'name' }">
-              Nama
-              <font-awesome-icon 
-                :icon="getSortIcon('name')" 
-                class="sort-icon"
-              />
-            </th>
-            <th @click="toggleSort('stream')" class="sortable" :class="{ 'sorted': sortBy === 'stream' }">
-              Stream
-              <font-awesome-icon 
-                :icon="getSortIcon('stream')" 
-                class="sort-icon"
-              />
-            </th>
-            <th class="text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="app in sortedAndFilteredApps" :key="app.app_id">
-                        <td>{{ app.app_name }}</td>
-            <td>{{ getStreamName(app.stream_id) }}</td>
-            <td>
-              <div class="flex justify-center gap-2">
-                <a 
-                  :href="`/admin/apps/${app.app_id}/edit`" 
-                  class="action-button edit-button"
-                  title="Edit Aplikasi"
-                >
-                  <font-awesome-icon icon="fa-solid fa-pencil" />
-                </a>
-                <button 
-                  @click="deleteApp(app.app_id)" 
-                  class="action-button delete-button"
-                  title="Hapus Aplikasi"
-                >
-                  <font-awesome-icon icon="fa-solid fa-trash" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-if="props.apps.meta?.links" class="admin-pagination">
-        <div class="flex gap-2">
-          <button
-            v-for="link in props.apps.meta.links"
-            :key="link.label"
-            class="admin-pagination-button"
-            :class="{ active: link.active }"
-            :disabled="!link.url"
-            @click="link.url && navigateToPage(link.url)"
-            v-html="link.label"
-          ></button>
-        </div>
-      </div>
+    <div v-else>
+      <AdminTable
+        :columns="columns"
+        :items="sortedAndFilteredApps"
+        v-model:sortBy="sortBy"
+        v-model:sortDesc="sortDesc"
+        :pagination="props.apps.meta"
+        @page="navigateToPage"
+      >
+        <template #column:app_name="{ item }">
+          {{ item.app_name }}
+        </template>
+        
+        <template #column:stream="{ item }">
+          {{ getStreamName(item.stream_id) }}
+        </template>
+        
+        <template #column:actions="{ item }">
+          <div class="flex justify-center gap-2">
+            <a 
+              :href="`/admin/apps/${item.app_id}/edit`" 
+              class="action-button edit-button"
+              title="Edit Aplikasi"
+            >
+              <font-awesome-icon icon="fa-solid fa-pencil" />
+            </a>
+            <button 
+              @click="deleteApp(item.app_id)" 
+              class="action-button delete-button"
+              title="Hapus Aplikasi"
+            >
+              <font-awesome-icon icon="fa-solid fa-trash" />
+            </button>
+          </div>
+        </template>
+      </AdminTable>
     </div>
   </div>
 </template>
@@ -94,6 +70,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+import AdminTable from '@/components/Admin/AdminTable.vue';
 
 interface Stream {
   data: {
@@ -144,6 +121,12 @@ const props = defineProps<Props>();
 const searchQuery = ref('');
 const sortBy = ref('name');
 const sortDesc = ref(false);
+
+const columns = [
+  { key: 'app_name', label: 'Nama', sortable: true },
+  { key: 'stream', label: 'Stream', sortable: true },
+  { key: 'actions', label: 'Aksi', centered: true }
+];
 
 function getStreamName(streamId: number): string {
   if (!props.streams) return '-';
@@ -224,46 +207,4 @@ function navigateToPage(url: string) {
 
 <style scoped>
 @import '@/../css/admin.css';
-
-.admin-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.search-container {
-  flex: 1;
-  max-width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--primary-color-light);
-}
-
-.sortable {
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  padding-right: 1.5rem;
-}
-
-.sort-icon {
-  font-size: 0.8em;
-  margin-left: 0.5rem;
-  opacity: 0.5;
-}
-
-.sorted .sort-icon {
-  opacity: 1;
-}
 </style> 
