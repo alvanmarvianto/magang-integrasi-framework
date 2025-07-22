@@ -47,6 +47,18 @@ class TechnologyController extends Controller
         ]);
     }
 
+    public function getAppType(string $appType): JsonResponse
+    {
+        $apps = App::where('app_type', $appType)->get();
+        return response()->json($apps);
+    }
+
+    public function getStratification(string $stratification): JsonResponse
+    {
+        $apps = App::where('stratification', $stratification)->get();
+        return response()->json($apps);
+    }
+
     public function getAppByVendor(string $vendorName): JsonResponse
     {
         return response()->json($this->technologyService->getAppByCondition('technology_vendors', $vendorName));

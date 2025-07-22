@@ -1,7 +1,7 @@
 <template>
   <div class="admin-container">
     <AdminNavbar 
-      title="Panel Admin" 
+      title="Back Office" 
       :showBackButton="true"
       backUrl="/"
     />

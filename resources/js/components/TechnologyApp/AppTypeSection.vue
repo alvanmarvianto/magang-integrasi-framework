@@ -1,15 +1,13 @@
 <template>
-  <div v-if="technology?.vendor?.length" class="content-section vendor-content">
+  <div v-if="technology.app_type" class="content-section app-type-content">
     <div class="content-items">
       <a
-        v-for="item in technology.vendor" 
-        :key="item.name"
         class="content-item"
-        :href="`/technology/vendor/${item.name}`"
+        :href="`/technology/app_type/${technology.app_type}`"
         target="_blank"
         rel="noopener"
       >
-        {{ item.name }}
+        {{ technology.app_type }}
       </a>
     </div>
   </div>
@@ -20,4 +18,3 @@ defineProps<{
   technology: any;
 }>();
 </script>
-

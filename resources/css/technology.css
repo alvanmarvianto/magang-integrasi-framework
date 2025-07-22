@@ -218,14 +218,13 @@
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-
 .stratification-label {
-  background: linear-gradient(135deg, rgba(255, 240, 235, 0.1), rgba(255, 235, 230, 0.1));
+  background: linear-gradient(135deg, rgba(255, 235, 230, 0.1), rgba(255, 225, 220, 0.1));
   backdrop-filter: blur(15px) saturate(180%);
   -webkit-backdrop-filter: blur(15px) saturate(180%);
 }
 .stratification-content .content-item {
-  background: linear-gradient(135deg, rgba(255, 240, 235, 0.9), rgba(255, 235, 230, 0.9)) !important;
+  background: linear-gradient(135deg, rgba(255, 235, 230, 0.9), rgba(255, 225, 220, 0.9)) !important;
   color: #333 !important;
   font-weight: 600 !important;
   text-transform: uppercase;
@@ -233,12 +232,12 @@
 }
 
 .vendor-label {
-  background: linear-gradient(135deg, rgba(255, 235, 230, 0.1), rgba(255, 225, 220, 0.1));
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.1), rgba(255, 235, 230, 0.1));
   backdrop-filter: blur(15px) saturate(180%);
   -webkit-backdrop-filter: blur(15px) saturate(180%);
 }
 .vendor-content .content-item {
-  background: linear-gradient(135deg, rgba(255, 235, 230, 0.9), rgba(255, 225, 220, 0.9)) !important;
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.9), rgba(255, 235, 230, 0.9)) !important;
   color: #333 !important;
 }
 
