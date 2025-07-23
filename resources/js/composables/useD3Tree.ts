@@ -96,7 +96,15 @@ export function useD3Tree(appData) {
 
     vis = svg.append('g');
 
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 4.25, height / 2));
+    // Set initial zoom: scale(zoomLevel).translate(x, y)
+    const initialScale = 0.8; // Zoom level (1 = 100%, 0.5 = 50%, 2 = 200%)
+    const initialX = width / 6.5; // Horizontal position
+    const initialY = height / 2;  // Vertical position
+    
+    svg.call(zoom.transform, d3.zoomIdentity
+      .translate(initialX, initialY)
+      .scale(initialScale)
+    );
 
     update(root);
   }
