@@ -13,15 +13,22 @@
         :clear-search="clearSearch"
       />
       
-      <SidebarStreamLinks
-        title="Intergrasi dalam Stream"
-        description="Navigasi ke halaman integrasi stream tertentu:"
+      <SidebarNavigation
+        title="Integrasi dalam Stream"
         :links="streamLinks"
+        variant="group"
       />
 
-      <SidebarStreamLinks
+      <SidebarNavigation
+        title="Teknologi"
+        :links="technologyLinks"
+        variant="group"
+      />
+
+      <SidebarNavigation
         title="Back Office"
         :links="adminLinks"
+        variant="group"
       />
     </Sidebar>
 
@@ -36,12 +43,13 @@
 </template>
 
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useSidebar } from '../composables/useSidebar';
 import { useD3Tree } from '../composables/useD3Tree';
 import Sidebar from '../components/Sidebar/Sidebar.vue';
 import SidebarSearchControls from '../components/Sidebar/SidebarSearchControls.vue';
-import SidebarStreamLinks from '../components/Sidebar/SidebarStreamLinks.vue';
+import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 
 const props = defineProps<{ appData: any }>();
 
@@ -49,15 +57,19 @@ const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData);
 
 const streamLinks = [
-  { icon: 'fa-solid fa-bezier-curve', text: 'SP Stream', href: '/diagram/stream/sp' },
-  { icon: 'fa-solid fa-bezier-curve', text: 'MI Stream', href: '/diagram/stream/mi' },
-  { icon: 'fa-solid fa-bezier-curve', text: 'SSK Stream', href: '/diagram/stream/ssk' },
-  { icon: 'fa-solid fa-bezier-curve', text: 'Moneter Stream', href: '/diagram/stream/moneter' },
-  { icon: 'fa-solid fa-bezier-curve', text: 'Market Stream', href: '/diagram/stream/market' },
+  { text: 'SP Stream', onClick: () => router.visit('/diagram/stream/sp') },
+  { text: 'MI Stream', onClick: () => router.visit('/diagram/stream/mi') },
+  { text: 'SSK Stream', onClick: () => router.visit('/diagram/stream/ssk') },
+  { text: 'Moneter Stream', onClick: () => router.visit('/diagram/stream/moneter') },
+  { text: 'Market Stream', onClick: () => router.visit('/diagram/stream/market') },
+];
+
+const technologyLinks = [
+  { text: 'Daftar Teknologi', href: '/technology', variant: 'default' as const },
 ];
 
 const adminLinks = [
-  { icon: 'fa-solid fa-edit', text: 'Halaman Back Office', href: '/admin', variant: 'admin' as const },
+  { text: 'Halaman Back Office', href: '/admin', variant: 'admin' as const },
 ];
 </script>
 
