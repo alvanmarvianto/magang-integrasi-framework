@@ -1,64 +1,28 @@
 <template>
   <div id="container">
-    <aside id="sidebar">
-      <button id="sidebar-close" @click="closeSidebar">
-        <i class="fas fa-times"></i>
-      </button>
-      <header>
-        <h1>
-          <i class="fas fa-bezier-curve"></i>
-          Diagram - {{ streamName.toUpperCase() }} Stream
-        </h1>
-      </header>
-      <div class="sidebar-content">
-        <div class="navigation">
-          <a @click.prevent="$inertia.visit('/')" class="nav-link">
-            <i class="fas fa-home"></i>
-            <span>Halaman Utama</span>
-          </a>
-        </div>
+    <Sidebar 
+      :title="`Diagram - ${streamName.toUpperCase()} Stream`" 
+      icon="fa-solid fa-bezier-curve"
+      :show-close-button="true"
+      @close="closeSidebar"
+    >
+      <SidebarNavigation :links="navigationLinks" />
 
-        <div class="controls-section">
-          <h3>Controls</h3>
-          <button
-            @click="centerView"
-            class="control-button"
-          >
-            <i class="fas fa-crosshairs"></i>
-            Center View
-          </button>
-          <button
-            @click="resetLayout"
-            class="control-button"
-          >
-            <i class="fas fa-refresh"></i>
-            Reset Layout
-          </button>
-        </div>
+      <SidebarControlsSection
+        title="Controls"
+        :controls="controls"
+      />
 
-        <div class="legend">
-          <h3>Tipe Node</h3>
-          <ul>
-            <li><span class="legend-key circle sp"></span>Aplikasi SP</li>
-            <li><span class="legend-key circle mi"></span>Aplikasi MI</li>
-            <li><span class="legend-key circle ssk-mon"></span>Aplikasi SSK & Moneter</li>
-            <li><span class="legend-key circle market"></span>Aplikasi Market</li>
-            <li><span class="legend-key circle internal"></span>Aplikasi Internal BI di luar DLDS</li>
-            <li><span class="legend-key circle external"></span>Aplikasi External BI</li>
-            <li><span class="legend-key circle middleware"></span> Middleware</li>
-          </ul>
-        </div>
+      <SidebarLegend
+        title="Tipe Node"
+        :items="nodeTypeLegend"
+      />
 
-        <div class="legend">
-          <h3>Tipe Koneksi</h3>
-          <ul>
-            <li><span class="legend-key line direct"></span> Direct</li>
-            <li><span class="legend-key line soa"></span> SOA</li>
-            <li><span class="legend-key line sftp"></span> SFTP</li>
-          </ul>
-        </div>
-      </div>
-    </aside>
+      <SidebarLegend
+        title="Tipe Koneksi"
+        :items="connectionTypeLegend"
+      />
+    </Sidebar>
 
     <main id="main-content">
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
@@ -126,10 +90,16 @@ import { ref, onMounted } from 'vue';
 import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import { Background, BackgroundVariant } from '@vue-flow/background';
+import { router } from '@inertiajs/vue3';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import StreamNest from '@/components/VueFlow/StreamNest.vue';
 import AppNode from '@/components/VueFlow/AppNode.vue';
 import { useSidebar } from '../composables/useSidebar';
 import { useVueFlowUserView } from '../composables/useVueFlowUserView';
+import Sidebar from '../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
+import SidebarControlsSection from '../components/Sidebar/SidebarControlsSection.vue';
+import SidebarLegend from '../components/Sidebar/SidebarLegend.vue';
 import { 
   validateAndCleanNodes, 
   createStyledNode, 
@@ -174,6 +144,43 @@ const {
   handleEdgeClick,
   handlePaneClick,
 } = useVueFlowUserView();
+
+const navigationLinks = [
+  {
+    icon: 'fa-solid fa-home',
+    text: 'Halaman Utama',
+    onClick: () => router.visit('/'),
+  },
+];
+
+const controls = [
+  {
+    label: 'Center View',
+    icon: 'fa-solid fa-crosshairs',
+    onClick: centerView,
+  },
+  {
+    label: 'Reset Layout',
+    icon: 'fa-solid fa-refresh',
+    onClick: resetLayout,
+  },
+];
+
+const nodeTypeLegend = [
+  { label: 'Aplikasi SP', type: 'circle' as const, class: 'sp' },
+  { label: 'Aplikasi MI', type: 'circle' as const, class: 'mi' },
+  { label: 'Aplikasi SSK & Moneter', type: 'circle' as const, class: 'ssk-mon' },
+  { label: 'Aplikasi Market', type: 'circle' as const, class: 'market' },
+  { label: 'Aplikasi Internal BI di luar DLDS', type: 'circle' as const, class: 'internal' },
+  { label: 'Aplikasi External BI', type: 'circle' as const, class: 'external' },
+  { label: 'Middleware', type: 'circle' as const, class: 'middleware' },
+];
+
+const connectionTypeLegend = [
+  { label: 'Direct', type: 'line' as const, class: 'direct' },
+  { label: 'SOA', type: 'line' as const, class: 'soa' },
+  { label: 'SFTP', type: 'line' as const, class: 'sftp' },
+];
 
 // Refs
 const vueFlowRef = ref()

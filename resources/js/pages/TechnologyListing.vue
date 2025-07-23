@@ -1,18 +1,12 @@
 <template>
   <div id="container">
-    <aside id="sidebar">
-      <header>
-        <h1 style="font-size: 1.75em;">{{ technologyType }}</h1>
-      </header>
-      <div class="sidebar-content">
-        <div class="navigation">
-          <a @click.prevent="$inertia.visit('/')" class="nav-link">
-            <FontAwesomeIcon icon="fa-solid fa-home" />
-            <span>Halaman Utama</span>
-          </a>
-        </div>
-      </div>
-    </aside>
+    <Sidebar 
+      :title="technologyType" 
+      :title-style="{ fontSize: '1.75em' }"
+      :icon="icon"
+    >
+      <SidebarNavigation :links="navigationLinks" />
+    </Sidebar>
 
     <main id="main-content">
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
@@ -21,7 +15,6 @@
       <div id="technology-container">
         <div class="tech-header">
           <h1>
-            <FontAwesomeIcon :icon="icon" />
             {{ pageTitle }}
           </h1>
         </div>
@@ -69,6 +62,8 @@
 import { useSidebar } from '../composables/useSidebar';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import Sidebar from '../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 
 interface App {
   id: number;
@@ -93,6 +88,14 @@ interface Props {
 const props = defineProps<Props>();
 
 const { visible, isMobile, toggleSidebar } = useSidebar();
+
+const navigationLinks = [
+  {
+    icon: 'fa-solid fa-home',
+    text: 'Halaman Utama',
+    onClick: () => router.visit('/'),
+  },
+];
 
 function navigateToApp(appId: number) {
   router.visit(`/technology/${appId}`);

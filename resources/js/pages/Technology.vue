@@ -1,26 +1,16 @@
 <template>
   <div id="container">
-    <aside id="sidebar">
-      <header>
-        <h1 style="font-size: 1.75em;">Spesifikasi Teknologi</h1>
-      </header>
-      <div class="sidebar-content">
-        <div class="navigation">
-          <a @click.prevent="$inertia.visit('/')" class="nav-link">
-            <i class="fas fa-home"></i>
-            <span>Halaman Utama</span>
-          </a>
-          <a @click.prevent="$inertia.visit(`/integration/app/${app.data.app_id}`)" class="nav-link">
-            <i class="fas fa-project-diagram"></i>
-            <span>Integrasi App</span>
-          </a>
-        </div>
-      </div>
-    </aside>
+    <Sidebar 
+      title="Spesifikasi Teknologi" 
+      :title-style="{ fontSize: '1.75em' }"
+      icon="fa-solid fa-microchip"
+    >
+      <SidebarNavigation :links="navigationLinks" />
+    </Sidebar>
 
     <main id="main-content">
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
-        <i class="fas fa-bars"></i>
+        <FontAwesomeIcon icon="fa-solid fa-bars" />
       </div>
       <div id="technology-container">
         <div class="tech-header">
@@ -29,7 +19,7 @@
         </div>
 
         <div v-if="!hasAnyTechnologyData" class="no-data-center">
-          <i class="fas fa-info-circle fa-2x"></i>
+          <FontAwesomeIcon icon="fa-solid fa-info-circle" class="fa-2x" />
           <p>Tidak ada data tersedia</p>
         </div>
 
@@ -37,34 +27,34 @@
           <!-- Left Side - Tech Stack Labels -->
           <div class="tech-stack-labels">
             <div v-if="technology.vendor?.length" class="stack-label vendor-label">
-              <h3><i class="fas fa-building"></i> VENDOR</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-building" /> VENDOR</h3>
             </div>
             <div v-if="technology.app_type" class="stack-label app-type-label">
-              <h3><i class="fas fa-cube"></i> JENIS APLIKASI</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-cube" /> JENIS APLIKASI</h3>
             </div>
             <div v-if="technology.stratification" class="stack-label stratification-label">
-              <h3><i class="fas fa-layer-group"></i> STRATIFIKASI</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-layer-group" /> STRATIFIKASI</h3>
             </div>
             <div v-if="technology.os?.length" class="stack-label os-label">
-              <h3><i class="fas fa-desktop"></i> OPERATING SYSTEM</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-desktop" /> OPERATING SYSTEM</h3>
             </div>
             <div v-if="technology.database?.length" class="stack-label database-label">
-              <h3><i class="fas fa-database"></i> DATABASE</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-database" /> DATABASE</h3>
             </div>
             <div v-if="technology.language?.length" class="stack-label language-label">
-              <h3><i class="fas fa-code"></i> LANGUAGE</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-code" /> LANGUAGE</h3>
             </div>
             <div v-if="technology.framework?.length" class="stack-label framework-label">
-              <h3><i class="fas fa-tools"></i> FRAMEWORK</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-tools" /> FRAMEWORK</h3>
             </div>
             <div v-if="technology.middleware?.length" class="stack-label middleware-label">
-              <h3><i class="fas fa-exchange-alt"></i> MIDDLEWARE</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-exchange-alt" /> MIDDLEWARE</h3>
             </div>
             <div v-if="technology.third_party?.length" class="stack-label third-party-label">
-              <h3><i class="fas fa-plug"></i> THIRD PARTY</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-plug" /> THIRD PARTY</h3>
             </div>
             <div v-if="technology.platform?.length" class="stack-label platform-label">
-              <h3><i class="fas fa-cloud"></i> PLATFORM</h3>
+              <h3><FontAwesomeIcon icon="fa-solid fa-cloud" /> PLATFORM</h3>
             </div>
           </div>
 
@@ -90,6 +80,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSidebar } from '../composables/useSidebar';
+import { router } from '@inertiajs/vue3';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import Sidebar from '../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 import PlatformSection from '../components/TechnologyApp/PlatformSection.vue';
 import FrameworkSection from '../components/TechnologyApp/FrameworkSection.vue';
 import AppTypeSection from '../components/TechnologyApp/AppTypeSection.vue';
@@ -110,6 +104,19 @@ const props = defineProps<{
 }>()
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
+
+const navigationLinks = [
+  {
+    icon: 'fa-solid fa-home',
+    text: 'Halaman Utama',
+    onClick: () => router.visit('/'),
+  },
+  {
+    icon: 'fa-solid fa-project-diagram',
+    text: 'Integrasi App',
+    onClick: () => router.visit(`/integration/app/${props.app.data.app_id}`),
+  },
+];
 
 const hasAnyTechnologyData = computed(() => {
   if (!props.technology) return false;

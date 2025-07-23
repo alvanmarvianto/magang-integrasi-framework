@@ -1,66 +1,27 @@
 <template>
   <div id="container">
-    <aside id="sidebar">
-      <button id="sidebar-close" @click="closeSidebar">
-        <i class="fas fa-times"></i>
-      </button>
-      <header>
-        <h1>
-          <i class="fas fa-project-diagram"></i>
-          Integrasi Aplikasi {{ appName }}
-        </h1>
-      </header>
-      <div class="sidebar-content">
-        <div class="navigation">
-          <a class="nav-link" @click.prevent="$inertia.visit('/')">
-            <i class="fas fa-home"></i>
-            <span>Halaman Utama</span>
-          </a>
-          <a class="nav-link" @click.prevent="$inertia.visit(`/technology/${parentAppId}`)">
-            <i class="fas fa-project-diagram"></i>
-            <span>Halaman Teknologi</span>
-          </a>
-        </div>
-        <div class="legend">
-          <h3>Tipe Node</h3>
-          <ul>
-            <li><span class="legend-key circle sp"></span> Aplikasi SP</li>
-            <li><span class="legend-key circle mi"></span> Aplikasi MI</li>
-            <li>
-              <span class="legend-key circle ssk-mon"></span> Aplikasi SSK &
-              Moneter
-            </li>
-            <li>
-              <span class="legend-key circle market"></span> Aplikasi Market
-            </li>
-            <li>
-              <span class="legend-key circle internal"></span> Aplikasi
-              Internal BI di luar DLDS
-            </li>
-            <li>
-              <span class="legend-key circle external"></span>
-              Aplikasi Eksternal BI
-            </li>
-            <li>
-              <span class="legend-key circle middleware"></span> Middleware
-            </li>
-          </ul>
-        </div>
+    <Sidebar 
+      :title="`Integrasi Aplikasi ${appName}`" 
+      icon="fa-solid fa-project-diagram"
+      :show-close-button="true"
+      @close="closeSidebar"
+    >
+      <SidebarNavigation :links="navigationLinks" />
+      
+      <SidebarLegend
+        title="Tipe Node"
+        :items="nodeTypeLegend"
+      />
 
-        <div class="legend">
-          <h3>Tipe Koneksi</h3>
-          <ul>
-            <li><span class="legend-key line direct"></span> Direct</li>
-            <li><span class="legend-key line soa"></span> SOA</li>
-            <li><span class="legend-key line sftp"></span> SFTP</li>
-          </ul>
-        </div>
-      </div>
-    </aside>
+      <SidebarLegend
+        title="Tipe Koneksi"
+        :items="connectionTypeLegend"
+      />
+    </Sidebar>
 
     <main id="main-content">
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
-        <i class="fas fa-bars"></i>
+        <FontAwesomeIcon icon="fa-solid fa-bars" />
       </div>
       <div id="body"></div>
       <p id="error-message" style="display: none"></p>
@@ -72,6 +33,11 @@
 // @ts-nocheck
 import { useSidebar } from '../composables/useSidebar';
 import { useD3ForceAppIntegration } from '../composables/useD3ForceAppIntegration';
+import { router } from '@inertiajs/vue3';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import Sidebar from '../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
+import SidebarLegend from '../components/Sidebar/SidebarLegend.vue';
 
 const props = defineProps<{
   integrationData: any;
@@ -82,6 +48,35 @@ const props = defineProps<{
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 useD3ForceAppIntegration(props.integrationData);
+
+const navigationLinks = [
+  {
+    icon: 'fa-solid fa-home',
+    text: 'Halaman Utama',
+    onClick: () => router.visit('/'),
+  },
+  {
+    icon: 'fa-solid fa-microchip',
+    text: 'Halaman Teknologi',
+    onClick: () => router.visit(`/technology/${props.parentAppId}`),
+  },
+];
+
+const nodeTypeLegend = [
+  { label: 'Aplikasi SP', type: 'circle' as const, class: 'sp' },
+  { label: 'Aplikasi MI', type: 'circle' as const, class: 'mi' },
+  { label: 'Aplikasi SSK & Moneter', type: 'circle' as const, class: 'ssk-mon' },
+  { label: 'Aplikasi Market', type: 'circle' as const, class: 'market' },
+  { label: 'Aplikasi Internal BI di luar DLDS', type: 'circle' as const, class: 'internal' },
+  { label: 'Aplikasi Eksternal BI', type: 'circle' as const, class: 'external' },
+  { label: 'Middleware', type: 'circle' as const, class: 'middleware' },
+];
+
+const connectionTypeLegend = [
+  { label: 'Direct', type: 'line' as const, class: 'direct' },
+  { label: 'SOA', type: 'line' as const, class: 'soa' },
+  { label: 'SFTP', type: 'line' as const, class: 'sftp' },
+];
 </script>
 
 <style scoped>

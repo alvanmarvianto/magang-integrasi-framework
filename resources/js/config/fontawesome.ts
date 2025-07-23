@@ -25,7 +25,16 @@ import {
     faHome,
     faBars,
     faInfoCircle,
-    faCog
+    faCog,
+    faTimes,
+    faTimesCircle,
+    faSitemap,
+    faBezierCurve,
+    faEdit,
+    faCrosshairs,
+    faRefresh,
+    faSave,
+    faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -54,7 +63,16 @@ library.add(
     faHome,
     faBars,
     faInfoCircle,
-    faCog
+    faCog,
+    faTimes,
+    faTimesCircle,
+    faSitemap,
+    faBezierCurve,
+    faEdit,
+    faCrosshairs,
+    faRefresh,
+    faSave,
+    faSpinner
 );
 
 export { FontAwesomeIcon }; 

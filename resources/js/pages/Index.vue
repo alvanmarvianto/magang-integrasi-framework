@@ -1,71 +1,33 @@
 <template>
   <div id="container">
-    <aside id="sidebar">
-      <button id="sidebar-close" @click="closeSidebar">
-        <i class="fas fa-times"></i>
-      </button>
-      <header>
-        <h1>
-          <i class="fas fa-sitemap"></i>
-          Aplikasi BI
-        </h1>
-      </header>
-      <div class="sidebar-content">
-        <div id="controls">
-          <div class="control-group">
-            <label for="search">Search:</label>
-            <div class="search-wrapper">
-              <input v-model="searchTerm" @input="onSearchInput" type="text" id="search" list="search-suggestions"
-                placeholder="Cari Aplikasi..." />
-              <i class="fas fa-times-circle" id="clear-search" @click="clearSearch"></i>
-            </div>
-            <datalist id="search-suggestions">
-              <option v-for="name in uniqueNodeNames" :key="name" :value="name" />
-            </datalist>
-          </div>
-        </div>
-        <div class="stream-links">
-          <h3>Intergrasi dalam Stream</h3>
-          <p>Navigasi ke halaman integrasi stream tertentu:</p>
-          <div class="stream-buttons">
-            <a href="diagram/stream/sp" class="stream-link">
-              <i class="fas fa-bezier-curve"></i>
-              <span>SP Stream</span>
-            </a>
-            <a href="/diagram/stream/mi" class="stream-link">
-              <i class="fas fa-bezier-curve"></i>
-              <span>MI Stream</span>
-            </a>
-            <a href="/diagram/stream/ssk" class="stream-link">
-              <i class="fas fa-bezier-curve"></i>
-              <span>SSK Stream</span>
-            </a>
-            <a href="/diagram/stream/moneter" class="stream-link">
-              <i class="fas fa-bezier-curve"></i>
-              <span>Moneter Stream</span>
-            </a>
-            <a href="/diagram/stream/market" class="stream-link">
-              <i class="fas fa-bezier-curve"></i>
-              <span>Market Stream</span>
-            </a>
-          </div>
-        </div>
+    <Sidebar 
+      title="Aplikasi BI" 
+      icon="fa-solid fa-sitemap"
+      :show-close-button="true"
+      @close="closeSidebar"
+    >
+      <SidebarSearchControls
+        :search-term="searchTerm"
+        :unique-node-names="uniqueNodeNames"
+        :on-search-input="onSearchInput"
+        :clear-search="clearSearch"
+      />
+      
+      <SidebarStreamLinks
+        title="Intergrasi dalam Stream"
+        description="Navigasi ke halaman integrasi stream tertentu:"
+        :links="streamLinks"
+      />
 
-        <div class="stream-links">
-          <h3>Back Office</h3>
-          <div class="stream-buttons">
-            <a href="/admin" class="stream-link admin-link">
-              <i class="fas fa-edit"></i>
-              <span>Halaman Back Office</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </aside>
+      <SidebarStreamLinks
+        title="Back Office"
+        :links="adminLinks"
+      />
+    </Sidebar>
 
     <main id="main-content">
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
-        <i class="fas fa-bars"></i>
+        <FontAwesomeIcon icon="fa-solid fa-bars" />
       </div>
       <div id="loader" v-if="loading"></div>
       <div id="body"></div>
@@ -74,13 +36,29 @@
 </template>
 
 <script setup lang="ts">
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useSidebar } from '../composables/useSidebar';
 import { useD3Tree } from '../composables/useD3Tree';
+import Sidebar from '../components/Sidebar/Sidebar.vue';
+import SidebarSearchControls from '../components/Sidebar/SidebarSearchControls.vue';
+import SidebarStreamLinks from '../components/Sidebar/SidebarStreamLinks.vue';
 
 const props = defineProps<{ appData: any }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData);
+
+const streamLinks = [
+  { icon: 'fa-solid fa-bezier-curve', text: 'SP Stream', href: '/diagram/stream/sp' },
+  { icon: 'fa-solid fa-bezier-curve', text: 'MI Stream', href: '/diagram/stream/mi' },
+  { icon: 'fa-solid fa-bezier-curve', text: 'SSK Stream', href: '/diagram/stream/ssk' },
+  { icon: 'fa-solid fa-bezier-curve', text: 'Moneter Stream', href: '/diagram/stream/moneter' },
+  { icon: 'fa-solid fa-bezier-curve', text: 'Market Stream', href: '/diagram/stream/market' },
+];
+
+const adminLinks = [
+  { icon: 'fa-solid fa-edit', text: 'Halaman Back Office', href: '/admin', variant: 'admin' as const },
+];
 </script>
 
 
