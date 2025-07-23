@@ -24,31 +24,28 @@
           <p>Tidak ada aplikasi yang menggunakan {{ technologyName }}</p>
         </div>
 
-        <div v-else class="tech-main-layout">
-          <!-- Apps List -->
-          <div class="apps-list">
-            <div 
-              v-for="app in apps" 
-              :key="app.id" 
-              class="app-card"
-              @click="navigateToApp(app.id)"
-            >
-              <div class="app-card-header">
-                <h3 class="app-name">{{ app.name }}</h3>
-                <span v-if="app.stream?.name" class="stream-badge">
-                  {{ app.stream.name.toUpperCase() }}
-                </span>
-              </div>
+        <div v-else class="apps-list">
+          <div 
+            v-for="app in apps" 
+            :key="app.id" 
+            class="app-card"
+            @click="navigateToApp(app.id)"
+          >
+            <div class="app-card-header">
+              <h3 class="app-name">{{ app.name }}</h3>
+              <span v-if="app.stream?.name" class="stream-badge">
+                {{ app.stream.name.toUpperCase() }}
+              </span>
+            </div>
+            
+            <div class="app-card-body">
+              <p v-if="app.description" class="app-description">
+                {{ app.description }}
+              </p>
               
-              <div class="app-card-body">
-                <p v-if="app.description" class="app-description">
-                  {{ app.description }}
-                </p>
-                
-                <div class="technology-detail">
-                  <span class="tech-label">{{ technologyType }}:</span>
-                  <span class="tech-value">{{ app.technology_detail }}</span>
-                </div>
+              <div class="technology-detail">
+                <span class="tech-label">{{ technologyType }}:</span>
+                <span class="tech-value">{{ app.technology_detail }}</span>
               </div>
             </div>
           </div>
