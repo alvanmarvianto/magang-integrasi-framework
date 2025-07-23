@@ -25,9 +25,9 @@ class AppService
     /**
      * Get paginated list of apps with optional search
      */
-    public function getPaginatedApps(string $search = null, int $perPage = 10): array
+    public function getPaginatedApps(string $search = null, int $perPage = 10, string $sortBy = 'app_name', bool $sortDesc = false): array
     {
-        $apps = $this->appRepository->getPaginatedApps($search, $perPage);
+        $apps = $this->appRepository->getPaginatedApps($search, $perPage, $sortBy, $sortDesc);
         
         return [
             'apps' => AppResource::collection($apps),

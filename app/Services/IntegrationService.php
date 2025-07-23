@@ -8,14 +8,40 @@ use App\Models\ConnectionType;
 
 class IntegrationService
 {
-    public function getPaginatedIntegrations(?string $search, int $perPage = 10): array
+    public function getPaginatedIntegrations(?string $search, int $perPage = 10, string $sortBy = 'source_app_name', bool $sortDesc = false): array
     {
         $query = AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
             ->when($search, function ($query, $search) {
                 $query->whereHas('sourceApp', function ($q) use ($search) {
                     $q->where('app_name', 'like', "%{$search}%");
+                })->orWhereHas('targetApp', function ($q) use ($search) {
+                    $q->where('app_name', 'like', "%{$search}%");
                 });
             });
+
+        // Handle sorting
+        $sortDirection = $sortDesc ? 'desc' : 'asc';
+        
+        switch ($sortBy) {
+            case 'source_app_name':
+                $query->leftJoin('apps as source_apps', 'appintegrations.source_app_id', '=', 'source_apps.app_id')
+                      ->orderBy('source_apps.app_name', $sortDirection)
+                      ->select('appintegrations.*');
+                break;
+            case 'target_app_name':
+                $query->leftJoin('apps as target_apps', 'appintegrations.target_app_id', '=', 'target_apps.app_id')
+                      ->orderBy('target_apps.app_name', $sortDirection)
+                      ->select('appintegrations.*');
+                break;
+            case 'connection_type_name':
+                $query->leftJoin('connectiontypes', 'appintegrations.connection_type_id', '=', 'connectiontypes.connection_type_id')
+                      ->orderBy('connectiontypes.type_name', $sortDirection)
+                      ->select('appintegrations.*');
+                break;
+            default:
+                $query->orderBy('appintegrations.integration_id', $sortDirection);
+                break;
+        }
 
         $paginator = $query->paginate($perPage);
 

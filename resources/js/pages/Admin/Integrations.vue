@@ -27,63 +27,54 @@
     </div>
 
     <div v-else class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Source App</th>
-            <th>Target App</th>
-            <th>Connection Type</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="integration in filteredIntegrations" :key="integration.integration_id">
-            <td>{{ integration.source_app.app_name }}</td>
-            <td>{{ integration.target_app.app_name }}</td>
-            <td>{{ integration.connection_type.type_name }}</td>
-            <td>
-              <div class="flex justify-center gap-2">
-                <a 
-                  :href="`/admin/integrations/${integration.integration_id}/edit`"
-                  class="action-button edit-button"
-                  title="Edit"
-                >
-                  <font-awesome-icon icon="fa-solid fa-pencil" />
-                </a>
-                <button
-                  class="action-button delete-button"
-                  @click="confirmDelete(integration)"
-                  title="Delete"
-                >
-                  <font-awesome-icon icon="fa-solid fa-trash" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-if="props.integrations.meta?.links" class="admin-pagination">
-        <div class="flex gap-2">
-          <button
-            v-for="link in props.integrations.meta.links"
-            :key="link.label"
-            class="admin-pagination-button"
-            :class="{ active: link.active }"
-            :disabled="!link.url"
-            @click="link.url && navigateToPage(link.url)"
-            v-html="link.label"
-          ></button>
-        </div>
-      </div>
+      <AdminTable
+        :columns="columns"
+        :items="props.integrations.data"
+        v-model:sortBy="sortBy"
+        v-model:sortDesc="sortDesc"
+        :pagination="props.integrations.meta"
+        @page="navigateToPage"
+      >
+        <template #column:source_app_name="{ item }">
+          {{ item.source_app.app_name }}
+        </template>
+        
+        <template #column:target_app_name="{ item }">
+          {{ item.target_app.app_name }}
+        </template>
+        
+        <template #column:connection_type_name="{ item }">
+          {{ item.connection_type.type_name }}
+        </template>
+        
+        <template #column:actions="{ item }">
+          <div class="flex justify-center gap-2">
+            <a 
+              :href="`/admin/integrations/${item.integration_id}/edit`"
+              class="action-button edit-button"
+              title="Edit"
+            >
+              <font-awesome-icon icon="fa-solid fa-pencil" />
+            </a>
+            <button
+              class="action-button delete-button"
+              @click="confirmDelete(item)"
+              title="Delete"
+            >
+              <font-awesome-icon icon="fa-solid fa-trash" />
+            </button>
+          </div>
+        </template>
+      </AdminTable>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+import AdminTable from '@/components/Admin/AdminTable.vue';
 
 interface Integration {
   integration_id: number;
@@ -124,30 +115,45 @@ interface Props {
 
 const props = defineProps<Props>();
 const searchQuery = ref('');
+const sortBy = ref('source_app_name');
+const sortDesc = ref(false);
 
-const filteredIntegrations = computed(() => {
-  if (!props.integrations?.data) {
-    return [];
-  }
+const columns = [
+  { key: 'source_app_name', label: 'Source App', sortable: true },
+  { key: 'target_app_name', label: 'Target App', sortable: true },
+  { key: 'connection_type_name', label: 'Connection Type', sortable: true },
+  { key: 'actions', label: 'Actions', centered: true }
+];
 
-  let filtered = props.integrations.data;
+// Watch for sort changes and trigger server request
+watch([sortBy, sortDesc], () => {
+  updateData();
+}, { deep: true });
+
+function updateData() {
+  const params = new URLSearchParams();
   
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(integration => 
-      integration.source_app.app_name.toLowerCase().includes(query)
-    );
+    params.set('search', searchQuery.value);
+  }
+  
+  if (sortBy.value !== 'source_app_name') {
+    params.set('sort_by', sortBy.value);
+  }
+  
+  if (sortDesc.value) {
+    params.set('sort_desc', '1');
   }
 
-  return filtered;
-});
+  router.get(
+    window.location.pathname + (params.toString() ? '?' + params.toString() : ''),
+    {},
+    { preserveState: true, preserveScroll: true }
+  );
+}
 
 function handleSearch() {
-  router.get(
-    window.location.pathname,
-    { search: searchQuery.value },
-    { preserveState: true }
-  );
+  updateData();
 }
 
 function confirmDelete(integration: Integration) {

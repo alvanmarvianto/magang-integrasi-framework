@@ -10,7 +10,7 @@ interface AppRepositoryInterface
     /**
      * Get paginated list of apps with optional search
      */
-    public function getPaginatedApps(string $search = null, int $perPage = 10): LengthAwarePaginator;
+    public function getPaginatedApps(string $search = null, int $perPage = 10, string $sortBy = 'app_name', bool $sortDesc = false): LengthAwarePaginator;
 
     /**
      * Find app by ID with relationships

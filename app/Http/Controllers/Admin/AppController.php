@@ -24,7 +24,9 @@ class AppController extends Controller
     {
         $data = $this->appService->getPaginatedApps(
             $request->get('search'),
-            10
+            10,
+            $request->get('sort_by', 'app_name'),
+            $request->boolean('sort_desc', false)
         );
         return Inertia::render('Admin/Apps', $data);
     }

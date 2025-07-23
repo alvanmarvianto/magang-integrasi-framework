@@ -23,7 +23,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in sortedItems" :key="item.id">
+        <tr v-for="item in items" :key="item.id">
           <td 
             v-for="column in columns" 
             :key="column.key"
@@ -105,19 +105,6 @@ function toggleSort(column: string) {
     emit('update:sortDesc', false);
   }
 }
-
-const sortedItems = computed(() => {
-  if (!props.sortBy) return props.items;
-
-  return [...props.items].sort((a, b) => {
-    const aVal = a[props.sortBy!]?.toString().toLowerCase() ?? '';
-    const bVal = b[props.sortBy!]?.toString().toLowerCase() ?? '';
-    
-    return props.sortDesc
-      ? bVal.localeCompare(aVal)
-      : aVal.localeCompare(bVal);
-  });
-});
 </script>
 
 <style scoped>

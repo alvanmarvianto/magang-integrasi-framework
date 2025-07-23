@@ -23,7 +23,9 @@ class IntegrationController extends Controller
     {
         $data = $this->integrationService->getPaginatedIntegrations(
             $request->get('search'),
-            10
+            10,
+            $request->get('sort_by', 'source_app_name'),
+            $request->boolean('sort_desc', false)
         );
 
         return Inertia::render('Admin/Integrations', $data);

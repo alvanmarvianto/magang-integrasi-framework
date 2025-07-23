@@ -8,12 +8,23 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class AppRepository implements AppRepositoryInterface
 {
-    public function getPaginatedApps(string $search = null, int $perPage = 10): LengthAwarePaginator
+    public function getPaginatedApps(string $search = null, int $perPage = 10, string $sortBy = 'app_name', bool $sortDesc = false): LengthAwarePaginator
     {
-        $query = App::with('stream')->orderBy('app_name');
+        $query = App::with('stream');
 
         if ($search) {
             $query->where('app_name', 'like', '%' . $search . '%');
+        }
+
+        // Handle sorting
+        $sortDirection = $sortDesc ? 'desc' : 'asc';
+        
+        if ($sortBy === 'stream') {
+            $query->leftJoin('streams', 'apps.stream_id', '=', 'streams.stream_id')
+                  ->orderBy('streams.stream_name', $sortDirection)
+                  ->select('apps.*');
+        } else {
+            $query->orderBy($sortBy, $sortDirection);
         }
 
         return $query->paginate($perPage);

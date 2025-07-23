@@ -29,7 +29,7 @@
     <div v-else>
       <AdminTable
         :columns="columns"
-        :items="sortedAndFilteredApps"
+        :items="props.apps.data"
         v-model:sortBy="sortBy"
         v-model:sortDesc="sortDesc"
         :pagination="props.apps.meta"
@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
@@ -119,7 +119,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const searchQuery = ref('');
-const sortBy = ref('name');
+const sortBy = ref('app_name');
 const sortDesc = ref(false);
 
 const columns = [
@@ -134,48 +134,41 @@ function getStreamName(streamId: number): string {
   return stream?.data?.stream_name ?? '-';
 }
 
+// Watch for sort changes and trigger server request
+watch([sortBy, sortDesc], () => {
+  updateData();
+}, { deep: true });
+
+function updateData() {
+  const params = new URLSearchParams();
+  
+  if (searchQuery.value) {
+    params.set('search', searchQuery.value);
+  }
+  
+  if (sortBy.value !== 'app_name') {
+    params.set('sort_by', sortBy.value);
+  }
+  
+  if (sortDesc.value) {
+    params.set('sort_desc', '1');
+  }
+
+  router.get(
+    window.location.pathname + (params.toString() ? '?' + params.toString() : ''),
+    {},
+    { preserveState: true, preserveScroll: true }
+  );
+}
+
 onMounted(() => {
   console.log('Props received:', props);
   console.log('Apps:', props.apps?.data);
   console.log('Streams:', props.streams);
 });
 
-const sortedAndFilteredApps = computed(() => {
-  if (!props.apps?.data) {
-    return [];
-  }
-
-  let filteredApps = props.apps.data;
-  
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filteredApps = filteredApps.filter(app => 
-      app.app_name.toLowerCase().includes(query)
-    );
-  }
-
-  return [...filteredApps].sort((a, b) => {
-    if (sortBy.value === 'name') {
-      return sortDesc.value
-        ? b.app_name.toLowerCase().localeCompare(a.app_name.toLowerCase())
-        : a.app_name.toLowerCase().localeCompare(b.app_name.toLowerCase());
-    } else if (sortBy.value === 'stream') {
-      const streamA = getStreamName(a.stream_id).toLowerCase();
-      const streamB = getStreamName(b.stream_id).toLowerCase();
-      return sortDesc.value
-        ? streamB.localeCompare(streamA)
-        : streamA.localeCompare(streamB);
-    }
-    return 0;
-  });
-});
-
 function handleSearch() {
-  router.get(
-    window.location.pathname,
-    { search: searchQuery.value },
-    { preserveState: true }
-  );
+  updateData();
 }
 
 function deleteApp(appId: number) {
