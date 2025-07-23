@@ -5,8 +5,12 @@ use Inertia\Inertia;
 
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\TechnologyController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AdminIntegrationController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
+use App\Http\Controllers\Admin\AppController as AdminAppController;
+use App\Http\Controllers\Admin\TechnologyController as AdminTechnologyController;
+use App\Http\Controllers\Admin\ConnectionTypeController;
+use App\Http\Controllers\Admin\DiagramController as AdminDiagramController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -49,27 +53,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete('/integrations/{id}', [AdminIntegrationController::class, 'destroy'])->name('integrations.destroy');
     
     // Connection types management
-    Route::get('"/connection-types"', [AdminIntegrationController::class, 'connectionTypes'])->name('connection-types');
-    Route::post('/connection-types', [AdminIntegrationController::class, 'storeConnectionType'])->name('connection-types.store');
-    Route::put('/connection-types/{id}', [AdminIntegrationController::class, 'updateConnectionType'])->name('connection-types.update');
-    Route::delete('/connection-types/{id}', [AdminIntegrationController::class, 'destroyConnectionType'])->name('connection-types.destroy');
+    Route::get('/connection-types', [ConnectionTypeController::class, 'index'])->name('connection-types');
+    Route::post('/connection-types', [ConnectionTypeController::class, 'store'])->name('connection-types.store');
+    Route::put('/connection-types/{id}', [ConnectionTypeController::class, 'update'])->name('connection-types.update');
+    Route::delete('/connection-types/{id}', [ConnectionTypeController::class, 'destroy'])->name('connection-types.destroy');
 
     // App management
-    Route::get('/apps', [AdminController::class, 'apps'])->name('apps');
-    Route::get('/apps/create', [AdminController::class, 'create'])->name('apps.create');
-    Route::post('/apps', [AdminController::class, 'store'])->name('apps.store');
-    Route::get('/apps/{app}/edit', [AdminController::class, 'edit'])->name('apps.edit');
-    Route::put('/apps/{app}', [AdminController::class, 'update'])->name('apps.update');
-    Route::delete('/apps/{app}', [AdminController::class, 'destroy'])->name('apps.destroy');
+    Route::get('/apps', [AdminAppController::class, 'index'])->name('apps');
+    Route::get('/apps/create', [AdminAppController::class, 'create'])->name('apps.create');
+    Route::post('/apps', [AdminAppController::class, 'store'])->name('apps.store');
+    Route::get('/apps/{app}/edit', [AdminAppController::class, 'edit'])->name('apps.edit');
+    Route::put('/apps/{app}', [AdminAppController::class, 'update'])->name('apps.update');
+    Route::delete('/apps/{app}', [AdminAppController::class, 'destroy'])->name('apps.destroy');
 
     // Technology management
-    Route::get('/technology', [AdminController::class, 'technology'])->name('technology');
-    Route::get('/technology/{type}/enum/{value}/check', [AdminController::class, 'checkEnumUsage'])->name('technology.enum.check');
-    Route::post('/technology/{type}/enum', [AdminController::class, 'storeEnumValue'])->name('technology.enum.store');
-    Route::put('/technology/{type}/enum/{value}', [AdminController::class, 'updateEnumValue'])->name('technology.enum.update');
-    Route::delete('/technology/{type}/enum/{value}', [AdminController::class, 'deleteEnumValue'])->name('technology.enum.delete');
+    Route::get('/technology', [AdminTechnologyController::class, 'index'])->name('technology');
+    Route::get('/technology/{type}/enum/{value}/check', [AdminTechnologyController::class, 'checkEnumUsage'])->name('technology.enum.check');
+    Route::post('/technology/{type}/enum', [AdminTechnologyController::class, 'storeEnumValue'])->name('technology.enum.store');
+    Route::put('/technology/{type}/enum/{value}', [AdminTechnologyController::class, 'updateEnumValue'])->name('technology.enum.update');
+    Route::delete('/technology/{type}/enum/{value}', [AdminTechnologyController::class, 'deleteEnumValue'])->name('technology.enum.delete');
 
     // Stream management
-    Route::get('/stream/{streamName}', [AdminController::class, 'showStream'])->name('diagrams.show');
-    Route::post('/stream/{streamName}/layout', [AdminController::class, 'saveLayout'])->name('diagrams.save');
+    Route::get('/stream/{streamName}', [AdminDiagramController::class, 'show'])->name('diagrams.show');
+    Route::post('/stream/{streamName}/layout', [AdminDiagramController::class, 'saveLayout'])->name('diagrams.save');
 });
