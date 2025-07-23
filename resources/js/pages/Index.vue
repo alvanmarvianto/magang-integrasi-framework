@@ -1,7 +1,7 @@
 <template>
   <div id="container">
     <Sidebar 
-      title="Aplikasi BI" 
+      title="Aplikasi BI-DLDS" 
       icon="fa-solid fa-sitemap"
       :show-close-button="true"
       @close="closeSidebar"
