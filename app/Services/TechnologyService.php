@@ -72,19 +72,29 @@ class TechnologyService
             ->unique()
             ->toArray();
 
-        /** @var App[] $apps */
-        $apps = App::whereIn('app_id', $appIds)->get();
+        if (empty($appIds)) {
+            return [];
+        }
 
-        return $apps->map(function ($app) use ($tableName) {
+        /** @var \Illuminate\Database\Eloquent\Collection $apps */
+        $apps = App::with('stream')->whereIn('app_id', $appIds)->get();
+
+        return $apps->map(function ($app) use ($tableName, $name) {
             $version = DB::table($tableName)
                 ->where('app_id', $app->getAttribute('app_id'))
+                ->where('name', $name)
                 ->value('version');
 
             return [
                 'id' => $app->getAttribute('app_id'),
                 'name' => $app->getAttribute('app_name'),
                 'description' => $app->getAttribute('description'),
-                'version' => $version
+                'version' => $version,
+                'stream' => [
+                    'id' => $app->stream?->stream_id,
+                    'name' => $app->stream?->stream_name
+                ],
+                'technology_detail' => $name . ($version ? ' ' . $version : '')
             ];
         })->toArray();
     }

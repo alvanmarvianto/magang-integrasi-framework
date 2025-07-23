@@ -11,7 +11,21 @@ import {
     faMicrochip,
     faProjectDiagram,
     faNetworkWired,
-    faArrowLeft
+    faArrowLeft,
+    faBuilding,
+    faDesktop,
+    faDatabase,
+    faCode,
+    faTools,
+    faExchangeAlt,
+    faPlug,
+    faCloud,
+    faCube,
+    faLayerGroup,
+    faHome,
+    faBars,
+    faInfoCircle,
+    faCog
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -26,7 +40,21 @@ library.add(
     faMicrochip,
     faProjectDiagram,
     faNetworkWired,
-    faArrowLeft
+    faArrowLeft,
+    faBuilding,
+    faDesktop,
+    faDatabase,
+    faCode,
+    faTools,
+    faExchangeAlt,
+    faPlug,
+    faCloud,
+    faCube,
+    faLayerGroup,
+    faHome,
+    faBars,
+    faInfoCircle,
+    faCog
 );
 
 export { FontAwesomeIcon }; 

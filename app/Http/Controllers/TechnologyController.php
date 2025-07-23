@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\App;
 use App\Services\TechnologyService;
 use App\Http\Resources\AppResource;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,55 +46,161 @@ class TechnologyController extends Controller
         ]);
     }
 
-    public function getAppType(string $appType): JsonResponse
+    public function getAppType(string $appType): Response
     {
-        $apps = App::where('app_type', $appType)->get();
-        return response()->json($apps);
+        $apps = App::with('stream')->where('app_type', $appType)->get();
+        
+        $formattedApps = $apps->map(function ($app) use ($appType) {
+            return [
+                'id' => $app->getAttribute('app_id'),
+                'name' => $app->getAttribute('app_name'),
+                'description' => $app->getAttribute('description'),
+                'version' => null,
+                'stream' => [
+                    'id' => $app->stream?->stream_id,
+                    'name' => $app->stream?->stream_name
+                ],
+                'technology_detail' => strtoupper(str_replace('_', ' ', $appType))
+            ];
+        })->toArray();
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $formattedApps,
+            'technologyType' => 'App Type',
+            'technologyName' => strtoupper(str_replace('_', ' ', $appType)),
+            'pageTitle' => strtoupper(str_replace('_', ' ', $appType)),
+            'icon' => 'fas fa-cube'
+        ]);
     }
 
-    public function getStratification(string $stratification): JsonResponse
+    public function getStratification(string $stratification): Response
     {
-        $apps = App::where('stratification', $stratification)->get();
-        return response()->json($apps);
+        $apps = App::with('stream')->where('stratification', $stratification)->get();
+        
+        $formattedApps = $apps->map(function ($app) use ($stratification) {
+            return [
+                'id' => $app->getAttribute('app_id'),
+                'name' => $app->getAttribute('app_name'),
+                'description' => $app->getAttribute('description'),
+                'version' => null,
+                'stream' => [
+                    'id' => $app->stream?->stream_id,
+                    'name' => $app->stream?->stream_name
+                ],
+                'technology_detail' => strtoupper(str_replace('_', ' ', $stratification))
+            ];
+        })->toArray();
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $formattedApps,
+            'technologyType' => 'Stratification',
+            'technologyName' => strtoupper(str_replace('_', ' ', $stratification)),
+            'pageTitle' => strtoupper(str_replace('_', ' ', $stratification)),
+            'icon' => 'fas fa-layer-group'
+        ]);
     }
 
-    public function getAppByVendor(string $vendorName): JsonResponse
+    public function getAppByVendor(string $vendorName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_vendors', $vendorName));
+        $apps = $this->technologyService->getAppByCondition('technology_vendors', $vendorName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Vendor',
+            'technologyName' => $vendorName,
+            'pageTitle' => $vendorName,
+            'icon' => 'fas fa-building'
+        ]);
     }
 
-    public function getAppByOS(string $osName): JsonResponse
+    public function getAppByOS(string $osName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_operating_systems', $osName));
+        $apps = $this->technologyService->getAppByCondition('technology_operating_systems', $osName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Operating System',
+            'technologyName' => $osName,
+            'pageTitle' => $osName,
+            'icon' => 'fas fa-desktop'
+        ]);
     }
 
-    public function getAppByDatabase(string $databaseName): JsonResponse
+    public function getAppByDatabase(string $databaseName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_databases', $databaseName));
+        $apps = $this->technologyService->getAppByCondition('technology_databases', $databaseName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Database',
+            'technologyName' => $databaseName,
+            'pageTitle' => $databaseName,
+            'icon' => 'fas fa-database'
+        ]);
     }
 
-    public function getAppByLanguage(string $languageName): JsonResponse
+    public function getAppByLanguage(string $languageName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_programming_languages', $languageName));
+        $apps = $this->technologyService->getAppByCondition('technology_programming_languages', $languageName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Programming Language',
+            'technologyName' => $languageName,
+            'pageTitle' => $languageName,
+            'icon' => 'fas fa-code'
+        ]);
     }
 
-    public function getAppByThirdParty(string $thirdPartyName): JsonResponse
+    public function getAppByThirdParty(string $thirdPartyName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_third_parties', $thirdPartyName));
+        $apps = $this->technologyService->getAppByCondition('technology_third_parties', $thirdPartyName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Third Party',
+            'technologyName' => $thirdPartyName,
+            'pageTitle' => $thirdPartyName,
+            'icon' => 'fas fa-plug'
+        ]);
     }
 
-    public function getAppByMiddleware(string $middlewareName): JsonResponse
+    public function getAppByMiddleware(string $middlewareName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_middlewares', $middlewareName));
+        $apps = $this->technologyService->getAppByCondition('technology_middlewares', $middlewareName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Middleware',
+            'technologyName' => $middlewareName,
+            'pageTitle' => $middlewareName,
+            'icon' => 'fas fa-exchange-alt'
+        ]);
     }
 
-    public function getAppByFramework(string $frameworkName): JsonResponse
+    public function getAppByFramework(string $frameworkName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_frameworks', $frameworkName));
+        $apps = $this->technologyService->getAppByCondition('technology_frameworks', $frameworkName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Framework',
+            'technologyName' => $frameworkName,
+            'pageTitle' => $frameworkName,
+            'icon' => 'fas fa-tools'
+        ]);
     }
 
-    public function getAppByPlatform(string $platformName): JsonResponse
+    public function getAppByPlatform(string $platformName): Response
     {
-        return response()->json($this->technologyService->getAppByCondition('technology_platforms', $platformName));
+        $apps = $this->technologyService->getAppByCondition('technology_platforms', $platformName);
+        
+        return Inertia::render('TechnologyListing', [
+            'apps' => $apps,
+            'technologyType' => 'Platform',
+            'technologyName' => $platformName,
+            'pageTitle' => $platformName,
+            'icon' => 'fas fa-cloud'
+        ]);
     }
 }
