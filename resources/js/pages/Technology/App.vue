@@ -79,21 +79,21 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSidebar } from '../composables/useSidebar';
+import { useSidebar } from '../../composables/useSidebar';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import Sidebar from '../components/Sidebar/Sidebar.vue';
-import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
-import PlatformSection from '../components/TechnologyApp/PlatformSection.vue';
-import FrameworkSection from '../components/TechnologyApp/FrameworkSection.vue';
-import AppTypeSection from '../components/TechnologyApp/AppTypeSection.vue';
-import StratificationSection from '../components/TechnologyApp/StratificationSection.vue';
-import MiddlewareSection from '../components/TechnologyApp/MiddlewareSection.vue';
-import ThirdPartySection from '../components/TechnologyApp/ThirdPartySection.vue';
-import LanguageSection from '../components/TechnologyApp/LanguageSection.vue';
-import DatabaseSection from '../components/TechnologyApp/DatabaseSection.vue';
-import OSSection from '../components/TechnologyApp/OSSection.vue';
-import VendorSection from '../components/TechnologyApp/VendorSection.vue';
+import Sidebar from '../../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
+import PlatformSection from '../../components/TechnologyApp/PlatformSection.vue';
+import FrameworkSection from '../../components/TechnologyApp/FrameworkSection.vue';
+import AppTypeSection from '../../components/TechnologyApp/AppTypeSection.vue';
+import StratificationSection from '../../components/TechnologyApp/StratificationSection.vue';
+import MiddlewareSection from '../../components/TechnologyApp/MiddlewareSection.vue';
+import ThirdPartySection from '../../components/TechnologyApp/ThirdPartySection.vue';
+import LanguageSection from '../../components/TechnologyApp/LanguageSection.vue';
+import DatabaseSection from '../../components/TechnologyApp/DatabaseSection.vue';
+import OSSection from '../../components/TechnologyApp/OSSection.vue';
+import VendorSection from '../../components/TechnologyApp/VendorSection.vue';
 
 const props = defineProps<{
   app: any;
@@ -137,7 +137,7 @@ const hasAnyTechnologyData = computed(() => {
 </script>
 
 <style scoped>
-@import '../../css/app.css';
+@import '../../../css/app.css';
 
 .content-item {
   text-decoration: none !important;

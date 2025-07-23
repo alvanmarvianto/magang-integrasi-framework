@@ -5,16 +5,44 @@ namespace App\Http\Controllers;
 use App\Models\App;
 use App\Services\TechnologyService;
 use App\Http\Resources\AppResource;
+use App\Http\Controllers\Traits\HandlesTechnologyEnums;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TechnologyController extends Controller
 {
+    use HandlesTechnologyEnums;
+    
     protected TechnologyService $technologyService;
 
     public function __construct(TechnologyService $technologyService)
     {
         $this->technologyService = $technologyService;
+    }
+
+    public function index(): Response
+    {
+        // Get all available technology enums
+        $technologies = $this->getTechnologyEnums();
+        
+        // Get app type and stratification enums from the apps table
+        $appTypes = $this->getEnumValues('apps', 'app_type');
+        $stratifications = $this->getEnumValues('apps', 'stratification');
+        
+        return Inertia::render('Technology/Index', [
+            'technologies' => [
+                'appTypes' => $appTypes,
+                'stratifications' => $stratifications,
+                'vendors' => $technologies['vendors'],
+                'operatingSystems' => $technologies['operatingSystems'],
+                'databases' => $technologies['databases'],
+                'languages' => $technologies['languages'],
+                'frameworks' => $technologies['frameworks'],
+                'middlewares' => $technologies['middlewares'],
+                'thirdParties' => $technologies['thirdParties'],
+                'platforms' => $technologies['platforms'],
+            ]
+        ]);
     }
 
     public function show(int $appId): Response
@@ -37,7 +65,7 @@ class TechnologyController extends Controller
             'platform' => $this->technologyService->getTechnologyData('technology_platforms', $app->getAttribute('app_id')),
         ];
 
-        return Inertia::render('Technology', [
+        return Inertia::render('Technology/App', [
             'app' => new AppResource($app),
             'appDescription' => $app->getAttribute('description'),
             'technology' => $technologyData,
@@ -64,7 +92,7 @@ class TechnologyController extends Controller
             ];
         })->toArray();
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $formattedApps,
             'technologyType' => 'App Type',
             'technologyName' => strtoupper(str_replace('_', ' ', $appType)),
@@ -91,7 +119,7 @@ class TechnologyController extends Controller
             ];
         })->toArray();
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $formattedApps,
             'technologyType' => 'Stratification',
             'technologyName' => strtoupper(str_replace('_', ' ', $stratification)),
@@ -104,7 +132,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_vendors', $vendorName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Vendor',
             'technologyName' => $vendorName,
@@ -117,7 +145,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_operating_systems', $osName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Operating System',
             'technologyName' => $osName,
@@ -130,7 +158,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_databases', $databaseName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Database',
             'technologyName' => $databaseName,
@@ -143,7 +171,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_programming_languages', $languageName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Programming Language',
             'technologyName' => $languageName,
@@ -156,7 +184,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_third_parties', $thirdPartyName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Third Party',
             'technologyName' => $thirdPartyName,
@@ -169,7 +197,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_middlewares', $middlewareName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Middleware',
             'technologyName' => $middlewareName,
@@ -182,7 +210,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_frameworks', $frameworkName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Framework',
             'technologyName' => $frameworkName,
@@ -195,7 +223,7 @@ class TechnologyController extends Controller
     {
         $apps = $this->technologyService->getAppByCondition('technology_platforms', $platformName);
         
-        return Inertia::render('TechnologyListing', [
+        return Inertia::render('Technology/Listing', [
             'apps' => $apps,
             'technologyType' => 'Platform',
             'technologyName' => $platformName,

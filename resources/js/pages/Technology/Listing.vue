@@ -56,11 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { useSidebar } from '../composables/useSidebar';
+import { useSidebar } from '../../composables/useSidebar';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import Sidebar from '../components/Sidebar/Sidebar.vue';
-import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
+import Sidebar from '../../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
 
 interface App {
   id: number;
@@ -100,6 +100,6 @@ function navigateToApp(appId: number) {
 </script>
 
 <style scoped>
-@import '../../css/app.css';
-@import '../../css/technology.css';
+@import '../../../css/app.css';
+@import '../../../css/technology.css';
 </style>

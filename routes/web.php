@@ -26,6 +26,7 @@ Route::get('/diagram/stream/{stream}', [AppController::class, 'vueFlowStreamInte
     ->name('diagram.stream.integrations');
 
 Route::prefix('technology')->group(function () {
+    Route::get('/', [TechnologyController::class, 'index'])->name('technology.index');
     Route::get('/app_type/{app_type}', [TechnologyController::class, 'getAppType'])->name('technology.app_type');
     Route::get('/stratification/{stratification}', [TechnologyController::class, 'getStratification'])->name('technology.stratification');
     Route::get('/vendor/{vendor_name}', [TechnologyController::class, 'getAppByVendor'])->name('technology.vendor');
