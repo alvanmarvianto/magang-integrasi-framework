@@ -1,206 +1,165 @@
 <template>
-  <div id="container">
-    <Sidebar 
-      title="Teknologi" 
-      :title-style="{ fontSize: '1.75em' }"
-      icon="fa-solid fa-microchip"
-    >
-      <SidebarNavigation :links="navigationLinks" />
-    </Sidebar>
+    <div id="container">
+        <Sidebar title="Teknologi" :title-style="{ fontSize: '1.75em' }" icon="fa-solid fa-microchip">
+            <SidebarNavigation :links="navigationLinks" />
+        </Sidebar>
 
-    <main id="main-content">
-      <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
-        <FontAwesomeIcon icon="fa-solid fa-bars" />
-      </div>
-      <div id="technology-container">
-        <div class="tech-header">
-          <h1>Daftar Teknologi</h1>
-        </div>
+        <main id="main-content">
+            <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
+                @click.stop="toggleSidebar">
+                <FontAwesomeIcon icon="fa-solid fa-bars" />
+            </div>
+            <div id="technology-container">
+                <div class="tech-header">
+                    <h1>Daftar Teknologi</h1>
+                </div>
 
-        <div class="tech-categories-grid">
-          <!-- App Types -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-cube" class="category-icon" />
-              <h3>Jenis Aplikasi</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="appType in technologies.appTypes" 
-                :key="appType"
-                :href="`/technology/app_type/${appType}`"
-                class="tech-item"
-              >
-                {{ formatTechName(appType) }}
-              </a>
-            </div>
-          </div>
+                <div class="tech-categories-grid">
+                    <!-- Vendors -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-building" class="category-icon" />
+                            <h3>Vendor</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="vendor in technologies.vendors" :key="vendor"
+                                :href="`/technology/vendor/${encodeURIComponent(vendor)}`" class="tech-item">
+                                {{ vendor }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Stratifications -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-layer-group" class="category-icon" />
-              <h3>Stratifikasi</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="stratification in technologies.stratifications" 
-                :key="stratification"
-                :href="`/technology/stratification/${stratification}`"
-                class="tech-item"
-              >
-                {{ formatTechName(stratification) }}
-              </a>
-            </div>
-          </div>
+                    <!-- App Types -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-cube" class="category-icon" />
+                            <h3>Jenis Aplikasi</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="appType in technologies.appTypes" :key="appType"
+                                :href="`/technology/app_type/${appType}`" class="tech-item">
+                                {{ formatTechName(appType) }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Vendors -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-building" class="category-icon" />
-              <h3>Vendor</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="vendor in technologies.vendors" 
-                :key="vendor"
-                :href="`/technology/vendor/${encodeURIComponent(vendor)}`"
-                class="tech-item"
-              >
-                {{ vendor }}
-              </a>
-            </div>
-          </div>
+                    <!-- Stratifications -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-layer-group" class="category-icon" />
+                            <h3>Stratifikasi</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="stratification in technologies.stratifications" :key="stratification"
+                                :href="`/technology/stratification/${stratification}`" class="tech-item">
+                                {{ formatTechName(stratification) }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Operating Systems -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-desktop" class="category-icon" />
-              <h3>Sistem Operasi</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="os in technologies.operatingSystems" 
-                :key="os"
-                :href="`/technology/os/${encodeURIComponent(os)}`"
-                class="tech-item"
-              >
-                {{ os }}
-              </a>
-            </div>
-          </div>
 
-          <!-- Databases -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-database" class="category-icon" />
-              <h3>Database</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="database in technologies.databases" 
-                :key="database"
-                :href="`/technology/database/${encodeURIComponent(database)}`"
-                class="tech-item"
-              >
-                {{ database }}
-              </a>
-            </div>
-          </div>
 
-          <!-- Programming Languages -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-code" class="category-icon" />
-              <h3>Bahasa Pemrograman</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="language in technologies.languages" 
-                :key="language"
-                :href="`/technology/language/${encodeURIComponent(language)}`"
-                class="tech-item"
-              >
-                {{ language }}
-              </a>
-            </div>
-          </div>
+                    <!-- Operating Systems -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-desktop" class="category-icon" />
+                            <h3>Sistem Operasi</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="os in technologies.operatingSystems" :key="os"
+                                :href="`/technology/os/${encodeURIComponent(os)}`" class="tech-item">
+                                {{ os }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Frameworks -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-tools" class="category-icon" />
-              <h3>Framework</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="framework in technologies.frameworks" 
-                :key="framework"
-                :href="`/technology/framework/${encodeURIComponent(framework)}`"
-                class="tech-item"
-              >
-                {{ framework }}
-              </a>
-            </div>
-          </div>
+                    <!-- Databases -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-database" class="category-icon" />
+                            <h3>Database</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="database in technologies.databases" :key="database"
+                                :href="`/technology/database/${encodeURIComponent(database)}`" class="tech-item">
+                                {{ database }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Middleware -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-exchange-alt" class="category-icon" />
-              <h3>Middleware</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="middleware in technologies.middlewares" 
-                :key="middleware"
-                :href="`/technology/middleware/${encodeURIComponent(middleware)}`"
-                class="tech-item"
-              >
-                {{ middleware }}
-              </a>
-            </div>
-          </div>
+                    <!-- Programming Languages -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-code" class="category-icon" />
+                            <h3>Bahasa Pemrograman</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="language in technologies.languages" :key="language"
+                                :href="`/technology/language/${encodeURIComponent(language)}`" class="tech-item">
+                                {{ language }}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Third Party -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-plug" class="category-icon" />
+                            <h3>Third Party</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="thirdParty in technologies.thirdParties" :key="thirdParty"
+                                :href="`/technology/third-party/${encodeURIComponent(thirdParty)}`" class="tech-item">
+                                {{ thirdParty }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Third Party -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-plug" class="category-icon" />
-              <h3>Third Party</h3>
-            </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="thirdParty in technologies.thirdParties" 
-                :key="thirdParty"
-                :href="`/technology/third-party/${encodeURIComponent(thirdParty)}`"
-                class="tech-item"
-              >
-                {{ thirdParty }}
-              </a>
-            </div>
-          </div>
+                    <!-- Middleware -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-exchange-alt" class="category-icon" />
+                            <h3>Middleware</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="middleware in technologies.middlewares" :key="middleware"
+                                :href="`/technology/middleware/${encodeURIComponent(middleware)}`" class="tech-item">
+                                {{ middleware }}
+                            </a>
+                        </div>
+                    </div>
 
-          <!-- Platforms -->
-          <div class="tech-category-card">
-            <div class="tech-category-header">
-              <FontAwesomeIcon icon="fa-solid fa-cloud" class="category-icon" />
-              <h3>Platform</h3>
+                    <!-- Frameworks -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-tools" class="category-icon" />
+                            <h3>Framework</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="framework in technologies.frameworks" :key="framework"
+                                :href="`/technology/framework/${encodeURIComponent(framework)}`" class="tech-item">
+                                {{ framework }}
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Platforms -->
+                    <div class="tech-category-card">
+                        <div class="tech-category-header">
+                            <FontAwesomeIcon icon="fa-solid fa-cloud" class="category-icon" />
+                            <h3>Platform</h3>
+                        </div>
+                        <div class="tech-items-grid">
+                            <a v-for="platform in technologies.platforms" :key="platform"
+                                :href="`/technology/platform/${encodeURIComponent(platform)}`" class="tech-item">
+                                {{ platform }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="tech-items-grid">
-              <a 
-                v-for="platform in technologies.platforms" 
-                :key="platform"
-                :href="`/technology/platform/${encodeURIComponent(platform)}`"
-                class="tech-item"
-              >
-                {{ platform }}
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
+        </main>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -211,20 +170,20 @@ import Sidebar from '../../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
 
 interface Technologies {
-  appTypes: string[];
-  stratifications: string[];
-  vendors: string[];
-  operatingSystems: string[];
-  databases: string[];
-  languages: string[];
-  frameworks: string[];
-  middlewares: string[];
-  thirdParties: string[];
-  platforms: string[];
+    appTypes: string[];
+    stratifications: string[];
+    vendors: string[];
+    operatingSystems: string[];
+    databases: string[];
+    languages: string[];
+    frameworks: string[];
+    middlewares: string[];
+    thirdParties: string[];
+    platforms: string[];
 }
 
 interface Props {
-  technologies: Technologies;
+    technologies: Technologies;
 }
 
 const props = defineProps<Props>();
@@ -232,17 +191,17 @@ const props = defineProps<Props>();
 const { visible, isMobile, toggleSidebar } = useSidebar();
 
 const navigationLinks = [
-  {
-    icon: 'fa-solid fa-home',
-    text: 'Halaman Utama',
-    onClick: () => router.visit('/'),
-  },
+    {
+        icon: 'fa-solid fa-home',
+        text: 'Halaman Utama',
+        onClick: () => router.visit('/'),
+    },
 ];
 
 function formatTechName(name: string): string {
-  return name.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
+    return name.split('_').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
 }
 </script>
 
@@ -251,126 +210,126 @@ function formatTechName(name: string): string {
 @import '../../../css/technology.css';
 
 .tech-categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-  padding: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    padding: 1rem;
 }
 
 .tech-category-card {
-  background: var(--card-bg, white);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+    background: var(--card-bg, white);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
 .tech-category-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .tech-category-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color, #e5e7eb);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .category-icon {
-  font-size: 1.5rem;
-  color: var(--primary-color, #007AFF);
+    font-size: 1.5rem;
+    color: var(--primary-color, #007AFF);
 }
 
 .tech-category-header h3 {
-  flex: 1;
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
+    flex: 1;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #1f2937);
 }
 
 .category-count {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #6b7280);
-  background: var(--bg-alt, #f9fafb);
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6b7280);
+    background: var(--bg-alt, #f9fafb);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 500;
 }
 
 .tech-items-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
 }
 
 .tech-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--text-primary, #1f2937);
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-align: center;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-primary, #1f2937);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    min-height: 44px;
 }
 
 .tech-item:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  color: var(--primary-color, #007AFF);
-  border-color: var(--primary-color, #007AFF);
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    color: var(--primary-color, #007AFF);
+    border-color: var(--primary-color, #007AFF);
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .tech-categories-grid {
-    grid-template-columns: 1fr;
-    padding: 0.5rem;
-  }
-  
-  .tech-category-card {
-    padding: 1rem;
-  }
-  
-  .tech-items-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 0.5rem;
-  }
-  
-  .tech-item {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-  }
+    .tech-categories-grid {
+        grid-template-columns: 1fr;
+        padding: 0.5rem;
+    }
+
+    .tech-category-card {
+        padding: 1rem;
+    }
+
+    .tech-items-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .tech-item {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* Empty state */
 .tech-category-card:has(.tech-items-grid:empty) {
-  opacity: 0.6;
+    opacity: 0.6;
 }
 
 .tech-category-card:has(.tech-items-grid:empty) .tech-category-header {
-  border-bottom-color: transparent;
+    border-bottom-color: transparent;
 }
 
 .tech-category-card:has(.tech-items-grid:empty)::after {
-  content: 'Belum ada data tersedia';
-  display: block;
-  text-align: center;
-  color: var(--text-secondary, #6b7280);
-  font-style: italic;
-  padding: 2rem;
+    content: 'Belum ada data tersedia';
+    display: block;
+    text-align: center;
+    color: var(--text-secondary, #6b7280);
+    font-style: italic;
+    padding: 2rem;
 }
 </style>

@@ -96,11 +96,6 @@ function handleLinkClick(link: NavLink) {
 .nav-links {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nav-links.stream-buttons {
-  gap: 0.75rem;
 }
 
 .nav-link {
@@ -120,13 +115,7 @@ function handleLinkClick(link: NavLink) {
   transform: translateX(4px);
 }
 
-.nav-link.stream-link {
-  background-color: var(--primary-bg, #e3f2fd);
-  border: 1px solid var(--primary-border, #90caf9);
-}
-
 .nav-link.stream-link:hover {
-  background-color: var(--primary-hover, #bbdefb);
   transform: translateX(4px);
 }
 
