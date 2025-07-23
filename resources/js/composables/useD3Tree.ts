@@ -8,11 +8,19 @@ export function useD3Tree(appData) {
   const loading = ref(true);
   const searchTerm = ref('');
   
+  // Blacklist terms that should not be searchable
+  const blacklistedTerms = ['integrasi', 'teknologi'];
+  
   let root: any = null;
   const allNodes: any[] = [];
   const uniqueNodeNames = ref<string[]>([]);
 
   let tree: any, diagonal: any, vis: any, svg: any, zoom: any;
+
+  function isBlacklisted(nodeName: string): boolean {
+    const lowerName = nodeName.toLowerCase();
+    return blacklistedTerms.some(term => lowerName.includes(term));
+  }
 
   function collapse(d: any) {
     if (d.children) {
@@ -192,10 +200,30 @@ export function useD3Tree(appData) {
   function search(term: string) {
     const lowerCaseSearchTerm = term.toLowerCase();
     
-    const matchedNodes = allNodes.filter((d: any) => 
-        d.name.toLowerCase().includes(lowerCaseSearchTerm) || 
-        (d.description && d.description.toLowerCase().includes(lowerCaseSearchTerm))
-    );
+    const matchedNodes = allNodes.filter((d: any) => {
+      // Exclude blacklisted nodes from search results
+      if (isBlacklisted(d.name)) {
+        return false;
+      }
+      
+      return d.name.toLowerCase().includes(lowerCaseSearchTerm) || 
+             (d.description && d.description.toLowerCase().includes(lowerCaseSearchTerm));
+    });
+
+    // If no matches found, just reset to default state instead of collapsing everything
+    if (matchedNodes.length === 0) {
+      clearSearchHighlight();
+      // Reset to initial state - only collapse nodes at depth 1 (children of root)
+      if (root.children) {
+        root.children.forEach((child: any) => {
+          collapse(child);
+        });
+      }
+      update(root);
+      return;
+    }
+
+    console.log('Matched nodes:', matchedNodes.length, matchedNodes.map(n => n.name));
 
     const nodesToExpand = new Set();
     matchedNodes.forEach((d: any) => {
@@ -206,6 +234,7 @@ export function useD3Tree(appData) {
         }
     });
 
+    // First, collapse all nodes
     allNodes.forEach(node => {
         if (!nodesToExpand.has(node) && node.children) {
             node._children = node.children;
@@ -213,6 +242,7 @@ export function useD3Tree(appData) {
         }
     });
 
+    // Then expand nodes that need to be visible
     nodesToExpand.forEach((originalNode: any) => {
         if (originalNode._children) {
             originalNode.children = originalNode._children;
@@ -239,18 +269,37 @@ export function useD3Tree(appData) {
   }
 
   function clearSearch() {
-    vis.selectAll('g.node').style('opacity', 1);
-    vis.selectAll('path.link').style('opacity', 1);
-    if (root.children) root.children.forEach(collapse);
+    searchTerm.value = '';
+    clearSearchHighlight();
+    if (root.children) {
+      // Reset to initial state - keep first level expanded
+      root.children.forEach((child: any) => {
+        if (child.children) {
+          child.children.forEach((grandchild: any) => collapse(grandchild));
+        }
+      });
+    }
     update(root);
   }
 
-  function onSearchInput() {
+  function onSearchInput(event: Event) {
+    const target = event.target as HTMLInputElement;
+    searchTerm.value = target.value;
+    
     if (searchTerm.value.length > 2) {
       search(searchTerm.value);
+    } else if (searchTerm.value.length === 0) {
+      // Clear search completely when input is empty
+      clearSearchHighlight();
     } else {
-      clearSearch();
+      // For 1-2 characters, just clear highlights but don't collapse
+      clearSearchHighlight();
     }
+  }
+
+  function clearSearchHighlight() {
+    vis.selectAll('g.node').style('opacity', 1);
+    vis.selectAll('path.link').style('opacity', 1);
   }
 
   onMounted(() => {
@@ -258,8 +307,18 @@ export function useD3Tree(appData) {
     root.x0 = 0;
     root.y0 = 0;
     processData(root, null);
-    uniqueNodeNames.value = Array.from(new Set(allNodes.map((n: any) => n.name)));
-    if (root.children) root.children.forEach(collapse);
+    // Filter out blacklisted terms from unique node names
+    const allNodeNames = allNodes.map((n: any) => n.name);
+    const filteredNodeNames = allNodeNames.filter(name => !isBlacklisted(name));
+    uniqueNodeNames.value = Array.from(new Set(filteredNodeNames));
+
+    // Only collapse nodes at depth 1 (children of root), keep root expanded
+    if (root.children) {
+      root.children.forEach((child: any) => {
+        collapse(child);
+      });
+    }
+    
     redraw();
     loading.value = false;
     window.addEventListener('resize', redraw);

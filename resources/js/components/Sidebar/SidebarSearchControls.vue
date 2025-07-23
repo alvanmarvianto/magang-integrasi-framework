@@ -11,11 +11,6 @@
           list="search-suggestions"
           placeholder="Cari Aplikasi..." 
         />
-        <FontAwesomeIcon 
-          icon="fa-solid fa-times-circle" 
-          id="clear-search" 
-          @click="clearSearch"
-        />
       </div>
       <datalist id="search-suggestions">
         <option v-for="name in uniqueNodeNames" :key="name" :value="name" />

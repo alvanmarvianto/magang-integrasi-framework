@@ -4,7 +4,6 @@
     class="stream-link"
     :class="linkClass"
   >
-    <FontAwesomeIcon :icon="icon" />
     <span>{{ text }}</span>
   </a>
 </template>
