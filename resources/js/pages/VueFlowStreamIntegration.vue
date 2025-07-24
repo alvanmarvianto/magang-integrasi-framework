@@ -82,6 +82,13 @@
         </div>
       </div>
     </main>
+
+    <!-- Edge Details Sidebar -->
+    <EdgeDetailsSidebar
+      :visible="showEdgeDetails"
+      :edge-data="selectedEdgeData"
+      @close="closeEdgeDetails"
+    />
   </div>
 </template>
 
@@ -100,6 +107,7 @@ import Sidebar from '../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 import SidebarControlsSection from '../components/Sidebar/SidebarControlsSection.vue';
 import SidebarLegend from '../components/Sidebar/SidebarLegend.vue';
+import EdgeDetailsSidebar from '../components/Sidebar/EdgeDetailsSidebar.vue';
 import { 
   validateAndCleanNodes, 
   createStyledNode, 
@@ -190,6 +198,9 @@ const isLayouted = ref(false)
 const nodes = ref<Node[]>([])
 const edges = ref<Edge[]>([])
 
+// Edge details sidebar
+const showEdgeDetails = ref(false)
+const selectedEdgeData = ref<any>(null)
 // Initialize layout
 onMounted(() => {
   initializeLayout()
@@ -239,6 +250,14 @@ function onEdgeClick(event: any) {
   }
   
   console.log('Edge clicked:', clickedEdgeId);
+  
+  // Find the edge data
+  const edge = edges.value.find(e => e.id === clickedEdgeId);
+  if (edge && edge.data) {
+    selectedEdgeData.value = edge.data;
+    showEdgeDetails.value = true;
+  }
+  
   handleEdgeClick(clickedEdgeId);
   edges.value = updateEdgeStyles(edges.value);
 }
@@ -246,6 +265,15 @@ function onEdgeClick(event: any) {
 function onPaneClick(event: any) {
   handlePaneClick();
   edges.value = updateEdgeStyles(edges.value);
+  // Close edge details when clicking on pane
+  if (showEdgeDetails.value) {
+    closeEdgeDetails();
+  }
+}
+
+function closeEdgeDetails() {
+  showEdgeDetails.value = false;
+  selectedEdgeData.value = null;
 }
 
 function onNodeDragStop(event: any) {

@@ -107,7 +107,7 @@ class DiagramController extends Controller
         
         $integrations = AppIntegration::whereIn('source_app_id', $allAppIds)
             ->whereIn('target_app_id', $allAppIds)
-            ->with('connectionType')
+            ->with(['connectionType', 'sourceApp', 'targetApp'])
             ->get();
 
         $edges = [];
@@ -124,6 +124,19 @@ class DiagramController extends Controller
                     'data' => [
                         'label' => $integration->connectionType->type_name ?? 'Unknown',
                         'connection_type' => strtolower($integration->connectionType->type_name ?? 'direct'),
+                        'integration_id' => $integration->integration_id,
+                        'sourceApp' => [
+                            'app_id' => $integration->sourceApp->app_id,
+                            'app_name' => $integration->sourceApp->app_name,
+                        ],
+                        'targetApp' => [
+                            'app_id' => $integration->targetApp->app_id,
+                            'app_name' => $integration->targetApp->app_name,
+                        ],
+                        'direction' => $integration->direction,
+                        'starting_point' => $integration->starting_point,
+                        'description' => $integration->description,
+                        'connection_endpoint' => $integration->connection_endpoint,
                     ]
                 ];
             }
@@ -216,7 +229,7 @@ class DiagramController extends Controller
         $allNodes = collect([$homeStreamNode])->concat($nodes);
 
         // Prepare edges data - only show connections involving at least one home stream app
-        $allEdges = AppIntegration::with('connectionType')
+        $allEdges = AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
             ->whereIn('source_app_id', $allAppIds)
             ->whereIn('target_app_id', $allAppIds)
             ->get();
@@ -236,6 +249,19 @@ class DiagramController extends Controller
                 'data' => [
                     'label' => $integration->connectionType?->type_name ?? 'Connection',
                     'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
+                    'integration_id' => $integration->integration_id,
+                    'sourceApp' => [
+                        'app_id' => $integration->sourceApp->app_id,
+                        'app_name' => $integration->sourceApp->app_name,
+                    ],
+                    'targetApp' => [
+                        'app_id' => $integration->targetApp->app_id,
+                        'app_name' => $integration->targetApp->app_name,
+                    ],
+                    'direction' => $integration->direction,
+                    'starting_point' => $integration->starting_point,
+                    'description' => $integration->description,
+                    'connection_endpoint' => $integration->connection_endpoint,
                 ],
             ];
         })->values();

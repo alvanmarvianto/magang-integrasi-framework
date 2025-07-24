@@ -414,8 +414,37 @@ export function initializeEdgesWithLayout(
 ): Edge[] {
   let edgesData = inputEdges;
   
+  // If we have saved layout edges, merge them with fresh input data
   if (savedLayout?.edges_layout && savedLayout.edges_layout.length > 0) {
-    edgesData = savedLayout.edges_layout;
+    // Create a map of fresh edge data by edge ID
+    const freshEdgeMap = new Map<string, Edge>();
+    inputEdges.forEach(edge => {
+      freshEdgeMap.set(edge.id, edge);
+    });
+    
+    // Merge saved layout with fresh data
+    edgesData = savedLayout.edges_layout.map((savedEdge: any) => {
+      const freshEdge = freshEdgeMap.get(savedEdge.id);
+      if (freshEdge) {
+        // Use fresh data but preserve layout-specific properties
+        return {
+          ...freshEdge,
+          sourceHandle: savedEdge.sourceHandle,
+          targetHandle: savedEdge.targetHandle,
+          style: savedEdge.style || freshEdge.style,
+        };
+      }
+      // If no fresh data found, use saved edge as fallback
+      return savedEdge;
+    });
+    
+    // Add any new edges that weren't in the saved layout
+    inputEdges.forEach(edge => {
+      const existsInSaved = savedLayout.edges_layout.some((savedEdge: any) => savedEdge.id === edge.id);
+      if (!existsInSaved) {
+        edgesData.push(edge);
+      }
+    });
   }
   
   return removeDuplicateEdges(edgesData).map(edge => {
@@ -442,14 +471,9 @@ export function initializeEdgesWithLayout(
       }
     };
 
-    // Handle source/target handles
-    if (savedLayout?.edges_layout && savedLayout.edges_layout.length > 0) {
-      baseEdge.sourceHandle = edge.sourceHandle;
-      baseEdge.targetHandle = edge.targetHandle;
-    } else {
-      baseEdge.sourceHandle = edge.sourceHandle || undefined;
-      baseEdge.targetHandle = edge.targetHandle || undefined;
-    }
+    // Ensure source/target handles are properly set
+    baseEdge.sourceHandle = edge.sourceHandle || undefined;
+    baseEdge.targetHandle = edge.targetHandle || undefined;
 
     return baseEdge;
   });

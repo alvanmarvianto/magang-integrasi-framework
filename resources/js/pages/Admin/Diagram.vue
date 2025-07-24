@@ -74,6 +74,13 @@
       </VueFlow>
     </div>
 
+    <!-- Edge Details Sidebar -->
+    <EdgeDetailsSidebar 
+      :show="!!selectedEdgeId" 
+      :edgeData="selectedEdgeData" 
+      @close="onCloseSidebar" 
+    />
+
     <!-- Status -->
     <div v-if="statusMessage" class="status-message" :class="statusType">
       {{ statusMessage }}
@@ -91,6 +98,7 @@ import { router } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
+import EdgeDetailsSidebar from '@/components/VueFlow/EdgeDetailsSidebar.vue'
 import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
@@ -128,7 +136,7 @@ const edges = ref<Edge[]>([])
 const layoutChanged = ref(false)
 const vueFlowKey = ref(0) // Key to force VueFlow re-render
 // Use admin-specific edge handling
-const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges } = useAdminEdgeHandling()
+const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling()
 
 // Add event listener for beforeunload
 onMounted(() => {
@@ -169,6 +177,17 @@ watch(() => props.streamName, () => {
   selectedStream.value = props.streamName
   initializeLayout()
 })
+
+// Computed property for selected edge data
+const selectedEdgeData = computed(() => {
+  if (!selectedEdgeId.value) return null
+  return edges.value.find(edge => edge.id === selectedEdgeId.value) || null
+})
+
+// Function to close the sidebar
+function onCloseSidebar() {
+  handlePaneClick() // This will deselect the edge
+}
 
 function initializeLayout() {
   // Reset layout changed status to show "Tersimpan" initially
