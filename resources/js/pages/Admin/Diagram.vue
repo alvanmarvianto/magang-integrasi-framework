@@ -127,6 +127,7 @@ const nodes = ref<Node[]>([])
 const edges = ref<Edge[]>([])
 const layoutChanged = ref(false)
 const vueFlowKey = ref(0) // Key to force VueFlow re-render
+const isInitializing = ref(false) // Flag to prevent marking changes during initialization
 // Use admin-specific edge handling
 const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling()
 
@@ -171,6 +172,9 @@ watch(() => props.streamName, () => {
 })
 
 function initializeLayout() {
+  // Set initializing flag to prevent change events from marking layout as changed
+  isInitializing.value = true
+  
   // Reset layout changed status to show "Tersimpan" initially
   layoutChanged.value = false
   
@@ -203,10 +207,13 @@ function initializeLayout() {
   // Apply layout
   setTimeout(() => {
     fitView()
+    // Clear initializing flag after a delay to allow all VueFlow events to settle
+    setTimeout(() => {
+      isInitializing.value = false
+      // Ensure layout is marked as not changed after initialization
+      layoutChanged.value = false
+    }, 200)
   }, 100)
-  
-  // Reset status indicators
-  layoutChanged.value = false
 }
 
 function fitView() {
@@ -433,8 +440,8 @@ function onNodesChange(changes: any[]) {
     }
   })
   
-  // Mark layout as changed if there are actual changes
-  if (changes.length > 0) {
+  // Mark layout as changed if there are actual changes and we're not initializing
+  if (changes.length > 0 && !isInitializing.value) {
     markLayoutChanged()
   }
 }
@@ -468,8 +475,8 @@ function onEdgesChange(changes: any[]) {
     }
   })
   
-  // Mark layout as changed if there are actual changes
-  if (changes.length > 0) {
+  // Mark layout as changed if there are actual changes and we're not initializing
+  if (changes.length > 0 && !isInitializing.value) {
     markLayoutChanged()
   }
 }
@@ -529,7 +536,7 @@ async function saveLayout() {
     }
 
     // Save to backend
-    await router.post(`/admin/stream/${props.streamName}/layout`, {
+    router.post(`/admin/stream/${props.streamName}/layout`, {
       nodes_layout: nodesLayout,
       edges_layout: edgesLayout,
       stream_config: streamConfig

@@ -84,7 +84,7 @@ class IntegrationService
     public function getFormData(?int $integrationId = null): array
     {
         $data = [
-            'apps' => App::select('app_id', 'app_name')->get(),
+            'apps' => App::select('app_id', 'app_name')->orderBy('app_name', 'asc')->get(),
             'connectionTypes' => ConnectionType::all(),
         ];
 
