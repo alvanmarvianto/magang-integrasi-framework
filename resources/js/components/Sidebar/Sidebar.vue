@@ -4,7 +4,7 @@
     
     <header v-if="title">
       <h1 :style="titleStyle">
-        <FontAwesomeIcon v-if="icon" :icon="icon" />
+        <!-- <FontAwesomeIcon v-if="icon" :icon="icon" /> -->
         {{ title }}
       </h1>
     </header>
