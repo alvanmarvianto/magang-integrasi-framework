@@ -10,7 +10,7 @@ use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationControll
 use App\Http\Controllers\Admin\AppController as AdminAppController;
 use App\Http\Controllers\Admin\TechnologyController as AdminTechnologyController;
 use App\Http\Controllers\Admin\ConnectionTypeController;
-use App\Http\Controllers\Admin\DiagramController as AdminDiagramController;
+use App\Http\Controllers\Admin\AdminDiagramController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');

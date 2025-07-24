@@ -10,6 +10,12 @@ use Inertia\Response;
 
 class AppController extends Controller
 {
+    protected DiagramController $diagramController;
+
+    public function __construct(DiagramController $diagramController)
+    {
+        $this->diagramController = $diagramController;
+    }
     public function index(): Response
     {
         $streams = Stream::with('apps')
@@ -116,13 +122,11 @@ class AppController extends Controller
 
     public function vueFlowStreamIntegrations(string $streamName): Response
     {
-        $diagramController = new DiagramController();
-        
-        if (!$diagramController->validateStreamName($streamName)) {
+        if (!$this->diagramController->validateStreamName($streamName)) {
             abort(404, 'Stream not found');
         }
 
-        $data = $diagramController->getVueFlowUserData($streamName);
+        $data = $this->diagramController->getVueFlowUserData($streamName);
 
         return Inertia::render('VueFlowStreamIntegration', [
             'streamName' => $streamName,

@@ -6,11 +6,22 @@ use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\StreamLayout;
 use App\Models\Stream;
+use App\Services\DiagramService;
+use App\Services\DiagramCleanupService;
 use Illuminate\Http\Request;
 
 class DiagramController extends Controller
 {
     private const ALLOWED_STREAMS = ['sp', 'mi', 'ssk', 'moneter', 'market'];
+
+    protected DiagramService $diagramService;
+    protected DiagramCleanupService $cleanupService;
+
+    public function __construct(DiagramService $diagramService, DiagramCleanupService $cleanupService)
+    {
+        $this->diagramService = $diagramService;
+        $this->cleanupService = $cleanupService;
+    }
 
     /**
      * Get stream data for Vue Flow components
@@ -283,20 +294,8 @@ class DiagramController extends Controller
             return ['nodes' => [], 'edges' => [], 'savedLayout' => null];
         }
 
-        // Clean up invalid nodes and edges first
-        $this->cleanupInvalidData($streamName);
-
-        // Get stream data
-        $streamData = $this->getStreamData($streamName);
-        
-        // Get saved layout if exists
-        $savedLayout = StreamLayout::getLayout($streamName);
-
-        return [
-            'nodes' => $streamData['nodes'],
-            'edges' => $streamData['edges'],
-            'savedLayout' => $savedLayout,
-        ];
+        // Use the diagram service to get data
+        return $this->diagramService->getVueFlowData($streamName, false);
     }
 
     /**
@@ -387,195 +386,6 @@ class DiagramController extends Controller
      */
     public function cleanupDiagramData(array $data): array
     {
-        // First, clean up duplicates and invalid integrations in the database
-        $this->removeDuplicateIntegrations();
-        $this->removeInvalidIntegrations();
-
-        $nodes = $data['nodes'] ?? [];
-        $edges = $data['edges'] ?? [];
-
-        // Get all valid app IDs from the database
-        $validAppIds = App::pluck('app_id')->map(fn($id) => (string)$id)->toArray();
-        
-        // Get all valid integration IDs from the database (after cleanup)
-        $validIntegrations = AppIntegration::with(['sourceApp', 'targetApp', 'connectionType'])
-            ->get()
-            ->keyBy(function($integration) {
-                return $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
-            });
-
-        // Filter nodes - keep only stream nodes and valid app nodes
-        $cleanedNodes = array_filter($nodes, function($node) use ($validAppIds) {
-            // Keep stream nodes (parent nodes)
-            if (isset($node['data']['is_parent_node']) && $node['data']['is_parent_node']) {
-                return true;
-            }
-            
-            // Keep only nodes that correspond to existing apps
-            return in_array($node['id'], $validAppIds);
-        });
-
-        // Filter edges - keep only edges between valid apps with valid integrations
-        $cleanedEdges = [];
-        $seenConnections = [];
-
-        foreach ($edges as $edge) {
-            $sourceId = $edge['source'] ?? null;
-            $targetId = $edge['target'] ?? null;
-            
-            // Skip if either app doesn't exist
-            if (!in_array($sourceId, $validAppIds) || !in_array($targetId, $validAppIds)) {
-                continue;
-            }
-
-            // Check if integration exists in database
-            $integrationKey = $sourceId . '-' . $targetId;
-            $reverseKey = $targetId . '-' . $sourceId;
-            
-            $integration = $validIntegrations->get($integrationKey) ?? $validIntegrations->get($reverseKey);
-            
-            if (!$integration) {
-                continue; // Skip edges without corresponding integrations
-            }
-
-            // Check for duplicates
-            $connectionKey = min($sourceId, $targetId) . '-' . max($sourceId, $targetId);
-            if (in_array($connectionKey, $seenConnections)) {
-                continue; // Skip duplicate connections
-            }
-            
-            $seenConnections[] = $connectionKey;
-
-            // Use the integration data to ensure edge data is correct
-            $edgeData = [
-                'id' => 'edge-' . $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
-                'source' => (string)$integration->getAttribute('source_app_id'),
-                'target' => (string)$integration->getAttribute('target_app_id'),
-                'type' => 'smoothstep',
-                'data' => [
-                    'label' => $integration->connectionType?->type_name ?? 'Connection',
-                    'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
-                    'integration_id' => $integration->getAttribute('integration_id'),
-                    'sourceApp' => [
-                        'app_id' => $integration->sourceApp->app_id,
-                        'app_name' => $integration->sourceApp->app_name,
-                    ],
-                    'targetApp' => [
-                        'app_id' => $integration->targetApp->app_id,
-                        'app_name' => $integration->targetApp->app_name,
-                    ],
-                    'direction' => $integration->getAttribute('direction'),
-                    'starting_point' => $integration->getAttribute('starting_point'),
-                    'description' => $integration->getAttribute('description'),
-                    'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
-                ],
-            ];
-
-            $cleanedEdges[] = $edgeData;
-        }
-
-        return [
-            'nodes' => array_values($cleanedNodes),
-            'edges' => $cleanedEdges,
-            'savedLayout' => $data['savedLayout'] ?? null,
-        ];
-    }
-
-    /**
-     * Remove duplicate integrations from the database
-     */
-    private function removeDuplicateIntegrations(): void
-    {
-        try {
-            // Find duplicate integrations based on source_app_id and target_app_id
-            $duplicateGroups = AppIntegration::select('source_app_id', 'target_app_id')
-                ->groupBy('source_app_id', 'target_app_id')
-                ->havingRaw('COUNT(*) > 1')
-                ->get();
-
-            $deletedCount = 0;
-
-            foreach ($duplicateGroups as $duplicateGroup) {
-                // Get all integrations for this source-target pair
-                $integrations = AppIntegration::where('source_app_id', $duplicateGroup->source_app_id)
-                    ->where('target_app_id', $duplicateGroup->target_app_id)
-                    ->orderBy('integration_id')
-                    ->get();
-
-                // Keep the first one (oldest), delete the rest
-                foreach ($integrations->skip(1) as $integration) {
-                    $integration->delete();
-                    $deletedCount++;
-                }
-            }
-
-            // Also check for reverse duplicates (same connection but reversed direction)
-            $allIntegrations = AppIntegration::all();
-            $processedPairs = [];
-
-            foreach ($allIntegrations as $integration) {
-                // Create a normalized key for the connection (smaller app_id first)
-                $sourceAppId = $integration->getAttribute('source_app_id');
-                $targetAppId = $integration->getAttribute('target_app_id');
-                $appIds = [$sourceAppId, $targetAppId];
-                sort($appIds);
-                $pairKey = implode('-', $appIds);
-
-                if (!isset($processedPairs[$pairKey])) {
-                    $processedPairs[$pairKey] = [];
-                }
-                $processedPairs[$pairKey][] = $integration;
-            }
-
-            // Remove reverse duplicates
-            foreach ($processedPairs as $pairKey => $integrations) {
-                if (count($integrations) > 1) {
-                    // Keep only the first integration, delete others
-                    for ($i = 1; $i < count($integrations); $i++) {
-                        $integrations[$i]->delete();
-                        $deletedCount++;
-                    }
-                }
-            }
-
-            if ($deletedCount > 0) {
-                \Log::info("Removed {$deletedCount} duplicate integrations from database");
-            }
-
-        } catch (\Exception $e) {
-            \Log::error('Error removing duplicate integrations: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Remove integrations that reference non-existent apps
-     */
-    private function removeInvalidIntegrations(): void
-    {
-        try {
-            // Get all valid app IDs
-            $validAppIds = App::pluck('app_id')->toArray();
-
-            // Find integrations with invalid source or target apps
-            $invalidIntegrations = AppIntegration::where(function ($query) use ($validAppIds) {
-                $query->whereNotIn('source_app_id', $validAppIds)
-                      ->orWhereNotIn('target_app_id', $validAppIds);
-            })->get();
-
-            $deletedCount = $invalidIntegrations->count();
-
-            if ($deletedCount > 0) {
-                // Delete invalid integrations
-                AppIntegration::where(function ($query) use ($validAppIds) {
-                    $query->whereNotIn('source_app_id', $validAppIds)
-                          ->orWhereNotIn('target_app_id', $validAppIds);
-                })->delete();
-
-                \Log::info("Removed {$deletedCount} invalid integrations referencing non-existent apps");
-            }
-
-        } catch (\Exception $e) {
-            \Log::error('Error removing invalid integrations: ' . $e->getMessage());
-        }
+        return $this->cleanupService->cleanupDiagramData($data);
     }
 }
