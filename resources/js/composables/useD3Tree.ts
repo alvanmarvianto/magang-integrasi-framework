@@ -231,8 +231,6 @@ export function useD3Tree(appData) {
       return;
     }
 
-    console.log('Matched nodes:', matchedNodes.length, matchedNodes.map(n => n.name));
-
     const nodesToExpand = new Set();
     matchedNodes.forEach((d: any) => {
         let current = d.parent;

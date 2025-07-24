@@ -38,8 +38,6 @@
         @nodes-change="onNodesChange"
         @edges-change="onEdgesChange"
         @edge-update="onEdgeUpdate"
-        @edge-update-start="onEdgeUpdateStart"
-        @edge-update-end="onEdgeUpdateEnd"
         @edge-click="onEdgeClick"
         @pane-click="onPaneClick"
         :fit-view-on-init="false"
@@ -223,14 +221,6 @@ function fitView() {
 }
 
 function validateConnection(connection: any) {
-  // Allow dragging interaction but prevent actual connection creation
-  // This enables the visual feedback while blocking new connections
-  console.log('Connection attempt blocked (visual dragging allowed):', {
-    source: connection.source,
-    target: connection.target,
-    sourceHandle: connection.sourceHandle,
-    targetHandle: connection.targetHandle
-  })
   
   // Show user feedback about blocked connection
   showStatus('Tidak bisa membuat koneksi. Anda hanya dapat memperbarui koneksi yang ada.', 'error')
@@ -251,9 +241,6 @@ function onNodeDragStop(event: any) {
 }
 
 function onEdgeUpdate(params: any, newConnection?: any) {
-  // Handle edge updates when user drags edge to new connection
-  console.log('onEdgeUpdate called with params:', params)
-  console.log('newConnection:', newConnection)
   
   // VueFlow passes parameters differently - extract the actual data
   let oldEdge, connection
@@ -278,21 +265,6 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     return
   }
   
-  console.log('Extracted data:', {
-    oldEdge: oldEdge ? {
-      id: oldEdge.id,
-      source: oldEdge.source,
-      target: oldEdge.target,
-      sourceHandle: oldEdge.sourceHandle,
-      targetHandle: oldEdge.targetHandle
-    } : null,
-    connection: connection ? {
-      source: connection.source,
-      target: connection.target,
-      sourceHandle: connection.sourceHandle,
-      targetHandle: connection.targetHandle
-    } : null
-  })
   
   // Guard against missing data
   if (!oldEdge || !connection) {
@@ -305,24 +277,9 @@ function onEdgeUpdate(params: any, newConnection?: any) {
   const targetNodeChanged = connection.target !== oldEdge.target
   
   if (sourceNodeChanged || targetNodeChanged) {
-    console.log('Edge update blocked: Cannot connect to different nodes', {
-      oldSource: oldEdge.source,
-      newSource: connection.source,
-      oldTarget: oldEdge.target,
-      newTarget: connection.target
-    })
     showStatus('Tidak bisa menghubungkan ke node yang berbeda.', 'error')
     return
   }
-  
-  console.log('Edge update allowed: Only handle positions changed', {
-    source: connection.source,
-    target: connection.target,
-    oldSourceHandle: oldEdge.sourceHandle,
-    newSourceHandle: connection.sourceHandle,
-    oldTargetHandle: oldEdge.targetHandle,
-    newTargetHandle: connection.targetHandle
-  })
   
   const edgeIndex = edges.value.findIndex(e => e.id === oldEdge.id)
   if (edgeIndex !== -1) {
@@ -354,20 +311,9 @@ function onEdgeUpdate(params: any, newConnection?: any) {
         try {
           vueFlowRef.value.updateEdge(oldEdge.id, updatedEdge)
         } catch (error) {
-          console.log('VueFlow updateEdge method not available, forcing re-render')
           vueFlowKey.value += 1 // Force re-render of VueFlow component
         }
       }
-    })
-
-    console.log('Edge handle positions updated successfully and moved to top:', {
-      edgeId: edgeId,
-      sourceNode: connection.source,
-      targetNode: connection.target,
-      oldSourceHandle: oldEdge.sourceHandle || 'default',
-      newSourceHandle: connection.sourceHandle || 'default',
-      oldTargetHandle: oldEdge.targetHandle || 'default',
-      newTargetHandle: connection.targetHandle || 'default'
     })
 
     markLayoutChanged()
@@ -375,34 +321,6 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     console.error('Edge not found for update:', oldEdge.id)
     showStatus('Gagal memperbarui koneksi', 'error')
   }
-}
-
-function onEdgeUpdateStart(event: any) {
-  // Handle start of edge update
-  console.log('Edge update started:', {
-    event: event,
-    edgeId: event.edge?.id,
-    source: event.edge?.source,
-    target: event.edge?.target,
-    sourceHandle: event.edge?.sourceHandle,
-    targetHandle: event.edge?.targetHandle,
-    eventType: typeof event,
-    hasEdge: !!event.edge
-  })
-}
-
-function onEdgeUpdateEnd(event: any) {
-  // Handle end of edge update
-  console.log('Edge update ended:', {
-    event: event,
-    edgeId: event.edge?.id,
-    source: event.edge?.source,
-    target: event.edge?.target,
-    sourceHandle: event.edge?.sourceHandle,
-    targetHandle: event.edge?.targetHandle,
-    eventType: typeof event,
-    hasEdge: !!event.edge
-  })
 }
 
 function onEdgeClick(event: any) {
@@ -447,8 +365,6 @@ function onNodesChange(changes: any[]) {
 }
 
 function onEdgesChange(changes: any[]) {
-  // Handle edge changes (deletions, updates, etc.)
-  console.log('Edges changed:', changes)
   
   // Update our reactive edges array
   changes.forEach(change => {
@@ -456,21 +372,18 @@ function onEdgesChange(changes: any[]) {
       const edgeIndex = edges.value.findIndex(e => e.id === change.id)
       if (edgeIndex !== -1) {
         edges.value.splice(edgeIndex, 1)
-        console.log('Edge removed:', change.id)
       }
     } else if (change.type === 'add' && change.item) {
       // Handle edge additions
       const existingEdgeIndex = edges.value.findIndex(e => e.id === change.item.id)
       if (existingEdgeIndex === -1) {
         edges.value.push(change.item)
-        console.log('Edge added:', change.item.id)
       }
     } else if (change.type === 'update' && change.item) {
       // Handle edge updates
       const edgeIndex = edges.value.findIndex(e => e.id === change.item.id)
       if (edgeIndex !== -1) {
         edges.value.splice(edgeIndex, 1, change.item)
-        console.log('Edge updated:', change.item.id)
       }
     }
   })
@@ -525,8 +438,6 @@ async function saveLayout() {
       style: edge.style,
       data: edge.data
     }))
-
-    console.log('Saving edges layout:', edgesLayout)
 
     // Prepare stream config
     const streamConfig = {

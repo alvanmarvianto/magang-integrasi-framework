@@ -143,12 +143,6 @@ function deleteApp(appId: number) {
     router.delete(`/admin/apps/${appId}`);
   }
 }
-
-onMounted(() => {
-  console.log('Props received:', props);
-  console.log('Apps:', props.apps?.data);
-  console.log('Streams:', props.streams);
-});
 </script>
 
 <style scoped>

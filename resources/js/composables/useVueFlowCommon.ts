@@ -291,13 +291,11 @@ export function useEdgeSelection() {
     } else {
       selectedEdgeId.value = clickedEdgeId;
     }
-    console.log('Edge clicked:', clickedEdgeId);
   }
   
   function handlePaneClick() {
     if (selectedEdgeId.value) {
       selectedEdgeId.value = null;
-      console.log('Edge deselected');
     }
   }
   
@@ -312,7 +310,6 @@ export function useEdgeSelection() {
  * Handle node click events
  */
 export function handleNodeClick(node: any, isAdminMode: boolean = false) {
-  console.log('Node clicked:', node);
   
   if (!isAdminMode && node.type === 'app' && node.id) {
     // In user mode, redirect to app integration page

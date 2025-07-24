@@ -286,8 +286,6 @@ onMounted(() => {
           version: p.version || undefined 
         })),
       };
-
-      console.log('Form data set:', form.value);
     }
   } catch (error) {
     console.error('Error in onMounted:', error);

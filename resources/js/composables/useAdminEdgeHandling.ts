@@ -18,7 +18,6 @@ export function useAdminEdgeHandling() {
     } else {
       selectedEdgeId.value = clickedEdgeId
     }
-    console.log('Admin edge clicked:', clickedEdgeId)
   }
 
   /**
@@ -26,7 +25,6 @@ export function useAdminEdgeHandling() {
    */
   function handlePaneClick() {
     if (selectedEdgeId.value) {
-      console.log('Admin pane clicked, deselecting edge:', selectedEdgeId.value)
       selectedEdgeId.value = null
     }
   }
@@ -70,7 +68,6 @@ export function useAdminEdgeHandling() {
     
     // Check if we have saved edge layout with handle information
     if (savedLayout?.edges_layout && savedLayout.edges_layout.length > 0) {
-      console.log('Loading saved edges layout:', savedLayout.edges_layout)
       edgesData = savedLayout.edges_layout
     }
     
