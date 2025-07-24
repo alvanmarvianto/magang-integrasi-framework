@@ -22,6 +22,15 @@
         <button @click="saveLayout" :disabled="saving" class="save-btn">
           {{ saving ? 'Saving...' : 'Save Layout' }}
         </button>
+        <button 
+          @click="refreshLayout" 
+          :disabled="refreshing" 
+          class="refresh-btn"
+          :class="{ 'has-unsaved-changes': layoutChanged }"
+          :title="layoutChanged ? 'Peringatan: Ada perubahan yang belum disimpan!' : 'Refresh layout dan hapus data yang tidak valid'"
+        >
+          {{ refreshing ? 'Refreshing...' : 'Refresh Layout' }}
+        </button>
         <button @click="resetLayout" class="reset-btn">Reset Layout</button>
       </template>
     </AdminNavbar>
@@ -85,7 +94,7 @@ import { VueFlow } from '@vue-flow/core'
 import { Background, BackgroundVariant } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { PanOnScrollMode } from '@vue-flow/core'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
@@ -111,6 +120,10 @@ interface Props {
     stream_config?: Record<string, any>
   } | null
   allowedStreams: string[]
+  refreshData?: {
+    nodes: Node[]
+    edges: Edge[]
+  }
 }
 
 const props = defineProps<Props>()
@@ -118,6 +131,7 @@ const props = defineProps<Props>()
 // Refs
 const vueFlowRef = ref()
 const saving = ref(false)
+const refreshing = ref(false)
 const selectedStream = ref(props.streamName)
 
 // Reactive data
@@ -151,6 +165,9 @@ function handleBeforeUnload(e: BeforeUnloadEvent) {
 // Use status messages
 const { statusMessage, statusType, showStatus } = useStatusMessage()
 
+// Get page props for flash messages
+const page = usePage()
+
 // Track original layout for reset
 const originalLayout = ref<{
   nodes_layout?: Record<string, any>
@@ -161,6 +178,18 @@ const originalLayout = ref<{
 // Initialize layout
 onMounted(() => {
   initializeLayout()
+  
+  // Check for flash messages
+  if (page.props.success) {
+    showStatus(page.props.success as string, 'success')
+  }
+  
+  if (page.props.errors && typeof page.props.errors === 'object') {
+    const errorMessages = Object.values(page.props.errors).flat()
+    if (errorMessages.length > 0) {
+      showStatus(errorMessages[0] as string, 'error')
+    }
+  }
 })
 
 // Watch for stream changes
@@ -470,6 +499,30 @@ async function saveLayout() {
   }
 }
 
+async function refreshLayout() {
+  // Check if there are unsaved changes
+  if (layoutChanged.value) {
+    const confirmRefresh = confirm(
+      'Ada perubahan yang belum tersimpan. Menyegarkan layout akan menghilangkan semua perubahan yang belum disimpan. Apakah Anda yakin ingin melanjutkan?'
+    )
+    
+    if (!confirmRefresh) {
+      return // User cancelled the refresh
+    }
+  }
+
+  refreshing.value = true
+  
+  try {
+    // Simple navigation to refresh URL - backend will handle cleanup and redirect back
+    window.location.href = `/admin/stream/${props.streamName}/refresh`
+  } catch (error: any) {
+    console.error('Refresh error:', error)
+    showStatus('Gagal menyegarkan layout: ' + (error?.message || 'Unknown error'), 'error')
+    refreshing.value = false
+  }
+}
+
 
 
 function resetLayout() {
@@ -567,7 +620,7 @@ function onStreamResize(event: { width: number, height: number }) {
   font-size: 0.875rem;
 }
 
-.save-btn, .reset-btn {
+.save-btn, .refresh-btn, .reset-btn {
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   font-weight: 500;
@@ -587,6 +640,22 @@ function onStreamResize(event: { width: number, height: number }) {
 }
 
 .save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  position: relative;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.refresh-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

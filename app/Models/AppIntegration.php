@@ -127,4 +127,86 @@ class AppIntegration extends Pivot
     {
         return $this->startsFromSource() ? $this->targetApp() : $this->sourceApp();
     }
+
+    /**
+     * Check if this integration has duplicates in the database.
+     *
+     * @return bool
+     */
+    public function hasDuplicates(): bool
+    {
+        $sourceAppId = $this->getAttribute('source_app_id');
+        $targetAppId = $this->getAttribute('target_app_id');
+        
+        // Check for exact duplicates (same source and target)
+        $exactDuplicates = self::where('source_app_id', $sourceAppId)
+            ->where('target_app_id', $targetAppId)
+            ->where('integration_id', '!=', $this->getAttribute('integration_id'))
+            ->exists();
+
+        // Check for reverse duplicates (same apps but reversed)
+        $reverseDuplicates = self::where('source_app_id', $targetAppId)
+            ->where('target_app_id', $sourceAppId)
+            ->where('integration_id', '!=', $this->getAttribute('integration_id'))
+            ->exists();
+
+        return $exactDuplicates || $reverseDuplicates;
+    }
+
+    /**
+     * Get all duplicate integrations for this connection.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getDuplicates()
+    {
+        $sourceAppId = $this->getAttribute('source_app_id');
+        $targetAppId = $this->getAttribute('target_app_id');
+        
+        // Get exact duplicates
+        $exactDuplicates = self::where('source_app_id', $sourceAppId)
+            ->where('target_app_id', $targetAppId)
+            ->where('integration_id', '!=', $this->getAttribute('integration_id'))
+            ->get();
+
+        // Get reverse duplicates
+        $reverseDuplicates = self::where('source_app_id', $targetAppId)
+            ->where('target_app_id', $sourceAppId)
+            ->where('integration_id', '!=', $this->getAttribute('integration_id'))
+            ->get();
+
+        return $exactDuplicates->merge($reverseDuplicates);
+    }
+
+    /**
+     * Remove all duplicate integrations for this connection, keeping only this one.
+     *
+     * @return int Number of duplicates removed
+     */
+    public function removeDuplicates(): int
+    {
+        $duplicates = $this->getDuplicates();
+        $deletedCount = 0;
+
+        foreach ($duplicates as $duplicate) {
+            $duplicate->delete();
+            $deletedCount++;
+        }
+
+        return $deletedCount;
+    }
+
+    /**
+     * Get a normalized connection key for this integration (always smaller app_id first).
+     *
+     * @return string
+     */
+    public function getConnectionKey(): string
+    {
+        $sourceAppId = $this->getAttribute('source_app_id');
+        $targetAppId = $this->getAttribute('target_app_id');
+        $appIds = [$sourceAppId, $targetAppId];
+        sort($appIds);
+        return implode('-', $appIds);
+    }
 }

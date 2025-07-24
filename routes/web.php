@@ -77,4 +77,5 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Stream management
     Route::get('/stream/{streamName}', [AdminDiagramController::class, 'show'])->name('diagrams.show');
     Route::post('/stream/{streamName}/layout', [AdminDiagramController::class, 'saveLayout'])->name('diagrams.save');
+    Route::get('/stream/{streamName}/refresh', [AdminDiagramController::class, 'refreshLayout'])->name('diagrams.refresh');
 });
