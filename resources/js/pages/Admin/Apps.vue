@@ -8,7 +8,7 @@
             v-model="searchQuery" 
             placeholder="Cari aplikasi..." 
             class="search-input"
-            @input="handleSearch"
+            @input="debouncedSearch"
           />
         </div>
         <a href="/admin/apps/create" class="admin-action-button">
@@ -32,6 +32,7 @@
         :items="props.apps.data"
         v-model:sortBy="sortBy"
         v-model:sortDesc="sortDesc"
+        :searchQuery="searchQuery"
         :pagination="props.apps.meta"
         @page="navigateToPage"
       >
@@ -71,6 +72,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
+import { useAdminTable } from '@/composables/useAdminTable';
 
 interface Stream {
   data: {
@@ -118,9 +120,11 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const searchQuery = ref('');
-const sortBy = ref('app_name');
-const sortDesc = ref(false);
+
+// Use the admin table composable
+const { searchQuery, sortBy, sortDesc, debouncedSearch, navigateToPage } = useAdminTable({
+  defaultSortBy: 'app_name'
+});
 
 const columns = [
   { key: 'app_name', label: 'Nama', sortable: true },
@@ -134,31 +138,10 @@ function getStreamName(streamId: number): string {
   return stream?.data?.stream_name ?? '-';
 }
 
-// Watch for sort changes and trigger server request
-watch([sortBy, sortDesc], () => {
-  updateData();
-}, { deep: true });
-
-function updateData() {
-  const params = new URLSearchParams();
-  
-  if (searchQuery.value) {
-    params.set('search', searchQuery.value);
+function deleteApp(appId: number) {
+  if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
+    router.delete(`/admin/apps/${appId}`);
   }
-  
-  if (sortBy.value !== 'app_name') {
-    params.set('sort_by', sortBy.value);
-  }
-  
-  if (sortDesc.value) {
-    params.set('sort_desc', '1');
-  }
-
-  router.get(
-    window.location.pathname + (params.toString() ? '?' + params.toString() : ''),
-    {},
-    { preserveState: true, preserveScroll: true }
-  );
 }
 
 onMounted(() => {
@@ -166,20 +149,6 @@ onMounted(() => {
   console.log('Apps:', props.apps?.data);
   console.log('Streams:', props.streams);
 });
-
-function handleSearch() {
-  updateData();
-}
-
-function deleteApp(appId: number) {
-  if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
-    router.delete(`/admin/apps/${appId}`);
-  }
-}
-
-function navigateToPage(url: string) {
-  router.get(url);
-}
 </script>
 
 <style scoped>

@@ -49,4 +49,51 @@ class StreamLayout extends Model
             ]
         );
     }
+
+    /**
+     * Remove app from all stream layouts
+     */
+    public static function removeAppFromLayouts(int $appId): void
+    {
+        $layouts = self::all();
+        
+        foreach ($layouts as $layout) {
+            $updated = false;
+            $nodesLayout = $layout->nodes_layout ?? [];
+            $edgesLayout = $layout->edges_layout ?? [];
+            $streamConfig = $layout->stream_config ?? [];
+            
+            // Remove app node if it exists
+            if (isset($nodesLayout[(string)$appId])) {
+                unset($nodesLayout[(string)$appId]);
+                $updated = true;
+            }
+            
+            // Remove edges that involve this app
+            $edgesLayout = array_filter($edgesLayout, function($edge) use ($appId) {
+                return $edge['source'] !== (string)$appId && $edge['target'] !== (string)$appId;
+            });
+            
+            // Update total nodes count in stream config
+            if (isset($streamConfig['totalNodes'])) {
+                $streamConfig['totalNodes'] = count($nodesLayout);
+                $updated = true;
+            }
+            
+            // Update total edges count in stream config
+            if (isset($streamConfig['totalEdges'])) {
+                $streamConfig['totalEdges'] = count($edgesLayout);
+                $updated = true;
+            }
+            
+            // Save the updated layout if changes were made
+            if ($updated) {
+                $layout->update([
+                    'nodes_layout' => $nodesLayout,
+                    'edges_layout' => array_values($edgesLayout), // Re-index array
+                    'stream_config' => $streamConfig,
+                ]);
+            }
+        }
+    }
 }

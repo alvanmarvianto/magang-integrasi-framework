@@ -8,7 +8,7 @@
             v-model="searchQuery" 
             placeholder="Cari integrasi..." 
             class="search-input"
-            @input="handleSearch"
+            @input="debouncedSearch"
           />
         </div>
         <a href="/admin/integrations/create" class="admin-action-button">
@@ -32,6 +32,7 @@
         :items="props.integrations.data"
         v-model:sortBy="sortBy"
         v-model:sortDesc="sortDesc"
+        :searchQuery="searchQuery"
         :pagination="props.integrations.meta"
         @page="navigateToPage"
       >
@@ -71,10 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
+import { useAdminTable } from '@/composables/useAdminTable';
 
 interface Integration {
   integration_id: number;
@@ -114,9 +115,11 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const searchQuery = ref('');
-const sortBy = ref('source_app_name');
-const sortDesc = ref(false);
+
+// Use the admin table composable
+const { searchQuery, sortBy, sortDesc, debouncedSearch, navigateToPage } = useAdminTable({
+  defaultSortBy: 'source_app_name'
+});
 
 const columns = [
   { key: 'source_app_name', label: 'Source App', sortable: true },
@@ -125,45 +128,10 @@ const columns = [
   { key: 'actions', label: 'Actions', centered: true }
 ];
 
-// Watch for sort changes and trigger server request
-watch([sortBy, sortDesc], () => {
-  updateData();
-}, { deep: true });
-
-function updateData() {
-  const params = new URLSearchParams();
-  
-  if (searchQuery.value) {
-    params.set('search', searchQuery.value);
-  }
-  
-  if (sortBy.value !== 'source_app_name') {
-    params.set('sort_by', sortBy.value);
-  }
-  
-  if (sortDesc.value) {
-    params.set('sort_desc', '1');
-  }
-
-  router.get(
-    window.location.pathname + (params.toString() ? '?' + params.toString() : ''),
-    {},
-    { preserveState: true, preserveScroll: true }
-  );
-}
-
-function handleSearch() {
-  updateData();
-}
-
 function confirmDelete(integration: Integration) {
   if (confirm(`Are you sure you want to delete the integration between ${integration.source_app.app_name} and ${integration.target_app.app_name}?`)) {
     router.delete(`/admin/integrations/${integration.integration_id}`);
   }
-}
-
-function navigateToPage(url: string) {
-  router.get(url);
 }
 </script>
 

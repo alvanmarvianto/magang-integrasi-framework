@@ -45,7 +45,7 @@
           class="admin-pagination-button"
           :class="{ active: link.active }"
           :disabled="!link.url"
-          @click="link.url &amp;&amp; $emit('page', link.url)"
+          @click="link.url && handlePageClick(link.url)"
           v-html="link.label"
         ></button>
       </div>
@@ -74,6 +74,7 @@ interface Props {
   items: any[];
   sortBy?: string;
   sortDesc?: boolean;
+  searchQuery?: string;
   pagination?: {
     links: PaginationLink[];
   };
@@ -82,6 +83,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   sortBy: undefined,
   sortDesc: false,
+  searchQuery: '',
 });
 
 const emit = defineEmits<{
@@ -104,6 +106,34 @@ function toggleSort(column: string) {
     emit('update:sortBy', column);
     emit('update:sortDesc', false);
   }
+}
+
+function handlePageClick(url: string) {
+  // Parse the URL to extract the page parameter
+  const urlObj = new URL(url, window.location.origin);
+  const page = urlObj.searchParams.get('page');
+  
+  // Build new URL with current search and sort parameters
+  const params = new URLSearchParams();
+  
+  if (page) {
+    params.set('page', page);
+  }
+  
+  if (props.searchQuery) {
+    params.set('search', props.searchQuery);
+  }
+  
+  if (props.sortBy) {
+    params.set('sort_by', props.sortBy);
+  }
+  
+  if (props.sortDesc) {
+    params.set('sort_desc', '1');
+  }
+
+  const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  emit('page', newUrl);
 }
 </script>
 

@@ -22,6 +22,19 @@ class App extends Model
         'stratification',
     ];
 
+    /**
+     * Boot method to register model events
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // When deleting an app, also remove it from stream layouts
+        static::deleting(function ($app) {
+            StreamLayout::removeAppFromLayouts($app->getKey());
+        });
+    }
+
     public function integrations(): BelongsToMany
     {
         return $this->belongsToMany(App::class, 'appintegrations', 'source_app_id', 'target_app_id')
