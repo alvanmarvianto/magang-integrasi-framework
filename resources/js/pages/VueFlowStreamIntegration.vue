@@ -86,7 +86,7 @@
     <!-- Edge Details Sidebar -->
     <EdgeDetailsSidebar
       :visible="showEdgeDetails"
-      :edge-data="selectedEdgeData"
+      :edgeData="selectedEdgeData"
       @close="closeEdgeDetails"
     />
   </div>
@@ -245,11 +245,8 @@ function onNodeClick(event: any) {
 function onEdgeClick(event: any) {
   const clickedEdgeId = event.edge?.id;
   if (!clickedEdgeId) {
-    console.log('No edge ID found in click event');
     return;
   }
-  
-  console.log('Edge clicked:', clickedEdgeId);
   
   // Find the edge data
   const edge = edges.value.find(e => e.id === clickedEdgeId);

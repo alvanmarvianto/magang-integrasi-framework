@@ -1,28 +1,27 @@
 <template>
-  <div 
+  <aside 
     v-if="visible" 
     class="edge-details-sidebar"
     :class="{ 'edge-details-sidebar-open': visible }"
   >
-    <div class="edge-details-header">
-      <h3>Integration Details</h3>
+    <header>
+      <h1>Detail Integrasi</h1>
       <button 
         @click="$emit('close')" 
-        class="edge-details-close-btn"
+        class="close-button"
         title="Close"
       >
         <i class="fas fa-times"></i>
       </button>
-    </div>
+    </header>
     
-    <div class="edge-details-content" v-if="edgeData">
+    <div class="sidebar-content" v-if="edgeData">
       <!-- Connection Overview -->
-      <div class="edge-details-section">
-        <h4>Connection</h4>
+      <div class="sidebar-section">
+        <h3>Overview Koneksi</h3>
         <div class="connection-flow">
-          <div class="app-info source-app">
-            <div class="app-name">{{ edgeData.sourceApp?.app_name || 'Unknown App' }}</div>
-            <div class="app-type">Source</div>
+          <div class="app-info">
+            <div class="app-name">{{ edgeData.sourceApp?.app_name || edgeData.source_app_name || 'Unknown App' }}</div>
           </div>
           
           <div class="connection-arrow">
@@ -30,24 +29,23 @@
             <i class="fas fa-exchange-alt" v-else></i>
           </div>
           
-          <div class="app-info target-app">
-            <div class="app-name">{{ edgeData.targetApp?.app_name || 'Unknown App' }}</div>
-            <div class="app-type">Target</div>
+          <div class="app-info">
+            <div class="app-name">{{ edgeData.targetApp?.app_name || edgeData.target_app_name || 'Unknown App' }}</div>
           </div>
         </div>
       </div>
 
       <!-- Connection Type -->
-      <div class="edge-details-section">
-        <h4>Connection Type</h4>
+      <!-- <div class="sidebar-section">
+        <h3>Connection Type</h3>
         <div class="connection-type-badge" :class="getConnectionTypeClass(edgeData.connection_type)">
           {{ edgeData.connection_type?.toUpperCase() || 'DIRECT' }}
         </div>
-      </div>
+      </div> -->
 
       <!-- Direction Details -->
-      <div class="edge-details-section">
-        <h4>Direction</h4>
+      <!-- <div class="sidebar-section">
+        <h3>Direction</h3>
         <div class="direction-info">
           <div class="direction-badge" :class="getDirectionClass(edgeData.direction)">
             <i class="fas fa-arrow-right" v-if="edgeData.direction === 'one_way'"></i>
@@ -57,43 +55,35 @@
           
           <div v-if="edgeData.direction === 'one_way' && edgeData.starting_point" class="starting-point">
             <strong>Starting Point:</strong> 
-            {{ edgeData.starting_point === 'source' ? edgeData.sourceApp?.app_name : edgeData.targetApp?.app_name }}
+            {{ edgeData.starting_point === 'source' ? (edgeData.sourceApp?.app_name || edgeData.source_app_name) : (edgeData.targetApp?.app_name || edgeData.target_app_name) }}
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Description -->
-      <div class="edge-details-section" v-if="edgeData.description">
-        <h4>Description</h4>
+      <div class="sidebar-section" v-if="edgeData.description">
+        <h3>Deskripsi</h3>
         <div class="description-content">
           {{ edgeData.description }}
         </div>
       </div>
 
       <!-- Connection Endpoint -->
-      <div class="edge-details-section" v-if="edgeData.connection_endpoint">
-        <h4>Connection Endpoint</h4>
+      <!-- <div class="sidebar-section" v-if="edgeData.connection_endpoint">
+        <h3>Connection Endpoint</h3>
         <div class="endpoint-content">
           <a :href="edgeData.connection_endpoint" target="_blank" class="endpoint-link">
             {{ edgeData.connection_endpoint }}
             <i class="fas fa-external-link-alt"></i>
           </a>
         </div>
-      </div>
-
-      <!-- Integration ID -->
-      <div class="edge-details-section">
-        <h4>Integration ID</h4>
-        <div class="integration-id">
-          {{ edgeData.integration_id }}
-        </div>
-      </div>
+      </div> -->
     </div>
     
-    <div v-else class="edge-details-loading">
+    <div v-else class="sidebar-content">
       <p>Loading integration details...</p>
     </div>
-  </div>
+  </aside>
 </template>
 
 <script setup lang="ts">
@@ -104,8 +94,10 @@ interface AppInfo {
 
 interface EdgeData {
   integration_id: number;
-  sourceApp: AppInfo;
-  targetApp: AppInfo;
+  sourceApp?: AppInfo;
+  targetApp?: AppInfo;
+  source_app_name?: string;
+  target_app_name?: string;
   connection_type: string;
   direction: string;
   starting_point?: string;
@@ -141,78 +133,95 @@ function getDirectionClass(direction: string): string {
 <style scoped>
 .edge-details-sidebar {
   position: fixed;
-  top: 0;
-  right: -400px;
-  width: 400px;
-  height: 100vh;
-  background: white;
-  border-left: 1px solid #e5e7eb;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  transition: right 0.3s ease-in-out;
+  top: 1rem;
+  right: -340px;
+  width: 320px;
+  height: calc(100vh - 2rem);
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  z-index: 9999;
+  transition: right 0.3s ease-in-out, background-color 0.5s ease, border-color 0.5s ease;
   overflow-y: auto;
-}
-
-.edge-details-sidebar-open {
-  right: 0;
-}
-
-.edge-details-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  flex-direction: column;
 }
 
-.edge-details-header h3 {
+.edge-details-sidebar.edge-details-sidebar-open {
+  right: 1rem;
+}
+
+/* Header styling matching left sidebar */
+.edge-details-sidebar header {
+  padding: 25px;
+  border-bottom: 1px solid rgba(221, 221, 221, 0.2);
+  transition: border-color 0.5s ease;
+  position: relative;
+}
+
+.edge-details-sidebar header h1 {
   margin: 0;
-  color: #1f2937;
-  font-size: 1.125rem;
+  font-size: 1.8em;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-color);
 }
 
-.edge-details-close-btn {
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
   background: none;
   border: none;
-  color: #6b7280;
+  font-size: 1.5rem;
+  color: var(--primary-color);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.25rem;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
-.edge-details-close-btn:hover {
-  background: #e5e7eb;
-  color: #374151;
+.close-button:hover {
+  background-color: rgba(10, 116, 218, 0.1);
+  transform: scale(1.1);
 }
 
-.edge-details-content {
-  padding: 1.5rem;
+/* Content styling matching left sidebar */
+.sidebar-content {
+  padding: 25px;
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
-.edge-details-section {
-  margin-bottom: 1.5rem;
+.sidebar-section {
+  margin-bottom: 2rem;
 }
 
-.edge-details-section h4 {
-  margin: 0 0 0.75rem 0;
-  color: #374151;
-  font-size: 0.875rem;
+.sidebar-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--text-color);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+/* Connection flow styling */
 .connection-flow {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .app-info {
@@ -222,22 +231,16 @@ function getDirectionClass(direction: string): string {
 
 .app-name {
   font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.app-type {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--text-color);
+  font-size: 0.875rem;
 }
 
 .connection-arrow {
-  color: #3b82f6;
+  color: var(--primary-color);
   font-size: 1.25rem;
 }
 
+/* Badge styling */
 .connection-type-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
@@ -246,28 +249,36 @@ function getDirectionClass(direction: string): string {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-color);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .connection-direct {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--text-color);
 }
 
 .connection-soa {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgb(21, 128, 61);
 }
 
 .connection-sftp {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgb(29, 78, 216);
 }
 
 .connection-default {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--text-color);
 }
 
+/* Direction styling */
 .direction-info {
   display: flex;
   flex-direction: column;
@@ -282,64 +293,70 @@ function getDirectionClass(direction: string): string {
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-color);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .direction-unidirectional {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: rgb(146, 64, 14);
 }
 
 .direction-bidirectional {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: rgb(67, 56, 202);
 }
 
 .starting-point {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-color-muted);
 }
 
+/* Content sections */
 .description-content {
   padding: 1rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  color: #374151;
+  color: var(--text-color);
   line-height: 1.5;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .endpoint-content {
   padding: 1rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .endpoint-link {
-  color: #3b82f6;
+  color: var(--primary-color);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   word-break: break-all;
+  transition: color 0.3s ease;
 }
 
 .endpoint-link:hover {
   text-decoration: underline;
+  color: var(--primary-color-dark);
 }
 
-.integration-id {
-  font-family: monospace;
-  font-size: 0.875rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.edge-details-loading {
-  padding: 1.5rem;
+/* Loading state */
+.sidebar-content p {
+  color: var(--text-color-muted);
   text-align: center;
-  color: #6b7280;
+  margin: 2rem 0;
 }
 </style>
