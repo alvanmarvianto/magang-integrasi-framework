@@ -42,13 +42,17 @@ class IntegrationController extends Controller
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
             'connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
+            'description' => 'nullable|string|max:1000',
+            'connection_endpoint' => 'nullable|url|max:255',
+            'direction' => 'required|in:one_way,both_ways',
+            'starting_point' => 'nullable|in:source,target|required_if:direction,one_way',
         ]);
 
         try {
             $this->integrationService->createIntegration($validated);
-            return redirect()->route('admin.integrations')->with('success', 'Integration created successfully');
+            return redirect()->route('admin.integrations');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
 
@@ -60,15 +64,21 @@ class IntegrationController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $validated = $request->validate([
+            'source_app_id' => 'required|exists:apps,app_id',
+            'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
             'connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
+            'description' => 'nullable|string|max:1000',
+            'connection_endpoint' => 'nullable|url|max:255',
+            'direction' => 'required|in:one_way,both_ways',
+            'starting_point' => 'nullable|in:source,target|required_if:direction,one_way',
         ]);
 
         $integration = AppIntegration::findOrFail($id);
         try {
             $this->integrationService->updateIntegration($integration, $validated);
-            return redirect()->route('admin.integrations')->with('success', 'Integration updated successfully');
+            return redirect()->route('admin.integrations');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
 
@@ -77,9 +87,9 @@ class IntegrationController extends Controller
         $integration = AppIntegration::findOrFail($id);
         try {
             $this->integrationService->deleteIntegration($integration);
-            return back()->with('success', 'Integration deleted successfully');
+            return back();
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }

@@ -76,6 +76,9 @@ import { router } from '@inertiajs/vue3';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
+import { useNotification } from '@/composables/useNotification';
+
+const { showSuccess, showError, showConfirm } = useNotification();
 
 interface Integration {
   integration_id: number;
@@ -129,9 +132,22 @@ const columns = [
 ];
 
 function confirmDelete(integration: Integration) {
-  if (confirm(`Are you sure you want to delete the integration between ${integration.source_app.app_name} and ${integration.target_app.app_name}?`)) {
-    router.delete(`/admin/integrations/${integration.integration_id}`);
-  }
+  showConfirm(`Apakah anda yakin ingin menghapus koneksi antara ${integration.source_app.app_name} dan ${integration.target_app.app_name}?`)
+    .then((confirmed) => {
+      if (confirmed) {
+        router.delete(`/admin/integrations/${integration.integration_id}`, {
+          onSuccess: () => {
+            showSuccess('Integrasi berhasil dihapus');
+          },
+          onError: (errors) => {
+            const errorMessage = typeof errors === 'object' && errors !== null 
+              ? Object.values(errors).flat().join(', ')
+              : 'Gagal menghapus integrasi';
+            showError(errorMessage);
+          },
+        });
+      }
+    });
 }
 </script>
 

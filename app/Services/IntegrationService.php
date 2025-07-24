@@ -97,9 +97,14 @@ class IntegrationService
 
     public function createIntegration(array $data): AppIntegration
     {
-        $exists = AppIntegration::where('source_app_id', $data['source_app_id'])
-            ->where('target_app_id', $data['target_app_id'])
-            ->exists();
+        // Check for existing connection in either direction
+        $exists = AppIntegration::where(function ($query) use ($data) {
+            $query->where('source_app_id', $data['source_app_id'])
+                  ->where('target_app_id', $data['target_app_id']);
+        })->orWhere(function ($query) use ($data) {
+            $query->where('source_app_id', $data['target_app_id'])
+                  ->where('target_app_id', $data['source_app_id']);
+        })->exists();
 
         if ($exists) {
             throw new \Exception('Integration between these apps already exists');
@@ -110,6 +115,23 @@ class IntegrationService
 
     public function updateIntegration(AppIntegration $integration, array $data): bool
     {
+        // Check for existing connection in either direction, excluding the current integration
+        if (isset($data['source_app_id']) && isset($data['target_app_id'])) {
+            $exists = AppIntegration::where($integration->getKeyName(), '!=', $integration->getKey())
+                ->where(function ($query) use ($data) {
+                    $query->where('source_app_id', $data['source_app_id'])
+                          ->where('target_app_id', $data['target_app_id']);
+                })->orWhere(function ($query) use ($data, $integration) {
+                    $query->where($integration->getKeyName(), '!=', $integration->getKey())
+                          ->where('source_app_id', $data['target_app_id'])
+                          ->where('target_app_id', $data['source_app_id']);
+                })->exists();
+
+            if ($exists) {
+                throw new \Exception('Integration between these apps already exists');
+            }
+        }
+
         return $integration->update($data);
     }
 
