@@ -253,7 +253,7 @@ class DiagramController extends Controller
             return $sourceIsHome || $targetIsHome;
         })->map(function ($integration) {
             return [
-                'id' => 'edge-' . $integration->source_app_id . '-' . $integration->target_app_id,
+                'id' => $integration->source_app_id . '-' . $integration->target_app_id,
                 'source' => (string) $integration->source_app_id,
                 'target' => (string) $integration->target_app_id,
                 'type' => 'smoothstep',
