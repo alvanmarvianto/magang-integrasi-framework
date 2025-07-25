@@ -110,9 +110,7 @@ import SidebarControlsSection from '../components/Sidebar/SidebarControlsSection
 import SidebarLegend from '../components/Sidebar/SidebarLegend.vue';
 import EdgeDetailsSidebar from '../components/Sidebar/EdgeDetailsSidebar.vue';
 import { 
-  validateAndCleanNodes, 
-  createStyledNode, 
-  createStyledEdge,
+  validateAndCleanNodes,
   initializeNodesWithLayout,
   initializeEdgesWithLayout,
   handleNodeClick,

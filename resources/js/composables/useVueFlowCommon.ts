@@ -213,7 +213,7 @@ export function createStyledNode(node: any, savedLayout?: any, isAdmin: boolean 
     connectable: false,
     focusable: true,
     deletable: false,
-    zIndex: node.data.is_parent_node ? -1 : 1
+    zIndex: node.data.is_parent_node ? (isAdmin ? -10 : -1) : (isAdmin ? 10 : 1)
   };
   
   if (node.data.is_parent_node) {
@@ -364,7 +364,7 @@ export function initializeNodesWithLayout(
       connectable: isAdminMode,
       focusable: true,
       deletable: isAdminMode,
-      zIndex: node.data.is_parent_node ? -1 : 1
+      zIndex: node.data.is_parent_node ? (isAdminMode ? -10 : -1) : (isAdminMode ? 10 : 1)
     };
     
     if (node.data.is_parent_node) {

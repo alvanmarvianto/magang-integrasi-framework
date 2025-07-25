@@ -271,6 +271,19 @@ onUnmounted(() => {
   cursor: grab;
 }
 
+.stream-nest.admin-mode {
+  /* In admin mode, set lower z-index so nodes inside are clickable */
+  z-index: -10 !important;
+  /* Enable right-click panning in admin mode */
+  pointer-events: none !important;
+}
+
+.stream-nest.admin-mode .stream-label {
+  /* Make label clickable for dragging the stream */
+  pointer-events: all;
+  z-index: -9;
+}
+
 /* User mode drag areas - specific border strips only */
 .drag-border-top {
   position: absolute;
@@ -279,7 +292,7 @@ onUnmounted(() => {
   right: 0;
   height: 40px;
   cursor: move;
-  z-index: 3;
+  z-index: 1;
 }
 
 .drag-border-right {
@@ -289,7 +302,7 @@ onUnmounted(() => {
   bottom: 0;
   width: 40px;
   cursor: move;
-  z-index: 3;
+  z-index: 1;
 }
 
 .drag-border-bottom {
@@ -299,7 +312,7 @@ onUnmounted(() => {
   right: 0;
   height: 40px;
   cursor: move;
-  z-index: 3;
+  z-index: 1;
 }
 
 .drag-border-left {
@@ -309,7 +322,15 @@ onUnmounted(() => {
   bottom: 0;
   width: 40px;
   cursor: move;
-  z-index: 3;
+  z-index: 1;
+}
+
+/* Ensure drag borders don't interfere in admin mode */
+.stream-nest.admin-mode .drag-border-top,
+.stream-nest.admin-mode .drag-border-right,
+.stream-nest.admin-mode .drag-border-bottom,
+.stream-nest.admin-mode .drag-border-left {
+  display: none;
 }
 
 .center-content {
@@ -326,7 +347,7 @@ onUnmounted(() => {
   padding-top: 12px;
   /* Make completely transparent to all pointer events */
   pointer-events: none;
-  z-index: 2;
+  z-index: 0;
   /* Prevent any selection or drag operations */
   user-select: none;
   -webkit-user-select: none;
@@ -351,6 +372,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   pointer-events: none;
+  z-index: -8;
 }
 
 .resize-handle {
@@ -359,7 +381,7 @@ onUnmounted(() => {
   border: 2px solid white;
   border-radius: 3px;
   pointer-events: all;
-  z-index: 1000;
+  z-index: -8;
   opacity: 0;
   transition: opacity 0.2s ease;
 }

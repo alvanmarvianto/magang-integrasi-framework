@@ -76,7 +76,12 @@
         </template>
 
         <!-- Controls -->
-        <Controls :show-fit-view="true" :show-zoom="true" />
+        <Controls
+          :show-zoom="true"
+          :show-fit-view="true"
+          :show-interactive="true"
+          position="bottom-left"
+        />
         <Background :pattern="BackgroundVariant.Dots" />
       </VueFlow>
 
@@ -118,6 +123,11 @@ import {
   validateAndCleanNodes
 } from '@/composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
+
+// Add necessary CSS imports
+import '@vue-flow/core/dist/style.css'
+import '@vue-flow/core/dist/theme-default.css'
+import '@vue-flow/controls/dist/style.css'
 
 // Props
 interface Props {
@@ -712,6 +722,22 @@ function onStreamResize(event: { width: number, height: number }) {
   cursor: move !important;
 }
 
+/* Admin mode specific overrides for stream nodes */
+.vue-flow.admin-mode :deep(.vue-flow__node-stream) {
+  z-index: -10 !important;
+}
+
+.vue-flow.admin-mode :deep(.vue-flow__node-app) {
+  z-index: 10 !important;
+}
+
+/* Admin Vue Flow controls positioning */
+.vue-flow.admin-mode :deep(.vue-flow__controls) {
+  bottom: 1rem;
+  left: 1rem;
+  right: auto;
+}
+
 .status-message {
   position: fixed;
   bottom: 2rem;
@@ -811,6 +837,5 @@ function onStreamResize(event: { width: number, height: number }) {
 </style>
 
 <style scoped>
-@import '@vue-flow/core/dist/style.css';
 @import '@/../css/vue-flow-integration.css';
 </style>
