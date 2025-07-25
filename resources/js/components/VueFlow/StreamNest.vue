@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useVueFlow } from '@vue-flow/core'
 import type { NodeProps } from '@vue-flow/core'
 

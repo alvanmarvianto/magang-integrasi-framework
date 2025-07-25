@@ -139,6 +139,66 @@ const hasAnyTechnologyData = computed(() => {
 <style scoped>
 @import '../../../css/app.css';
 
+.app-type-label {
+  background: linear-gradient(135deg, rgba(255, 248, 245, 0.1), rgba(255, 245, 240, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.database-label {
+  background: linear-gradient(135deg, rgba(255, 215, 210, 0.1), rgba(255, 200, 190, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.language-label {
+  background: linear-gradient(135deg, rgba(255, 200, 190, 0.1), rgba(255, 180, 170, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.os-label {
+  background: linear-gradient(135deg, rgba(255, 225, 220, 0.1), rgba(255, 215, 210, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.stratification-label {
+  background: linear-gradient(135deg, rgba(255, 235, 230, 0.1), rgba(255, 225, 220, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.vendor-label {
+  background: linear-gradient(135deg, rgba(255, 245, 240, 0.1), rgba(255, 240, 235, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.framework-label {
+  background: linear-gradient(135deg, rgba(255, 180, 170, 0.1), rgba(255, 160, 150, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.middleware-label {
+  background: linear-gradient(135deg, rgba(255, 160, 150, 0.1), rgba(255, 140, 130, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.third-party-label {
+  background: linear-gradient(135deg, rgba(255, 140, 130, 0.1), rgba(255, 120, 110, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
+.platform-label {
+  background: linear-gradient(135deg, rgba(255, 120, 110, 0.1), rgba(255, 100, 90, 0.1));
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+}
+
 .content-item {
   text-decoration: none !important;
 }

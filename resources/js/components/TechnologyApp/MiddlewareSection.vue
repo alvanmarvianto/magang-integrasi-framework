@@ -22,3 +22,9 @@ defineProps<{
 }>();
 </script>
 
+<style scoped>
+.middleware-content .content-item {
+  background: linear-gradient(135deg, rgba(255, 160, 150, 0.9), rgba(255, 140, 130, 0.9)) !important;
+  color: #333 !important;
+}
+</style>

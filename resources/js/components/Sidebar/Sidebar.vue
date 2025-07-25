@@ -16,7 +16,6 @@
 </template>
 
 <script setup lang="ts">
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import SidebarCloseButton from './SidebarCloseButton.vue';
 
 interface Props {

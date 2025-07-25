@@ -99,7 +99,6 @@ import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import { Background, BackgroundVariant } from '@vue-flow/background';
 import { router } from '@inertiajs/vue3';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import StreamNest from '@/components/VueFlow/StreamNest.vue';
 import AppNode from '@/components/VueFlow/AppNode.vue';
 import { useSidebar } from '../composables/useSidebar';

@@ -21,3 +21,10 @@ defineProps<{
   technology: any;
 }>();
 </script>
+
+<style scoped>
+.database-content .content-item {
+  background: linear-gradient(135deg, rgba(255, 215, 210, 0.9), rgba(255, 200, 190, 0.9)) !important;
+  color: #333 !important;
+}
+</style>

@@ -95,10 +95,7 @@
 
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { useNotification } from '@/composables/useNotification';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-
-const { showSuccess, showError } = useNotification();
 
 interface AppInfo {
   app_id: number;
@@ -128,11 +125,6 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   offsetTop: '1rem'
 });
-
-const emit = defineEmits<{
-  close: [];
-  refresh: [];
-}>();
 
 function getConnectionTypeClass(type: string): string {
   const typeMap: { [key: string]: string } = {

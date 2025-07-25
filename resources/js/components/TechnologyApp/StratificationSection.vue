@@ -18,3 +18,13 @@ defineProps<{
   technology: any;
 }>();
 </script>
+
+<style scoped>
+.stratification-content .content-item {
+  background: linear-gradient(135deg, rgba(255, 235, 230, 0.9), rgba(255, 225, 220, 0.9)) !important;
+  color: #333 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+</style>

@@ -22,3 +22,9 @@ defineProps<{
 }>();
 </script>
 
+<style scoped>
+.platform-content .content-item {
+  background: linear-gradient(135deg, rgba(255, 120, 110, 0.9), rgba(255, 100, 90, 0.9)) !important;
+  color: #333 !important;
+}
+</style>
