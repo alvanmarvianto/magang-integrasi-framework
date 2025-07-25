@@ -52,6 +52,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/integrations/{id}/edit', [AdminIntegrationController::class, 'edit'])->name('integrations.edit');
     Route::put('/integrations/{id}', [AdminIntegrationController::class, 'update'])->name('integrations.update');
     Route::delete('/integrations/{id}', [AdminIntegrationController::class, 'destroy'])->name('integrations.destroy');
+    Route::patch('/integrations/{id}/switch', [AdminIntegrationController::class, 'switchSourceTarget'])->name('integrations.switch');
     
     // Connection types management
     Route::get('/connection-types', [ConnectionTypeController::class, 'index'])->name('connection-types');

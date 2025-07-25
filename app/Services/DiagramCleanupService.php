@@ -213,8 +213,8 @@ class DiagramCleanupService
                         'app_name' => $integration->targetApp->app_name,
                     ],
                     'direction' => $integration->getAttribute('direction'),
-                    'starting_point' => $integration->getAttribute('starting_point'),
-                    'description' => $integration->getAttribute('description'),
+                    'inbound' => $integration->getAttribute('inbound'),
+                    'outbound' => $integration->getAttribute('outbound'),
                     'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
                 ],
             ];

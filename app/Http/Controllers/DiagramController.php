@@ -145,8 +145,8 @@ class DiagramController extends Controller
                             'app_name' => $integration->targetApp->app_name,
                         ],
                         'direction' => $integration->direction,
-                        'starting_point' => $integration->starting_point,
-                        'description' => $integration->description,
+                        'inbound' => $integration->inbound,
+                        'outbound' => $integration->outbound,
                         'connection_endpoint' => $integration->connection_endpoint,
                     ]
                 ];
@@ -270,8 +270,8 @@ class DiagramController extends Controller
                         'app_name' => $integration->targetApp->app_name,
                     ],
                     'direction' => $integration->direction,
-                    'starting_point' => $integration->starting_point,
-                    'description' => $integration->description,
+                    'inbound' => $integration->inbound,
+                    'outbound' => $integration->outbound,
                     'connection_endpoint' => $integration->connection_endpoint,
                 ],
             ];

@@ -42,10 +42,10 @@ class IntegrationController extends Controller
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
             'connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
-            'description' => 'nullable|string|max:1000',
+            'inbound' => 'nullable|string|max:1000',
+            'outbound' => 'nullable|string|max:1000',
             'connection_endpoint' => 'nullable|url|max:255',
             'direction' => 'required|in:one_way,both_ways',
-            'starting_point' => 'nullable|in:source,target|required_if:direction,one_way',
         ]);
 
         try {
@@ -67,10 +67,10 @@ class IntegrationController extends Controller
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
             'connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
-            'description' => 'nullable|string|max:1000',
+            'inbound' => 'nullable|string|max:1000',
+            'outbound' => 'nullable|string|max:1000',
             'connection_endpoint' => 'nullable|url|max:255',
             'direction' => 'required|in:one_way,both_ways',
-            'starting_point' => 'nullable|in:source,target|required_if:direction,one_way',
         ]);
 
         $integration = AppIntegration::findOrFail($id);
@@ -88,6 +88,17 @@ class IntegrationController extends Controller
         try {
             $this->integrationService->deleteIntegration($integration);
             return back();
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function switchSourceTarget(int $id): RedirectResponse
+    {
+        $integration = AppIntegration::findOrFail($id);
+        try {
+            $integration->switchSourceAndTarget();
+            return back()->with('success', 'Source and target switched successfully');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

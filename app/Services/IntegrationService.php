@@ -165,10 +165,10 @@ class IntegrationService
                         'target_app_id' => $integration->getAttribute('target_app_id'),
                         'connection_type' => $integration->connectionType->type_name ?? 'direct',
                         'connection_type_id' => $integration->getAttribute('connection_type_id'),
-                        'description' => $integration->getAttribute('description'),
+                        'inbound' => $integration->getAttribute('inbound'),
+                        'outbound' => $integration->getAttribute('outbound'),
                         'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
                         'direction' => $integration->getAttribute('direction'),
-                        'starting_point' => $integration->getAttribute('starting_point'),
                         'source_app_name' => $integration->sourceApp->app_name ?? '',
                         'target_app_name' => $integration->targetApp->app_name ?? '',
                         // Keep legacy format for backward compatibility
