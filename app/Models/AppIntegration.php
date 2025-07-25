@@ -37,10 +37,10 @@ class AppIntegration extends Pivot
         'source_app_id',
         'target_app_id',
         'connection_type_id',
-        'description',
+        'inbound',
+        'outbound',
         'connection_endpoint',
         'direction',
-        'starting_point',
     ];
 
     /**
@@ -50,7 +50,6 @@ class AppIntegration extends Pivot
      */
     protected $casts = [
         'direction' => 'string',
-        'starting_point' => 'string',
     ];
 
     public function connectionType(): BelongsTo
@@ -95,7 +94,7 @@ class AppIntegration extends Pivot
      */
     public function startsFromSource(): bool
     {
-        return $this->starting_point === 'source';
+        return true; // Always starts from source now
     }
 
     /**
@@ -105,27 +104,117 @@ class AppIntegration extends Pivot
      */
     public function startsFromTarget(): bool
     {
-        return $this->starting_point === 'target';
+        return false; // Never starts from target now
     }
 
     /**
-     * Get the starting app based on the starting point.
+     * Get the starting app (always source).
      *
      * @return BelongsTo
      */
     public function getStartingApp(): BelongsTo
     {
-        return $this->startsFromSource() ? $this->sourceApp() : $this->targetApp();
+        return $this->sourceApp();
     }
 
     /**
-     * Get the receiving app based on the starting point.
+     * Get the receiving app (always target).
      *
      * @return BelongsTo
      */
     public function getReceivingApp(): BelongsTo
     {
-        return $this->startsFromSource() ? $this->targetApp() : $this->sourceApp();
+        return $this->targetApp();
+    }
+
+    /**
+     * Switch source and target apps.
+     *
+     * @return bool
+     */
+    public function switchSourceAndTarget(): bool
+    {
+        $originalSourceId = $this->getAttribute('source_app_id');
+        $originalTargetId = $this->getAttribute('target_app_id');
+        $originalInbound = $this->getAttribute('inbound');
+        $originalOutbound = $this->getAttribute('outbound');
+
+        $result = $this->update([
+            'source_app_id' => $originalTargetId,
+            'target_app_id' => $originalSourceId,
+            'inbound' => $originalOutbound, // Swap inbound and outbound
+            'outbound' => $originalInbound,
+        ]);
+
+        // Update stream layouts after switching
+        if ($result) {
+            $this->updateStreamLayoutsAfterSwitch($originalSourceId, $originalTargetId);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Update stream layouts after switching source and target
+     *
+     * @param int $oldSourceId
+     * @param int $oldTargetId
+     * @return void
+     */
+    private function updateStreamLayoutsAfterSwitch(int $oldSourceId, int $oldTargetId): void
+    {
+        $layouts = \App\Models\StreamLayout::all();
+        
+        foreach ($layouts as $layout) {
+            $updated = false;
+            $edgesLayout = $layout->edges_layout ?? [];
+            
+            // Update edges that involve this integration
+            foreach ($edgesLayout as &$edge) {
+                // Check if this edge represents the integration by integration_id
+                $edgeIntegrationId = null;
+                
+                if (isset($edge['data']) && isset($edge['data']['integration_id'])) {
+                    $edgeIntegrationId = $edge['data']['integration_id'];
+                }
+                
+                if ($edgeIntegrationId == $this->getAttribute('integration_id')) {
+                    // Update the edge source and target (swap them)
+                    $edge['source'] = (string)$this->getAttribute('source_app_id');
+                    $edge['target'] = (string)$this->getAttribute('target_app_id');
+                    $edge['id'] = $this->getAttribute('source_app_id') . '-' . $this->getAttribute('target_app_id');
+                    
+                    // Update the edge data with fresh integration data
+                    $this->load(['sourceApp', 'targetApp', 'connectionType']);
+                    
+                    $edge['data'] = array_merge($edge['data'], [
+                        'source_app_id' => $this->getAttribute('source_app_id'),
+                        'target_app_id' => $this->getAttribute('target_app_id'),
+                        'inbound' => $this->getAttribute('inbound'),
+                        'outbound' => $this->getAttribute('outbound'),
+                        'source_app_name' => $this->sourceApp->app_name ?? '',
+                        'target_app_name' => $this->targetApp->app_name ?? '',
+                        'sourceApp' => [
+                            'app_id' => $this->getAttribute('source_app_id'),
+                            'app_name' => $this->sourceApp->app_name ?? ''
+                        ],
+                        'targetApp' => [
+                            'app_id' => $this->getAttribute('target_app_id'),
+                            'app_name' => $this->targetApp->app_name ?? ''
+                        ]
+                    ]);
+                    
+                    $updated = true;
+                }
+            }
+            
+            // Save the updated layout if changes were made
+            if ($updated) {
+                $layout->update([
+                    'edges_layout' => $edgesLayout,
+                ]);
+            }
+        }
     }
 
     /**
