@@ -3,6 +3,7 @@
     v-if="visible" 
     class="edge-details-sidebar"
     :class="{ 'edge-details-sidebar-open': visible }"
+    :style="{ top: offsetTop, height: `calc(100vh - ${offsetTop} - 1rem)` }"
   >
     <header>
       <h1>Detail Integrasi</h1>
@@ -11,7 +12,7 @@
         class="close-button"
         title="Close"
       >
-        <i class="fas fa-times"></i>
+        <font-awesome-icon icon="fa-solid fa-times" />
       </button>
     </header>
     
@@ -25,8 +26,8 @@
           </div>
           
           <div class="connection-arrow">
-            <i class="fas fa-arrow-right" v-if="edgeData.direction === 'one_way'"></i>
-            <i class="fas fa-exchange-alt" v-else></i>
+            <font-awesome-icon icon="fa-solid fa-arrow-right" v-if="edgeData.direction === 'one_way'" />
+            <font-awesome-icon icon="fa-solid fa-exchange-alt" v-else />
           </div>
           
           <div class="app-info">
@@ -36,35 +37,41 @@
       </div>
 
       <!-- Connection Type -->
-      <!-- <div class="sidebar-section">
-        <h3>Connection Type</h3>
+      <div class="sidebar-section">
+        <h3>Tipe Koneksi</h3>
         <div class="connection-type-badge" :class="getConnectionTypeClass(edgeData.connection_type)">
           {{ edgeData.connection_type?.toUpperCase() || 'DIRECT' }}
         </div>
-      </div> -->
+      </div>
 
-      <!-- Direction Details -->
-      <!-- <div class="sidebar-section">
-        <h3>Direction</h3>
-        <div class="direction-info">
-          <div class="direction-badge" :class="getDirectionClass(edgeData.direction)">
-            <i class="fas fa-arrow-right" v-if="edgeData.direction === 'one_way'"></i>
-            <i class="fas fa-exchange-alt" v-else></i>
-            {{ edgeData.direction === 'one_way' ? 'Unidirectional' : 'Bidirectional' }}
-          </div>
-          
-          <div v-if="edgeData.direction === 'one_way' && edgeData.starting_point" class="starting-point">
-            <strong>Starting Point:</strong> 
-            {{ edgeData.starting_point === 'source' ? (edgeData.sourceApp?.app_name || edgeData.source_app_name) : (edgeData.targetApp?.app_name || edgeData.target_app_name) }}
-          </div>
+      <!-- Admin Actions -->
+      <div class="sidebar-section" v-if="isAdmin">
+        <h3>Admin Actions</h3>
+        <div class="admin-buttons">
+          <button 
+            @click="editIntegration" 
+            class="edit-button"
+            title="Edit Integration"
+          >
+            <font-awesome-icon icon="fa-solid fa-edit" />
+            Edit Integration
+          </button>
         </div>
-      </div> -->
+      </div>
 
-      <!-- Description -->
-      <div class="sidebar-section" v-if="edgeData.description">
-        <h3>Deskripsi</h3>
+      <!-- Inbound -->
+      <div class="sidebar-section" v-if="edgeData.inbound">
+        <h3>Inbound</h3>
         <div class="description-content">
-          {{ edgeData.description }}
+          {{ edgeData.inbound }}
+        </div>
+      </div>
+
+      <!-- Outbound -->
+      <div class="sidebar-section" v-if="edgeData.outbound">
+        <h3>Outbound</h3>
+        <div class="description-content">
+          {{ edgeData.outbound }}
         </div>
       </div>
 
@@ -74,7 +81,7 @@
         <div class="endpoint-content">
           <a :href="edgeData.connection_endpoint" target="_blank" class="endpoint-link">
             {{ edgeData.connection_endpoint }}
-            <i class="fas fa-external-link-alt"></i>
+            <font-awesome-icon icon="fa-solid fa-external-link-alt" />
           </a>
         </div>
       </div> -->
@@ -87,6 +94,12 @@
 </template>
 
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
+import { useNotification } from '@/composables/useNotification';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+
+const { showSuccess, showError } = useNotification();
+
 interface AppInfo {
   app_id: number;
   app_name: string;
@@ -100,20 +113,25 @@ interface EdgeData {
   target_app_name?: string;
   connection_type: string;
   direction: string;
-  starting_point?: string;
-  description?: string;
+  inbound?: string;
+  outbound?: string;
   connection_endpoint?: string;
 }
 
 interface Props {
   visible: boolean;
   edgeData?: EdgeData | null;
+  isAdmin?: boolean;
+  offsetTop?: string;
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  offsetTop: '1rem'
+});
 
-defineEmits<{
+const emit = defineEmits<{
   close: [];
+  refresh: [];
 }>();
 
 function getConnectionTypeClass(type: string): string {
@@ -125,8 +143,10 @@ function getConnectionTypeClass(type: string): string {
   return typeMap[type?.toLowerCase()] || 'connection-default';
 }
 
-function getDirectionClass(direction: string): string {
-  return direction === 'one_way' ? 'direction-unidirectional' : 'direction-bidirectional';
+function editIntegration() {
+  if (!props.edgeData?.integration_id) return;
+  
+  router.visit(`/admin/integrations/${props.edgeData.integration_id}/edit`);
 }
 </script>
 
@@ -179,7 +199,6 @@ function getDirectionClass(direction: string): string {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: var(--primary-color);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.25rem;
@@ -187,7 +206,6 @@ function getDirectionClass(direction: string): string {
 }
 
 .close-button:hover {
-  background-color: rgba(10, 116, 218, 0.1);
   transform: scale(1.1);
 }
 
@@ -235,11 +253,6 @@ function getDirectionClass(direction: string): string {
   font-size: 0.875rem;
 }
 
-.connection-arrow {
-  color: var(--primary-color);
-  font-size: 1.25rem;
-}
-
 /* Badge styling */
 .connection-type-badge {
   display: inline-block;
@@ -278,43 +291,33 @@ function getDirectionClass(direction: string): string {
   color: var(--text-color);
 }
 
-/* Direction styling */
-.direction-info {
+.admin-buttons {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.direction-badge {
+.edit-button {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: rgb(21, 128, 61);
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.direction-unidirectional {
-  background: rgba(251, 191, 36, 0.2);
-  border-color: rgba(251, 191, 36, 0.3);
-  color: rgb(146, 64, 14);
-}
-
-.direction-bidirectional {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: rgb(67, 56, 202);
-}
-
-.starting-point {
-  font-size: 0.875rem;
-  color: var(--text-color-muted);
+.edit-button:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
 }
 
 /* Content sections */

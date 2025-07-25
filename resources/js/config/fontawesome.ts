@@ -12,6 +12,7 @@ import {
     faProjectDiagram,
     faNetworkWired,
     faArrowLeft,
+    faArrowRight,
     faBuilding,
     faDesktop,
     faDatabase,
@@ -34,7 +35,8 @@ import {
     faCrosshairs,
     faRefresh,
     faSave,
-    faSpinner
+    faSpinner,
+    faExternalLinkAlt
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -50,6 +52,7 @@ library.add(
     faProjectDiagram,
     faNetworkWired,
     faArrowLeft,
+    faArrowRight,
     faBuilding,
     faDesktop,
     faDatabase,
@@ -72,7 +75,8 @@ library.add(
     faCrosshairs,
     faRefresh,
     faSave,
-    faSpinner
+    faSpinner,
+    faExternalLinkAlt
 );
 
 export { FontAwesomeIcon }; 

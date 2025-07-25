@@ -87,6 +87,7 @@
     <EdgeDetailsSidebar
       :visible="showEdgeDetails"
       :edgeData="selectedEdgeData"
+      :isAdmin="false"
       @close="closeEdgeDetails"
     />
   </div>

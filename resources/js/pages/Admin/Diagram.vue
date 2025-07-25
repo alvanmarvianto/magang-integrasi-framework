@@ -79,6 +79,15 @@
         <Controls :show-fit-view="true" :show-zoom="true" />
         <Background :pattern="BackgroundVariant.Dots" />
       </VueFlow>
+
+      <!-- Edge Details Sidebar for Admin -->
+      <EdgeDetailsSidebar
+        :visible="showEdgeDetails"
+        :edgeData="selectedEdgeData"
+        :isAdmin="true"
+        :offsetTop="'5rem'"
+        @close="closeEdgeDetails"
+      />
     </div>
 
     <!-- Status -->
@@ -98,6 +107,7 @@ import { router, usePage } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
+import EdgeDetailsSidebar from '@/components/Sidebar/EdgeDetailsSidebar.vue'
 import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
@@ -133,6 +143,8 @@ const vueFlowRef = ref()
 const saving = ref(false)
 const refreshing = ref(false)
 const selectedStream = ref(props.streamName)
+const showEdgeDetails = ref(false)
+const selectedEdgeData = ref(null)
 
 // Reactive data
 const nodes = ref<Node[]>([])
@@ -358,13 +370,29 @@ function onEdgeClick(event: any) {
     return
   }
   
+  // Find the edge data for the sidebar
+  const edge = edges.value.find(e => e.id === clickedEdgeId)
+  if (edge && edge.data) {
+    selectedEdgeData.value = edge.data
+    showEdgeDetails.value = true
+  }
+  
   handleEdgeClick(clickedEdgeId)
   edges.value = updateAdminEdgeStyles(edges.value)
+}
+
+function closeEdgeDetails() {
+  showEdgeDetails.value = false
+  selectedEdgeData.value = null
 }
 
 function onPaneClick(event: any) {
   handlePaneClick()
   edges.value = updateAdminEdgeStyles(edges.value)
+  // Close edge details when clicking on pane
+  if (showEdgeDetails.value) {
+    closeEdgeDetails()
+  }
 }
 
 function onNodesChange(changes: any[]) {

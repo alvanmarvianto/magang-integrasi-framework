@@ -62,24 +62,6 @@
             </select>
           </AdminFormField>
 
-          <AdminFormField label="Description" id="description">
-            <textarea
-              id="description"
-              v-model="form.description"
-              class="admin-form-textarea description-textarea"
-              rows="3"
-            ></textarea>
-          </AdminFormField>
-
-          <!-- <AdminFormField label="Connection Endpoint" id="connection_endpoint">
-            <input
-              type="url"
-              id="connection_endpoint"
-              v-model="form.connection_endpoint"
-              class="admin-form-input"
-            />
-          </AdminFormField> -->
-
           <AdminFormField label="Direction" id="direction">
             <select
               id="direction"
@@ -93,18 +75,48 @@
             </select>
           </AdminFormField>
 
-          <AdminFormField label="Starting Point" id="starting_point" v-if="form.direction === 'one_way'">
-            <select
-              id="starting_point"
-              v-model="form.starting_point"
-              class="admin-form-select"
-              required
-            >
-              <option value="">Select Starting Point</option>
-              <option value="source">{{ getAppName(form.source_app_id) || 'Source App' }}</option>
-              <option value="target">{{ getAppName(form.target_app_id) || 'Target App' }}</option>
-            </select>
+          <AdminFormField label="Inbound Description" id="inbound">
+            <textarea
+              id="inbound"
+              v-model="form.inbound"
+              class="admin-form-textarea description-textarea"
+              rows="3"
+              placeholder="Describe the inbound communication/data flow"
+            ></textarea>
           </AdminFormField>
+
+          <AdminFormField label="Outbound Description" id="outbound">
+            <textarea
+              id="outbound"
+              v-model="form.outbound"
+              class="admin-form-textarea description-textarea"
+              rows="3"
+              placeholder="Describe the outbound communication/data flow"
+            ></textarea>
+          </AdminFormField>
+
+          <!-- <AdminFormField label="Connection Endpoint" id="connection_endpoint">
+            <input
+              type="url"
+              id="connection_endpoint"
+              v-model="form.connection_endpoint"
+              class="admin-form-input"
+            />
+          </AdminFormField> -->
+
+          <!-- Switch Source & Target (Edit mode only) -->
+          <div v-if="isEditing" class="admin-form-field switch-field">
+            <label class="admin-form-label">Quick Actions</label>
+            <button 
+              type="button"
+              @click="switchSourceTarget"
+              class="switch-source-target-btn"
+              title="Switch Source and Target Applications"
+            >
+              <font-awesome-icon icon="fa-solid fa-exchange-alt" />
+              Switch Source & Target
+            </button>
+          </div>
         </div>
       </AdminFormSection>
       <div class="flex justify-end">
@@ -126,7 +138,7 @@ import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
 
-const { showSuccess, showError } = useNotification();
+const { showSuccess, showError, showConfirm } = useNotification();
 
 const props = defineProps({
   apps: {
@@ -150,23 +162,50 @@ const form = useForm({
   source_app_id: props.integration?.source_app_id || '',
   target_app_id: props.integration?.target_app_id || '',
   connection_type_id: props.integration?.connection_type_id || '',
-  description: props.integration?.description || '',
+  inbound: props.integration?.inbound || '',
+  outbound: props.integration?.outbound || '',
   connection_endpoint: props.integration?.connection_endpoint || '',
-  direction: props.integration?.direction || 'one_way',
-  starting_point: props.integration?.starting_point || ''
+  direction: props.integration?.direction || 'one_way'
 });
 
-// Clear starting_point when direction is set to both_ways
-watch(() => form.direction, (newDirection) => {
-  if (newDirection === 'both_ways') {
-    form.starting_point = '';
-  }
-});
+// No need to watch direction anymore since starting_point is removed
 
 function getAppName(appId) {
   if (!appId) return null;
   const app = props.apps.find(app => app.app_id == appId);
   return app ? app.app_name : null;
+}
+
+function switchSourceTarget() {
+  if (!isEditing.value || !props.integration?.integration_id) return;
+  
+  showConfirm(`Apakah anda yakin ingin menukar source dan target antara ${getAppName(form.source_app_id)} dan ${getAppName(form.target_app_id)}?`)
+    .then((confirmed) => {
+      if (confirmed) {
+        router.patch(`/admin/integrations/${props.integration.integration_id}/switch`, {}, {
+          onSuccess: () => {
+            showSuccess('Source dan target berhasil ditukar');
+            // Update the form data to reflect the switch
+            const tempSourceId = form.source_app_id;
+            const tempInbound = form.inbound;
+            
+            // Switch source and target apps
+            form.source_app_id = form.target_app_id;
+            form.target_app_id = tempSourceId;
+            
+            // Switch inbound and outbound descriptions
+            form.inbound = form.outbound;
+            form.outbound = tempInbound;
+          },
+          onError: (errors) => {
+            const errorMessage = typeof errors === 'object' && errors !== null 
+              ? Object.values(errors).flat().join(', ')
+              : 'Gagal menukar source dan target';
+            showError(errorMessage);
+          },
+        });
+      }
+    });
 }
 
 function submit() {
@@ -204,5 +243,36 @@ function submit() {
 .description-textarea {
   max-width: 634px;
   resize: vertical;
+}
+
+.switch-field {
+  grid-column: 1 / -1;
+}
+
+.switch-source-target-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: rgb(29, 78, 216);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.switch-source-target-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.switch-source-target-btn:active {
+  transform: translateY(0);
 }
 </style>
