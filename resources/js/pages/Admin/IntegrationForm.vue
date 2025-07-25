@@ -81,7 +81,6 @@
               v-model="form.inbound"
               class="admin-form-textarea description-textarea"
               rows="3"
-              placeholder="Describe the inbound communication/data flow"
             ></textarea>
           </AdminFormField>
 
@@ -91,7 +90,6 @@
               v-model="form.outbound"
               class="admin-form-textarea description-textarea"
               rows="3"
-              placeholder="Describe the outbound communication/data flow"
             ></textarea>
           </AdminFormField>
 

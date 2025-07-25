@@ -46,7 +46,7 @@
 
       <!-- Admin Actions -->
       <div class="sidebar-section" v-if="isAdmin">
-        <h3>Admin Actions</h3>
+        <h3>Back Office</h3>
         <div class="admin-buttons">
           <button 
             @click="editIntegration" 
@@ -54,7 +54,7 @@
             title="Edit Integration"
           >
             <font-awesome-icon icon="fa-solid fa-edit" />
-            Edit Integration
+            Edit Koneksi
           </button>
         </div>
       </div>
