@@ -101,13 +101,13 @@ import { Background, BackgroundVariant } from '@vue-flow/background';
 import { router } from '@inertiajs/vue3';
 import StreamNest from '@/components/VueFlow/StreamNest.vue';
 import AppNode from '@/components/VueFlow/AppNode.vue';
-import { useSidebar } from '../composables/useSidebar';
-import { useVueFlowUserView } from '../composables/useVueFlowUserView';
-import Sidebar from '../components/Sidebar/Sidebar.vue';
-import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
-import SidebarControlsSection from '../components/Sidebar/SidebarControlsSection.vue';
-import SidebarLegend from '../components/Sidebar/SidebarLegend.vue';
-import EdgeDetailsSidebar from '../components/Sidebar/EdgeDetailsSidebar.vue';
+import { useSidebar } from '@/composables/useSidebar';
+import { useVueFlowUserView } from '@/composables/useVueFlowUserView';
+import Sidebar from '@/components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
+import SidebarControlsSection from '@/components/Sidebar/SidebarControlsSection.vue';
+import SidebarLegend from '@/components/Sidebar/SidebarLegend.vue';
+import EdgeDetailsSidebar from '@/components/Sidebar/EdgeDetailsSidebar.vue';
 import { 
   validateAndCleanNodes,
   initializeNodesWithLayout,
@@ -115,7 +115,7 @@ import {
   handleNodeClick,
   handleNodeDragStop,
   fitView as sharedFitView
-} from '../composables/useVueFlowCommon';
+} from '../../composables/useVueFlowCommon';
 import type { Node, Edge } from '@vue-flow/core';
 
 // Add necessary CSS imports
@@ -291,6 +291,6 @@ function resetLayout() {
 </script>
 
 <style scoped>
-@import '../../css/app.css';
-@import '../../css/vue-flow-integration.css';
+@import '@/../css/app.css';
+@import '@/../css/vue-flow-integration.css';
 </style>

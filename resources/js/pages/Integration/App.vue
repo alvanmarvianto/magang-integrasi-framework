@@ -31,13 +31,13 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { useSidebar } from '../composables/useSidebar';
-import { useD3ForceAppIntegration } from '../composables/useD3ForceAppIntegration';
+import { useSidebar } from '@/composables/useSidebar';
+import { useD3ForceAppIntegration } from '@/composables/useD3ForceAppIntegration';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import Sidebar from '../components/Sidebar/Sidebar.vue';
-import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
-import SidebarLegend from '../components/Sidebar/SidebarLegend.vue';
+import Sidebar from '@/components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
+import SidebarLegend from '@/components/Sidebar/SidebarLegend.vue';
 
 const props = defineProps<{
   integrationData: any;
@@ -80,5 +80,5 @@ const connectionTypeLegend = [
 </script>
 
 <style scoped>
-@import '../../css/app.css';
+@import '@/../css/app.css';
 </style>

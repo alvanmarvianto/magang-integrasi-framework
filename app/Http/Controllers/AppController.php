@@ -119,7 +119,7 @@ class AppController extends Controller
             'children' => $allIntegrations->toArray(),
         ];
 
-        return Inertia::render('AppIntegration', [
+        return Inertia::render('Integration/App', [
             'integrationData' => $this->cleanTree($integrationData),
             'parentAppId' => $app->app_id,
             'appName' => $app->app_name,
@@ -135,7 +135,7 @@ class AppController extends Controller
 
         $data = $this->diagramController->getVueFlowUserData($streamName);
 
-        return Inertia::render('VueFlowStreamIntegration', [
+        return Inertia::render('Integration/Stream', [
             'streamName' => $streamName,
             'nodes' => $data['nodes'],
             'edges' => $data['edges'],
