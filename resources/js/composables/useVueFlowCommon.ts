@@ -234,7 +234,6 @@ export function createStyledNode(node: any, savedLayout?: any, isAdmin: boolean 
   } else {
     // App node
     newNode.style = {
-      cursor: isAdmin ? 'grab' : 'pointer',
       ...APP_NODE_STYLE,
       backgroundColor: nodeColors.background,
       border: `2px solid ${nodeColors.border}`,
@@ -309,9 +308,22 @@ export function useEdgeSelection() {
 /**
  * Handle node click events
  */
-export function handleNodeClick(node: any, isAdminMode: boolean = false) {
+export function handleNodeClick(node: any, isAdminMode: boolean = false, allowedStreams: string[] = []) {
   
   if (!isAdminMode && node.type === 'app' && node.id) {
+    // Check if the node's stream is in allowed streams
+    const nodeStream = node.data?.lingkup || node.data?.stream_name;
+    if (nodeStream && allowedStreams.length > 0) {
+      // Convert both to lowercase for case-insensitive comparison
+      const isAllowed = allowedStreams.some(allowedStream => 
+        allowedStream.toLowerCase() === nodeStream.toLowerCase()
+      );
+      
+      if (!isAllowed) {
+        return; // Don't navigate for restricted streams
+      }
+    }
+    
     // In user mode, redirect to app integration page
     window.location.href = `/integration/app/${node.id}`;
   }
@@ -345,7 +357,8 @@ export function fitView(vueFlowRef: any, padding: number = 50) {
 export function initializeNodesWithLayout(
   inputNodes: Node[],
   savedLayout: any,
-  isAdminMode: boolean = false
+  isAdminMode: boolean = false,
+  allowedStreams: string[] = []
 ): Node[] {
   const uniqueNodes = validateAndCleanNodes(inputNodes);
   const hasSavedLayout = savedLayout?.nodes_layout && Object.keys(savedLayout.nodes_layout).length > 0;
@@ -353,6 +366,11 @@ export function initializeNodesWithLayout(
   return uniqueNodes.map(node => {
     const savedNode = savedLayout?.nodes_layout?.[node.id];
     const nodeColors = getNodeColor(node.data?.lingkup || '', isAdminMode);
+    
+    // Check if node is clickable based on allowed streams
+    const nodeStream = node.data?.lingkup || node.data?.stream_name;
+    const isClickable = isAdminMode || !nodeStream || allowedStreams.length === 0 || 
+      allowedStreams.some(allowedStream => allowedStream.toLowerCase() === nodeStream.toLowerCase());
     
     const newNode: Node = {
       id: node.id,
@@ -387,12 +405,12 @@ export function initializeNodesWithLayout(
     } else {
       // App node
       newNode.style = {
-        cursor: isAdminMode ? 'grab' : 'pointer',
+        cursor: isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed'),
         width: '120px',
         height: '80px',
         backgroundColor: nodeColors.background,
         border: `2px solid ${nodeColors.border}`,
-        borderRadius: '8px'
+        borderRadius: '8px',
       };
     }
     

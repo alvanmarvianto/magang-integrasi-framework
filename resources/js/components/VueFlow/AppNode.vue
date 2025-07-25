@@ -134,11 +134,6 @@ const nodeStyle = computed(() => {
   border: 2px solid #e5e7eb;
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.app-node:not(.admin-mode) {
-  cursor: grab;
 }
 
 .app-node.admin-mode {

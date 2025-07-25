@@ -271,6 +271,10 @@ onUnmounted(() => {
   cursor: grab;
 }
 
+.stream-nest.user-mode:active {
+  cursor: grabbing;
+}
+
 .stream-nest.admin-mode {
   /* In admin mode, set lower z-index so nodes inside are clickable */
   z-index: -10 !important;

@@ -10,6 +10,8 @@ use Inertia\Response;
 
 class AppController extends Controller
 {
+    private const ALLOWED_STREAMS = ['sp', 'mi', 'ssk', 'moneter', 'market'];
+    
     protected DiagramController $diagramController;
 
     public function __construct(DiagramController $diagramController)
@@ -74,6 +76,11 @@ class AppController extends Controller
         $app = App::with(['stream', 'integrations.stream', 'integratedBy.stream'])
             ->findOrFail($appId);
 
+        // Check if the app belongs to an allowed stream
+        if (!$app->stream || !in_array(strtolower($app->stream->stream_name), array_map('strtolower', self::ALLOWED_STREAMS))) {
+            abort(403, 'Access to this app integration is not allowed');
+        }
+
         $pivots = $app->integrations->pluck('pivot')
             ->concat($app->integratedBy->pluck('pivot'))
             ->filter();
@@ -134,6 +141,7 @@ class AppController extends Controller
             'edges' => $data['edges'],
             'savedLayout' => $data['savedLayout'],
             'streams' => $data['streams'],
+            'allowedStreams' => $data['allowedStreams'],
         ]);
     }
 }

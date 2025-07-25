@@ -282,6 +282,7 @@ class DiagramController extends Controller
             'edges' => $edges,
             'savedLayout' => $savedLayout,
             'streams' => $allStreams->map(fn($s) => $s->stream_name),
+            'allowedStreams' => self::ALLOWED_STREAMS,
         ];
     }
 

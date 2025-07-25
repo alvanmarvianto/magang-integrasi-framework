@@ -134,6 +134,7 @@ interface Props {
     stream_config?: Record<string, any>
   } | null
   streams: string[];
+  allowedStreams: string[];
 }
 
 const props = defineProps<Props>();
@@ -212,7 +213,8 @@ function initializeLayout() {
   nodes.value = initializeNodesWithLayout(
     cleanedNodes,
     props.savedLayout,
-    false // User mode
+    false, // User mode
+    props.allowedStreams // Pass allowed streams for click restriction
   );
   
   // Apply automatic layout if no saved layout
@@ -237,7 +239,7 @@ function initializeLayout() {
 }
 
 function onNodeClick(event: any) {
-  handleNodeClick(event.node, false); // User mode
+  handleNodeClick(event.node, false, props.allowedStreams); // User mode with allowed streams restriction
 }
 
 function onEdgeClick(event: any) {

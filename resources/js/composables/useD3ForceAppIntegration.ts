@@ -95,7 +95,15 @@ export function useD3ForceAppIntegration(integrationData: any) {
     const nodeEnter = node.enter()
       .append('g')
       .attr('class', 'node')
-      .style('cursor', 'pointer')
+      .style('cursor', (d: any) => {
+        // Check if node is clickable based on allowed streams
+        if (d.name === root.name) {
+          return 'pointer'; // Root node is always clickable
+        }
+        // Check if the node is in allowed streams
+        const isAllowed = d.app_id && (d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter');
+        return isAllowed ? 'pointer' : 'not-allowed';
+      })
       .on('click', (event, d: any) => {
         if (d.children) {
           d._children = d.children;

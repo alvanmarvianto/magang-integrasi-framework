@@ -7,7 +7,7 @@
     </div>
     
     <!-- Navigation links -->
-    <div v-if="links && links.length > 0" class="nav-links" :class="linkContainerClass">
+    <div v-if="links && links.length > 0" class="nav-links">
       <a 
         v-for="link in links"
         :key="link.href || link.text"
@@ -46,10 +46,6 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'navigation',
 });
 
-const linkContainerClass = computed(() => {
-  return props.variant === 'group' ? 'stream-buttons' : 'navigation';
-});
-
 function getLinkClass(variant?: string): string {
   switch (variant) {
     case 'admin':
@@ -57,7 +53,7 @@ function getLinkClass(variant?: string): string {
     case 'vue-flow':
       return 'vue-flow-link';
     default:
-      return props.variant === 'group' ? 'stream-link' : '';
+      return 'stream-link';
   }
 }
 
