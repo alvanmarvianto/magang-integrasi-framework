@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\DiagramService;
 use App\Services\DiagramCleanupService;
+use App\Services\StreamLayoutService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -14,11 +15,16 @@ class AdminDiagramController extends Controller
 {
     protected DiagramService $diagramService;
     protected DiagramCleanupService $cleanupService;
+    protected StreamLayoutService $streamLayoutService;
 
-    public function __construct(DiagramService $diagramService, DiagramCleanupService $cleanupService)
-    {
+    public function __construct(
+        DiagramService $diagramService, 
+        DiagramCleanupService $cleanupService,
+        StreamLayoutService $streamLayoutService
+    ) {
         $this->diagramService = $diagramService;
         $this->cleanupService = $cleanupService;
+        $this->streamLayoutService = $streamLayoutService;
     }
 
     /**
@@ -96,7 +102,7 @@ class AdminDiagramController extends Controller
             'type' => 'group',
             'position' => ['x' => 0, 'y' => 0],
             'data' => [
-                'label' => strtoupper($streamName) . ' Stream',
+                'label' => $streamName,
                 'app_id' => -1,
                 'stream_name' => $streamName,
                 'lingkup' => $streamName,
@@ -202,27 +208,43 @@ class AdminDiagramController extends Controller
             $targetIsHome = in_array($integration->getAttribute('target_app_id'), $homeAppIds);
             
             if ($sourceIsHome || $targetIsHome) {
+                $connectionType = $integration->connectionType->type_name ?? 'direct';
+                $edgeColor = match (strtolower($connectionType)) {
+                    'soa' => '#02a330',
+                    'sftp' => '#002ac0',
+                    'soa-sftp' => '#6b7280',
+                    default => '#000000',
+                };
+
                 $edges[] = [
-                    'id' => 'edge-' . $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
+                    'id' => $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
                     'source' => (string)$integration->getAttribute('source_app_id'),
                     'target' => (string)$integration->getAttribute('target_app_id'),
                     'type' => 'smoothstep',
+                    'style' => [
+                        'stroke' => $edgeColor,
+                        'strokeWidth' => 2
+                    ],
                     'data' => [
-                        'label' => $integration->connectionType->getAttribute('type_name') ?? 'Unknown',
-                        'connection_type' => strtolower($integration->connectionType->getAttribute('type_name') ?? 'direct'),
+                        'label' => $connectionType,
+                        'connection_type' => $connectionType,
                         'integration_id' => $integration->getAttribute('integration_id'),
-                        'sourceApp' => [
-                            'app_id' => $integration->sourceApp->getAttribute('app_id'),
-                            'app_name' => $integration->sourceApp->getAttribute('app_name'),
-                        ],
-                        'targetApp' => [
-                            'app_id' => $integration->targetApp->getAttribute('app_id'),
-                            'app_name' => $integration->targetApp->getAttribute('app_name'),
-                        ],
-                        'direction' => $integration->getAttribute('direction'),
+                        'source_app_id' => $integration->getAttribute('source_app_id'),
+                        'target_app_id' => $integration->getAttribute('target_app_id'),
                         'inbound' => $integration->getAttribute('inbound'),
                         'outbound' => $integration->getAttribute('outbound'),
+                        'direction' => $integration->getAttribute('direction'),
                         'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
+                        'source_app_name' => $integration->sourceApp->getAttribute('app_name'),
+                        'target_app_name' => $integration->targetApp->getAttribute('app_name'),
+                        'sourceApp' => [
+                            'app_id' => $integration->getAttribute('source_app_id'),
+                            'app_name' => $integration->sourceApp->getAttribute('app_name')
+                        ],
+                        'targetApp' => [
+                            'app_id' => $integration->getAttribute('target_app_id'),
+                            'app_name' => $integration->targetApp->getAttribute('app_name')
+                        ]
                     ]
                 ];
             }
@@ -284,8 +306,8 @@ class AdminDiagramController extends Controller
             // Clean up stream layout nodes
             $this->cleanupService->cleanupStreamLayout($streamName);
 
-            // Synchronize edges layout with current AppIntegration data
-            $edgesSynced = $this->synchronizeStreamLayoutEdges($streamName);
+            // Synchronize edges layout with current AppIntegration data using StreamLayoutService
+            $edgesSynced = $this->streamLayoutService->synchronizeStreamLayoutEdges($streamName);
 
             $totalRemoved = $duplicatesRemoved + $invalidRemoved;
             
@@ -303,158 +325,6 @@ class AdminDiagramController extends Controller
             return redirect()->route('admin.diagrams.show', ['streamName' => $streamName])
                 ->with('error', 'Failed to refresh layout');
         }
-    }
-
-    /**
-     * Synchronize stream layout edges with current AppIntegration data
-     */
-    private function synchronizeStreamLayoutEdges(string $streamName): int
-    {
-        $layout = \App\Models\StreamLayout::where('stream_name', $streamName)->first();
-        if (!$layout) {
-            return 0;
-        }
-
-        // Get current stream and its apps
-        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
-        if (!$stream) {
-            return 0;
-        }
-
-        $homeStreamApps = \App\Models\App::where('stream_id', $stream->getAttribute('stream_id'))->get();
-        $homeAppIds = $homeStreamApps->pluck('app_id')->toArray();
-
-        // Get connected external apps
-        $connectedAppIds = collect();
-        
-        // Get apps that have integrations TO home stream apps
-        $sourceAppIds = \App\Models\AppIntegration::whereIn('target_app_id', $homeAppIds)
-            ->pluck('source_app_id')
-            ->unique();
-        $connectedAppIds = $connectedAppIds->merge($sourceAppIds);
-        
-        // Get apps that have integrations FROM home stream apps
-        $targetAppIds = \App\Models\AppIntegration::whereIn('source_app_id', $homeAppIds)
-            ->pluck('target_app_id')
-            ->unique();
-        $connectedAppIds = $connectedAppIds->merge($targetAppIds);
-        
-        // All valid app IDs for this stream
-        $allValidAppIds = $connectedAppIds->unique()->values()->toArray();
-
-        // Get current integrations involving these apps
-        $integrations = \App\Models\AppIntegration::whereIn('source_app_id', $allValidAppIds)
-            ->whereIn('target_app_id', $allValidAppIds)
-            ->with(['connectionType', 'sourceApp', 'targetApp'])
-            ->get();
-
-        // Get existing edges layout to preserve handle positions
-        $existingEdgesLayout = $layout->edges_layout ?? [];
-        $existingEdgesMap = [];
-        foreach ($existingEdgesLayout as $edge) {
-            $edgeId = $edge['id'] ?? '';
-            $existingEdgesMap[$edgeId] = $edge;
-        }
-
-        // Build new edges layout based on current integrations
-        $newEdgesLayout = [];
-        foreach ($integrations as $integration) {
-            // Only include edges where at least one end is a home stream app
-            $sourceIsHome = in_array($integration->getAttribute('source_app_id'), $homeAppIds);
-            $targetIsHome = in_array($integration->getAttribute('target_app_id'), $homeAppIds);
-            
-            if ($sourceIsHome || $targetIsHome) {
-                $sourceId = (string)$integration->getAttribute('source_app_id');
-                $targetId = (string)$integration->getAttribute('target_app_id');
-                $connectionType = strtolower($integration->connectionType->getAttribute('type_name') ?? 'direct');
-                $edgeId = $sourceId . '-' . $targetId;
-                
-                // Determine edge color based on connection type
-                $edgeColor = '#000000'; // default for direct
-                switch ($connectionType) {
-                    case 'soa':
-                        $edgeColor = '#02a330';
-                        break;
-                    case 'sftp':
-                        $edgeColor = '#002ac0';
-                        break;
-                    case 'direct':
-                    default:
-                        $edgeColor = '#000000';
-                        break;
-                }
-
-                // Check if this edge exists in the current layout to preserve handles
-                $existingEdge = $existingEdgesMap[$edgeId] ?? null;
-                
-                $newEdge = [
-                    'id' => $edgeId,
-                    'source' => $sourceId,
-                    'target' => $targetId,
-                    'type' => 'smoothstep',
-                    'style' => [
-                        'stroke' => $edgeColor,
-                        'strokeWidth' => 2
-                    ],
-                    'data' => [
-                        'label' => $connectionType,
-                        'connection_type' => $connectionType,
-                        'integration_id' => $integration->getAttribute('integration_id'),
-                        'source_app_id' => $integration->getAttribute('source_app_id'),
-                        'target_app_id' => $integration->getAttribute('target_app_id'),
-                        'inbound' => $integration->getAttribute('inbound'),
-                        'outbound' => $integration->getAttribute('outbound'),
-                        'direction' => $integration->getAttribute('direction'),
-                        'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
-                        'source_app_name' => $integration->sourceApp->getAttribute('app_name'),
-                        'target_app_name' => $integration->targetApp->getAttribute('app_name'),
-                        'sourceApp' => [
-                            'app_id' => $integration->getAttribute('source_app_id'),
-                            'app_name' => $integration->sourceApp->getAttribute('app_name')
-                        ],
-                        'targetApp' => [
-                            'app_id' => $integration->getAttribute('target_app_id'),
-                            'app_name' => $integration->targetApp->getAttribute('app_name')
-                        ]
-                    ]
-                ];
-
-                // Preserve existing handle positions if they exist
-                if ($existingEdge) {
-                    if (isset($existingEdge['sourceHandle'])) {
-                        $newEdge['sourceHandle'] = $existingEdge['sourceHandle'];
-                    }
-                    if (isset($existingEdge['targetHandle'])) {
-                        $newEdge['targetHandle'] = $existingEdge['targetHandle'];
-                    }
-                }
-
-                $newEdgesLayout[] = $newEdge;
-            }
-        }
-
-        // Update stream config
-        $streamConfig = $layout->stream_config ?? [];
-        $streamConfig['totalEdges'] = count($newEdgesLayout);
-        $streamConfig['lastUpdated'] = now()->toISOString();
-
-        // Count of valid nodes (excluding stream parent node)
-        $nodesLayout = $layout->nodes_layout ?? [];
-        $validNodesCount = count(array_filter($nodesLayout, function($key) use ($streamName) {
-            return $key !== $streamName && $key !== 'sp'; // Exclude stream parent nodes
-        }, ARRAY_FILTER_USE_KEY));
-        
-        $streamConfig['totalNodes'] = $validNodesCount;
-
-        // Update the layout
-        $layout->update([
-            'edges_layout' => $newEdgesLayout,
-            'stream_config' => $streamConfig
-        ]);
-
-        Log::info("Synchronized {$streamName} stream layout: " . count($newEdgesLayout) . " edges updated");
-
-        return count($newEdgesLayout);
     }
 
     /**

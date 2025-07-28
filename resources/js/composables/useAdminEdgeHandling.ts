@@ -36,8 +36,9 @@ export function useAdminEdgeHandling() {
     return edges.map(edge => {
       const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', true) // Admin mode
       const isSelected = selectedEdgeId.value === edge.id
+      const isBothWays = edge.data?.direction === 'both_ways'
       
-      return {
+      const styledEdge = {
         ...edge,
         type: 'smoothstep',
         updatable: true, // Enable endpoint dragging in admin mode
@@ -53,6 +54,16 @@ export function useAdminEdgeHandling() {
           color: edgeColor,
         } as any,
       }
+
+      // Add arrow at the start for bidirectional connections
+      if (isBothWays) {
+        styledEdge.markerStart = {
+          type: 'arrowclosed',
+          color: edgeColor,
+        } as any
+      }
+
+      return styledEdge
     })
   }
 
@@ -74,8 +85,9 @@ export function useAdminEdgeHandling() {
     return removeDuplicateEdges(edgesData).map(edge => {
       const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', true)
       const isSelected = selectedEdgeId.value === edge.id
+      const isBothWays = edge.data?.direction === 'both_ways'
       
-      return {
+      const styledEdge = {
         ...edge,
         type: 'smoothstep',
         updatable: true, // Enable endpoint dragging
@@ -93,6 +105,16 @@ export function useAdminEdgeHandling() {
         sourceHandle: edge.sourceHandle || undefined,
         targetHandle: edge.targetHandle || undefined,
       }
+
+      // Add arrow at the start for bidirectional connections
+      if (isBothWays) {
+        styledEdge.markerStart = {
+          type: 'arrowclosed',
+          color: edgeColor,
+        } as any
+      }
+
+      return styledEdge
     })
   }
 

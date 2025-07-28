@@ -270,8 +270,9 @@ export function createStyledNode(node: any, savedLayout?: any, isAdmin: boolean 
 export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
   const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct');
   const isSelected = selectedEdgeId === edge.id;
+  const isBothWays = edge.data?.direction === 'both_ways';
   
-  return {
+  const styledEdge: Edge = {
     ...edge,
     type: 'smoothstep',
     updatable: false,
@@ -279,9 +280,10 @@ export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
     style: {
       ...(edge.style || {}),
       strokeWidth: isSelected ? 4 : 2, 
-      stroke: edgeColor, // Keep original edge color
+      stroke: edgeColor,
     },
     markerEnd: {
+      type: 'arrowclosed',
       color: edgeColor,
     } as any,
     sourceHandle: edge.sourceHandle || undefined,
@@ -290,6 +292,16 @@ export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
       ...edge.data
     }
   };
+
+  // Add arrow at the start for bidirectional connections
+  if (isBothWays) {
+    styledEdge.markerStart = {
+      type: 'arrowclosed',
+      color: edgeColor,
+    } as any;
+  }
+
+  return styledEdge;
 }
 
 /**
@@ -486,6 +498,7 @@ export function initializeEdgesWithLayout(
   return removeDuplicateEdges(edgesData).map(edge => {
     const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', isAdminMode);
     const isSelected = selectedEdgeId === edge.id;
+    const isBothWays = edge.data?.direction === 'both_ways';
     
     const baseEdge = {
       ...edge,
@@ -506,6 +519,14 @@ export function initializeEdgesWithLayout(
         ...edge.data
       }
     };
+
+    // Add arrow at the start for bidirectional connections
+    if (isBothWays) {
+      baseEdge.markerStart = {
+        type: 'arrowclosed',
+        color: edgeColor,
+      } as any;
+    }
 
     // Ensure source/target handles are properly set
     baseEdge.sourceHandle = edge.sourceHandle || undefined;
