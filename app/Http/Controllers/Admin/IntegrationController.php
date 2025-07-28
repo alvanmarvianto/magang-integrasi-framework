@@ -49,8 +49,9 @@ class IntegrationController extends Controller
         ]);
 
         try {
-            $this->integrationService->createIntegration($validated);
-            return redirect()->route('admin.integrations.index');
+            $this->integrationService->createIntegration($validated);     
+            return redirect()->route('admin.integrations.index')
+                ->with('success', 'Integration berhasil dibuat');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }

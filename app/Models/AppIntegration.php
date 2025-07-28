@@ -22,6 +22,20 @@ class AppIntegration extends Pivot
     protected $primaryKey = 'integration_id';
 
     /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = true;
+
+    /**
+     * The "type" of the auto-incrementing ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'int';
+
+    /**
      * Indicates if the model should be timestamped.
      *
      * @var bool
