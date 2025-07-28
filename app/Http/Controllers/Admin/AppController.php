@@ -39,7 +39,7 @@ class AppController extends Controller
     public function store(StoreAppRequest $request): RedirectResponse
     {
         $this->appService->createApp($request->validated());
-        return redirect()->route('admin.apps')->with('success', 'Application created successfully');
+        return redirect()->route('admin.apps.index')->with('success', 'Application created successfully');
     }
 
     public function edit(int $appId): Response
@@ -50,12 +50,12 @@ class AppController extends Controller
     public function update(StoreAppRequest $request, App $app): RedirectResponse
     {
         $this->appService->updateApp($app, $request->validated());
-        return redirect()->route('admin.apps')->with('success', 'Application updated successfully');
+        return redirect()->route('admin.apps.index')->with('success', 'Application updated successfully');
     }
 
     public function destroy(App $app): RedirectResponse
     {
         $this->appService->deleteApp($app);
-        return redirect()->route('admin.apps')->with('success', 'Application deleted successfully');
+        return redirect()->route('admin.apps.index')->with('success', 'Application deleted successfully');
     }
 }

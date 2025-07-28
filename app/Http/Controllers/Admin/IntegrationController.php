@@ -50,7 +50,7 @@ class IntegrationController extends Controller
 
         try {
             $this->integrationService->createIntegration($validated);
-            return redirect()->route('admin.integrations');
+            return redirect()->route('admin.integrations.index');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
@@ -76,7 +76,7 @@ class IntegrationController extends Controller
         $integration = AppIntegration::findOrFail($id);
         try {
             $this->integrationService->updateIntegration($integration, $validated);
-            return redirect()->route('admin.integrations');
+            return redirect()->route('admin.integrations.index');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
