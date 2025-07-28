@@ -11,9 +11,9 @@
             @input="debouncedSearch"
           />
         </div>
-        <a href="/admin/integrations/create" class="admin-action-button">
+        <a :href="getRoute('admin.integrations.create')" class="admin-action-button">
           <font-awesome-icon icon="fa-solid fa-plus" />
-          Tambah Integrasi
+          Tambah Integrasi Baru
         </a>
       </template>
     </AdminNavbar>
@@ -73,11 +73,13 @@
 
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { useRoutes } from '@/composables/useRoutes';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
 import { useNotification } from '@/composables/useNotification';
 
+const { getRoute } = useRoutes();
 const { showSuccess, showError, showConfirm } = useNotification();
 
 interface Integration {

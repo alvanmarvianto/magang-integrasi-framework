@@ -3,29 +3,29 @@
     <AdminNavbar 
       title="Back Office" 
       :showBackButton="true"
-      backUrl="/"
+      :backUrl="getRoute('index')"
     />
 
     <div class="admin-menu">
-      <a href="/admin/apps" class="admin-menu-card">
+      <a :href="getRoute('admin.apps.index')" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-window-restore" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Aplikasi</h2>
         <p class="admin-menu-description">Kelola aplikasi dan integrasi antar aplikasi</p>
       </a>
 
-      <a href="/admin/technology" class="admin-menu-card">
+      <a :href="getRoute('admin.technology.index')" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-microchip" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Teknologi</h2>
         <p class="admin-menu-description">Kelola komponen teknologi seperti database, framework, dll</p>
       </a>
 
-      <a href="/admin/stream/sp" class="admin-menu-card">
+      <a :href="getRoute('admin.diagrams.show', { streamName: 'sp' })" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-project-diagram" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Diagram</h2>
         <p class="admin-menu-description">Kelola tata letak dan tampilan diagram integrasi</p>
       </a>
 
-      <a href="/admin/integrations" class="admin-menu-card">
+      <a :href="getRoute('admin.integrations.index')" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-network-wired" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Koneksi</h2>
         <p class="admin-menu-description">Kelola hubungan dan integrasi antar aplikasi secara detail</p>
@@ -37,6 +37,9 @@
 <script setup lang="ts">
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+import { useRoutes } from '@/composables/useRoutes';
+
+const { getRoute } = useRoutes();
 </script>
 
 <style scoped>

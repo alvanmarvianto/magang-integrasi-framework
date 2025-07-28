@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { useSidebar } from '../../composables/useSidebar';
-import { router } from '@inertiajs/vue3';
+import { useRoutes } from '../../composables/useRoutes';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '../../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
@@ -85,17 +85,18 @@ interface Props {
 const props = defineProps<Props>();
 
 const { visible, isMobile, toggleSidebar } = useSidebar();
+const { visitRoute } = useRoutes();
 
 const navigationLinks = [
   {
     icon: 'fa-solid fa-home',
     text: 'Halaman Utama',
-    onClick: () => router.visit('/'),
+    onClick: () => visitRoute('index'),
   },
 ];
 
 function navigateToApp(appId: number) {
-  router.visit(`/technology/${appId}`);
+  visitRoute('technology.app', { app_id: appId });
 }
 </script>
 

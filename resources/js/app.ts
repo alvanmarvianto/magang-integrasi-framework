@@ -7,6 +7,9 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import './config/fontawesome';
 
+// Import Ziggy
+import { route } from 'ziggy-js';
+
 // Import SweetAlert2
 import VueSweetalert2 from 'vue-sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -24,6 +27,11 @@ createInertiaApp({
             cancelButtonColor: 'var(--danger-color)',
         });
         app.component('font-awesome-icon', FontAwesomeIcon);
+        
+        // Make Ziggy route function globally available
+        app.config.globalProperties.$route = route;
+        app.provide('route', route);
+        
         app.mount(el);
     },
     progress: {

@@ -33,7 +33,7 @@
 // @ts-nocheck
 import { useSidebar } from '@/composables/useSidebar';
 import { useD3ForceAppIntegration } from '@/composables/useD3ForceAppIntegration';
-import { router } from '@inertiajs/vue3';
+import { useRoutes } from '@/composables/useRoutes';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '@/components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
@@ -47,18 +47,19 @@ const props = defineProps<{
 }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
+const { visitRoute } = useRoutes();
 useD3ForceAppIntegration(props.integrationData);
 
 const navigationLinks = [
   {
     icon: 'fa-solid fa-home',
     text: 'Halaman Utama',
-    onClick: () => router.visit('/'),
+    onClick: () => visitRoute('index'),
   },
   {
     icon: 'fa-solid fa-microchip',
     text: 'Halaman Teknologi',
-    onClick: () => router.visit(`/technology/${props.parentAppId}`),
+    onClick: () => visitRoute('technology.app', { app_id: props.parentAppId }),
   },
 ];
 

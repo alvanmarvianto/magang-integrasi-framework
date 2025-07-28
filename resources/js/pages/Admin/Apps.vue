@@ -11,7 +11,7 @@
             @input="debouncedSearch"
           />
         </div>
-        <a href="/admin/apps/create" class="admin-action-button">
+        <a :href="getRoute('admin.apps.create')" class="admin-action-button">
           <font-awesome-icon icon="fa-solid fa-plus" />
           Tambah Aplikasi Baru
         </a>
@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { useRoutes } from '@/composables/useRoutes';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
@@ -120,7 +121,8 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Use the admin table composable
+// Use composables
+const { getRoute } = useRoutes();
 const { searchQuery, sortBy, sortDesc, debouncedSearch, navigateToPage } = useAdminTable({
   defaultSortBy: 'app_name'
 });

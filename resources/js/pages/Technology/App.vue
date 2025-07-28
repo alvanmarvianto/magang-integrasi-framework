@@ -80,7 +80,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSidebar } from '../../composables/useSidebar';
-import { router } from '@inertiajs/vue3';
+import { useRoutes } from '../../composables/useRoutes';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '../../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
@@ -104,17 +104,18 @@ const props = defineProps<{
 }>()
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
+const { visitRoute } = useRoutes();
 
 const navigationLinks = [
   {
     icon: 'fa-solid fa-home',
     text: 'Halaman Utama',
-    onClick: () => router.visit('/'),
+    onClick: () => visitRoute('index'),
   },
   {
     icon: 'fa-solid fa-project-diagram',
     text: 'Integrasi App',
-    onClick: () => router.visit(`/integration/app/${props.app.data.app_id}`),
+    onClick: () => visitRoute('appIntegration', { app_id: props.app.data.app_id }),
   },
 ];
 

@@ -98,7 +98,7 @@ import { ref, onMounted } from 'vue';
 import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import { Background, BackgroundVariant } from '@vue-flow/background';
-import { router } from '@inertiajs/vue3';
+import { useRoutes } from '@/composables/useRoutes';
 import StreamNest from '@/components/VueFlow/StreamNest.vue';
 import AppNode from '@/components/VueFlow/AppNode.vue';
 import { useSidebar } from '@/composables/useSidebar';
@@ -141,6 +141,7 @@ const props = defineProps<Props>();
 
 // Use composables
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
+const { visitRoute } = useRoutes();
 const {
   selectedEdgeId,
   getNodeColor,
@@ -156,7 +157,7 @@ const navigationLinks = [
   {
     icon: 'fa-solid fa-home',
     text: 'Halaman Utama',
-    onClick: () => router.visit('/'),
+    onClick: () => visitRoute('index'),
   },
 ];
 

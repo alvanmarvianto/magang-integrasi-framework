@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { useRoutes } from '@/composables/useRoutes';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 interface AppInfo {
@@ -126,6 +126,8 @@ const props = withDefaults(defineProps<Props>(), {
   offsetTop: '1rem'
 });
 
+const { visitRoute } = useRoutes();
+
 function getConnectionTypeClass(type: string): string {
   const typeMap: { [key: string]: string } = {
     'direct': 'connection-direct',
@@ -138,7 +140,7 @@ function getConnectionTypeClass(type: string): string {
 function editIntegration() {
   if (!props.edgeData?.integration_id) return;
   
-  router.visit(`/admin/integrations/${props.edgeData.integration_id}/edit`);
+  visitRoute('admin.integrations.edit', { id: props.edgeData.integration_id });
 }
 </script>
 

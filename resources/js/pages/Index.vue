@@ -47,6 +47,7 @@ import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useSidebar } from '../composables/useSidebar';
 import { useD3Tree } from '../composables/useD3Tree';
+import { useRoutes } from '../composables/useRoutes';
 import Sidebar from '../components/Sidebar/Sidebar.vue';
 import SidebarSearchControls from '../components/Sidebar/SidebarSearchControls.vue';
 import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
@@ -55,21 +56,22 @@ const props = defineProps<{ appData: any }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData);
+const { visitRoute, getRoute } = useRoutes();
 
 const streamLinks = [
-  { text: 'SP Stream', onClick: () => router.visit('/diagram/stream/sp') },
-  { text: 'MI Stream', onClick: () => router.visit('/diagram/stream/mi') },
-  { text: 'SSK Stream', onClick: () => router.visit('/diagram/stream/ssk') },
-  { text: 'Moneter Stream', onClick: () => router.visit('/diagram/stream/moneter') },
-  { text: 'Market Stream', onClick: () => router.visit('/diagram/stream/market') },
+  { text: 'SP Stream', onClick: () => visitRoute('integrations.stream', { stream: 'sp' }) },
+  { text: 'MI Stream', onClick: () => visitRoute('integrations.stream', { stream: 'mi' }) },
+  { text: 'SSK Stream', onClick: () => visitRoute('integrations.stream', { stream: 'ssk' }) },
+  { text: 'Moneter Stream', onClick: () => visitRoute('integrations.stream', { stream: 'moneter' }) },
+  { text: 'Market Stream', onClick: () => visitRoute('integrations.stream', { stream: 'market' }) },
 ];
 
 const technologyLinks = [
-  { text: 'Daftar Teknologi', href: '/technology', variant: 'default' as const },
+  { text: 'Daftar Teknologi', href: getRoute('technology.index'), variant: 'default' as const },
 ];
 
 const adminLinks = [
-  { text: 'Halaman Back Office', href: '/admin', variant: 'admin' as const },
+  { text: 'Halaman Back Office', href: getRoute('admin.index'), variant: 'admin' as const },
 ];
 </script>
 

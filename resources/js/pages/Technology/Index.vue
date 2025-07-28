@@ -23,7 +23,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="vendor in technologies.vendors" :key="vendor"
-                                :href="`/technology/vendor/${encodeURIComponent(vendor)}`" class="tech-item">
+                                :href="getRoute('technology.vendor', { vendor_name: vendor })" class="tech-item">
                                 {{ vendor }}
                             </a>
                         </div>
@@ -37,7 +37,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="appType in technologies.appTypes" :key="appType"
-                                :href="`/technology/app_type/${appType}`" class="tech-item">
+                                :href="getRoute('technology.app_type', { app_type: appType })" class="tech-item">
                                 {{ formatTechName(appType) }}
                             </a>
                         </div>
@@ -51,7 +51,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="stratification in technologies.stratifications" :key="stratification"
-                                :href="`/technology/stratification/${stratification}`" class="tech-item">
+                                :href="getRoute('technology.stratification', { stratification })" class="tech-item">
                                 {{ formatTechName(stratification) }}
                             </a>
                         </div>
@@ -67,7 +67,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="os in technologies.operatingSystems" :key="os"
-                                :href="`/technology/os/${encodeURIComponent(os)}`" class="tech-item">
+                                :href="getRoute('technology.os', { os_name: os })" class="tech-item">
                                 {{ os }}
                             </a>
                         </div>
@@ -81,7 +81,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="database in technologies.databases" :key="database"
-                                :href="`/technology/database/${encodeURIComponent(database)}`" class="tech-item">
+                                :href="getRoute('technology.database', { database_name: database })" class="tech-item">
                                 {{ database }}
                             </a>
                         </div>
@@ -95,7 +95,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="language in technologies.languages" :key="language"
-                                :href="`/technology/language/${encodeURIComponent(language)}`" class="tech-item">
+                                :href="getRoute('technology.language', { language_name: language })" class="tech-item">
                                 {{ language }}
                             </a>
                         </div>
@@ -109,7 +109,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="thirdParty in technologies.thirdParties" :key="thirdParty"
-                                :href="`/technology/third-party/${encodeURIComponent(thirdParty)}`" class="tech-item">
+                                :href="getRoute('technology.third_party', { third_party_name: thirdParty })" class="tech-item">
                                 {{ thirdParty }}
                             </a>
                         </div>
@@ -123,7 +123,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="middleware in technologies.middlewares" :key="middleware"
-                                :href="`/technology/middleware/${encodeURIComponent(middleware)}`" class="tech-item">
+                                :href="getRoute('technology.middleware', { middleware_name: middleware })" class="tech-item">
                                 {{ middleware }}
                             </a>
                         </div>
@@ -137,7 +137,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="framework in technologies.frameworks" :key="framework"
-                                :href="`/technology/framework/${encodeURIComponent(framework)}`" class="tech-item">
+                                :href="getRoute('technology.framework', { framework_name: framework })" class="tech-item">
                                 {{ framework }}
                             </a>
                         </div>
@@ -151,7 +151,7 @@
                         </div>
                         <div class="tech-items-grid">
                             <a v-for="platform in technologies.platforms" :key="platform"
-                                :href="`/technology/platform/${encodeURIComponent(platform)}`" class="tech-item">
+                                :href="getRoute('technology.platform', { platform_name: platform })" class="tech-item">
                                 {{ platform }}
                             </a>
                         </div>
@@ -164,6 +164,7 @@
 
 <script setup lang="ts">
 import { useSidebar } from '../../composables/useSidebar';
+import { useRoutes } from '../../composables/useRoutes';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '../../components/Sidebar/Sidebar.vue';
@@ -189,12 +190,13 @@ interface Props {
 const props = defineProps<Props>();
 
 const { visible, isMobile, toggleSidebar } = useSidebar();
+const { visitRoute, getRoute } = useRoutes();
 
 const navigationLinks = [
     {
         icon: 'fa-solid fa-home',
         text: 'Halaman Utama',
-        onClick: () => router.visit('/'),
+        onClick: () => visitRoute('index'),
     },
 ];
 
