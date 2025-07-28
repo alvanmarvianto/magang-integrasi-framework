@@ -77,6 +77,27 @@ export function removeDuplicateEdges(inputEdges: Edge[]): Edge[] {
 }
 
 /**
+ * Move a specific edge to the top of the rendering order (end of array)
+ */
+export function moveEdgeToTop(edges: Edge[], edgeId: string): Edge[] {
+  const edgeIndex = edges.findIndex(e => e.id === edgeId);
+  if (edgeIndex === -1) {
+    return edges; // Edge not found, return original array
+  }
+  
+  const targetEdge = edges[edgeIndex];
+  const newEdges = [...edges];
+  
+  // Remove the edge from its current position
+  newEdges.splice(edgeIndex, 1);
+  
+  // Add it to the end (top rendering order in Vue Flow)
+  newEdges.push(targetEdge);
+  
+  return newEdges;
+}
+
+/**
  * Validate node data and ensure required properties
  */
 export function validateAndCleanNodes(nodes: Node[]): Node[] {

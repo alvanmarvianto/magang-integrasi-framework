@@ -117,6 +117,7 @@ import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
   removeDuplicateEdges,
+  moveEdgeToTop,
   fitView as sharedFitView,
   initializeNodesWithLayout,
   applyAutomaticLayoutWithConstraints,
@@ -347,11 +348,11 @@ function onEdgeUpdate(params: any, newConnection?: any) {
       targetHandle: connection.targetHandle || oldEdge.targetHandle,
     }
 
-    // Move the updated edge to the end of the array (VueFlow renders later edges on top)
-    const newEdges = [...edges.value]
-    newEdges.splice(edgeIndex, 1) // Remove the old edge
-    newEdges.push(updatedEdge) // Add updated edge to the end
-    edges.value = newEdges
+    // Update the edge in place first
+    edges.value[edgeIndex] = updatedEdge
+    
+    // Move the updated edge to the top so it's easier to manipulate
+    edges.value = moveEdgeToTop(edges.value, edgeId)
 
     // Apply proper styling
     edges.value = updateAdminEdgeStyles(edges.value)
@@ -386,6 +387,9 @@ function onEdgeClick(event: any) {
     selectedEdgeData.value = edge.data
     showEdgeDetails.value = true
   }
+  
+  // Move the clicked edge to the top so it renders on top and is easier to manipulate
+  edges.value = moveEdgeToTop(edges.value, clickedEdgeId)
   
   handleEdgeClick(clickedEdgeId)
   edges.value = updateAdminEdgeStyles(edges.value)
