@@ -19,16 +19,16 @@
         <p class="admin-menu-description">Kelola komponen teknologi seperti database, framework, dll</p>
       </a>
 
+       <a :href="getRoute('admin.integrations.index')" class="admin-menu-card">
+        <font-awesome-icon icon="fa-solid fa-network-wired" class="admin-menu-icon" />
+        <h2 class="admin-menu-title">Manajemen Koneksi</h2>
+        <p class="admin-menu-description">Kelola hubungan dan integrasi antar aplikasi secara detail</p>
+      </a>
+
       <a :href="getRoute('admin.diagrams.show', { streamName: 'sp' })" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-project-diagram" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Diagram</h2>
         <p class="admin-menu-description">Kelola tata letak dan tampilan diagram integrasi</p>
-      </a>
-
-      <a :href="getRoute('admin.integrations.index')" class="admin-menu-card">
-        <font-awesome-icon icon="fa-solid fa-network-wired" class="admin-menu-icon" />
-        <h2 class="admin-menu-title">Manajemen Koneksi</h2>
-        <p class="admin-menu-description">Kelola hubungan dan integrasi antar aplikasi secara detail</p>
       </a>
     </div>
   </div>

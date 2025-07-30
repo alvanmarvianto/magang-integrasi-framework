@@ -57,7 +57,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  resize: [event: { width: number, height: number }]
+  resize: [event: { width: number, height: number, position?: { x: number, y: number } }]
 }>()
 
 // Ensure data exists and has required properties
@@ -74,6 +74,7 @@ const isResizing = ref(false)
 const resizeDirection = ref('')
 const startPos = ref({ x: 0, y: 0 })
 const startSize = ref({ width: 0, height: 0 })
+const startPosition = ref({ x: 0, y: 0 })
 const currentSize = ref({ width: 0, height: 0 })
 
 // Manual drag state for border dragging
@@ -126,6 +127,9 @@ function startResize(direction: string, event: MouseEvent) {
   resizeDirection.value = direction
   startPos.value = { x: event.clientX, y: event.clientY }
   
+  // Store initial position
+  startPosition.value = { x: props.position?.x || 0, y: props.position?.y || 0 }
+  
   // Get current size from dimensions, style, or default
   const currentDimensions = props.dimensions
   const currentStyle = props.style || {}
@@ -159,19 +163,41 @@ function handleResize(event: MouseEvent) {
   
   let newWidth = startSize.value.width
   let newHeight = startSize.value.height
+  let newPositionX = startPosition.value.x
+  let newPositionY = startPosition.value.y
   
-  // Calculate new dimensions based on direction
+  // Calculate new dimensions and positions based on direction
   if (resizeDirection.value.includes('e')) {
+    // Right side: increase width, no position change
     newWidth = Math.max(300, startSize.value.width + deltaX)
   }
   if (resizeDirection.value.includes('w')) {
-    newWidth = Math.max(300, startSize.value.width - deltaX)
+    // Left side: increase width and adjust position
+    const widthChange = startSize.value.width - deltaX
+    newWidth = Math.max(300, widthChange)
+    // Only adjust position if we're not at minimum width
+    if (widthChange >= 300) {
+      newPositionX = startPosition.value.x + deltaX
+    } else {
+      // If at minimum width, calculate position based on minimum width
+      newPositionX = startPosition.value.x + (startSize.value.width - 300)
+    }
   }
   if (resizeDirection.value.includes('s')) {
+    // Bottom side: increase height, no position change
     newHeight = Math.max(200, startSize.value.height + deltaY)
   }
   if (resizeDirection.value.includes('n')) {
-    newHeight = Math.max(200, startSize.value.height - deltaY)
+    // Top side: increase height and adjust position
+    const heightChange = startSize.value.height - deltaY
+    newHeight = Math.max(200, heightChange)
+    // Only adjust position if we're not at minimum height
+    if (heightChange >= 200) {
+      newPositionY = startPosition.value.y + deltaY
+    } else {
+      // If at minimum height, calculate position based on minimum height
+      newPositionY = startPosition.value.y + (startSize.value.height - 200)
+    }
   }
   
   // Update current size for immediate visual feedback
@@ -180,6 +206,7 @@ function handleResize(event: MouseEvent) {
   // Update the Vue Flow node directly for real-time feedback
   if (props.id) {
     updateNode(props.id, {
+      position: { x: newPositionX, y: newPositionY },
       style: {
         ...props.style,
         width: `${newWidth}px`,
@@ -193,7 +220,17 @@ function handleResize(event: MouseEvent) {
   }
   
   // Also emit resize event for parent component handling
-  emit('resize', { width: newWidth, height: newHeight })
+  const resizeEvent: { width: number, height: number, position?: { x: number, y: number } } = {
+    width: newWidth,
+    height: newHeight
+  }
+  
+  // Include position if it changed (top or left resize)
+  if (newPositionX !== startPosition.value.x || newPositionY !== startPosition.value.y) {
+    resizeEvent.position = { x: newPositionX, y: newPositionY }
+  }
+  
+  emit('resize', resizeEvent)
 }
 
 function stopResize() {

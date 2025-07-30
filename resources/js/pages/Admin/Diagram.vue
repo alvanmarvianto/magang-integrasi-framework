@@ -636,13 +636,13 @@ function switchStream() {
   }
 }
 
-function onStreamResize(event: { width: number, height: number }) {
+function onStreamResize(event: { width: number, height: number, position?: { x: number, y: number } }) {
   // Find the stream node and update its style
   const streamNodeIndex = nodes.value.findIndex(n => n.data.is_parent_node)
   if (streamNodeIndex !== -1) {
     const currentNode = nodes.value[streamNodeIndex]
     
-    // Create updated node with new dimensions
+    // Create updated node with new dimensions and position (if provided)
     const updatedNode = {
       ...currentNode,
       style: {
@@ -654,6 +654,11 @@ function onStreamResize(event: { width: number, height: number }) {
         width: event.width,
         height: event.height
       }
+    }
+    
+    // Update position if provided (for top/left resizing)
+    if (event.position) {
+      updatedNode.position = event.position
     }
     
     // Replace node to trigger reactivity
