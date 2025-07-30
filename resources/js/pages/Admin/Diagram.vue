@@ -401,6 +401,8 @@ function onEdgeClick(event: any) {
   
   handleEdgeClick(clickedEdgeId)
   edges.value = updateAdminEdgeStyles(edges.value)
+  
+  // Note: Clicking an edge does not mark layout as changed - only actual modifications do
 }
 
 function onNodeClick(event: any) {
@@ -418,6 +420,8 @@ function onNodeClick(event: any) {
     detailType.value = 'node'
     showDetails.value = true
   }
+  
+  // Note: Clicking a node does not mark layout as changed - only actual modifications do
 }
 
 function closeDetails() {
@@ -433,9 +437,13 @@ function onPaneClick(event: any) {
   if (showDetails.value) {
     closeDetails()
   }
+  
+  // Note: Clicking the pane does not mark layout as changed - only actual modifications do
 }
 
 function onNodesChange(changes: any[]) {
+  
+  let hasLayoutChanges = false
   
   // Update our reactive nodes array
   changes.forEach(change => {
@@ -443,6 +451,7 @@ function onNodesChange(changes: any[]) {
       const nodeIndex = nodes.value.findIndex(n => n.id === change.item.id)
       if (nodeIndex !== -1) {
         nodes.value[nodeIndex].position = change.item.position
+        hasLayoutChanges = true // Position changes affect layout
       }
     } else if (change.type === 'dimensions' && change.item) {
       const nodeIndex = nodes.value.findIndex(n => n.id === change.item.id)
@@ -451,17 +460,21 @@ function onNodesChange(changes: any[]) {
           ...nodes.value[nodeIndex].style,
           ...change.item.style
         }
+        hasLayoutChanges = true // Dimension changes affect layout
       }
     }
+    // Note: 'select' type changes are ignored as they don't affect layout
   })
   
-  // Mark layout as changed if there are actual changes and we're not initializing
-  if (changes.length > 0 && !isInitializing.value) {
+  // Mark layout as changed only if there are actual layout changes and we're not initializing
+  if (hasLayoutChanges && !isInitializing.value) {
     markLayoutChanged()
   }
 }
 
 function onEdgesChange(changes: any[]) {
+  
+  let hasLayoutChanges = false
   
   // Update our reactive edges array
   changes.forEach(change => {
@@ -469,24 +482,28 @@ function onEdgesChange(changes: any[]) {
       const edgeIndex = edges.value.findIndex(e => e.id === change.id)
       if (edgeIndex !== -1) {
         edges.value.splice(edgeIndex, 1)
+        hasLayoutChanges = true // Removing edges affects layout
       }
     } else if (change.type === 'add' && change.item) {
       // Handle edge additions
       const existingEdgeIndex = edges.value.findIndex(e => e.id === change.item.id)
       if (existingEdgeIndex === -1) {
         edges.value.push(change.item)
+        hasLayoutChanges = true // Adding edges affects layout
       }
     } else if (change.type === 'update' && change.item) {
       // Handle edge updates
       const edgeIndex = edges.value.findIndex(e => e.id === change.item.id)
       if (edgeIndex !== -1) {
         edges.value.splice(edgeIndex, 1, change.item)
+        hasLayoutChanges = true // Updating edges affects layout
       }
     }
+    // Note: 'select' type changes are ignored as they don't affect layout
   })
   
-  // Mark layout as changed if there are actual changes and we're not initializing
-  if (changes.length > 0 && !isInitializing.value) {
+  // Mark layout as changed only if there are actual layout changes and we're not initializing
+  if (hasLayoutChanges && !isInitializing.value) {
     markLayoutChanged()
   }
 }
