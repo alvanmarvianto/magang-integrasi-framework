@@ -572,3 +572,28 @@ export function createCustomWheelHandler(zoomIn: Function, zoomOut: Function, se
     }
   };
 }
+
+/**
+ * Custom context menu handler for Vue Flow
+ * Prevents browser context menu on empty Vue Flow space
+ * while still allowing it on specific elements (nodes, edges, streams)
+ */
+export function createCustomContextMenuHandler() {
+  return function onContextMenu(event: MouseEvent) {
+    // Check if the right-click target is the Vue Flow pane (empty space)
+    const target = event.target as HTMLElement;
+    
+    // If clicking on Vue Flow pane/viewport (empty space), prevent context menu
+    if (target.classList.contains('vue-flow__pane') || 
+        target.classList.contains('vue-flow__viewport') ||
+        target.closest('.vue-flow__pane') ||
+        target.closest('.vue-flow__viewport')) {
+      event.preventDefault();
+      return false;
+    }
+    
+    // Allow context menu for nodes, edges, and other specific elements
+    // (they will have their own classes and won't match the above conditions)
+    return true;
+  };
+}

@@ -51,6 +51,7 @@
         @node-click="onNodeClick"
         @pane-click="onPaneClick"
         @wheel="onWheel"
+        @contextmenu="onContextMenu"
         :fit-view-on-init="false"
         :zoom-on-scroll="false"
         :zoom-on-pinch="true"
@@ -127,7 +128,8 @@ import {
   initializeNodesWithLayout,
   applyAutomaticLayoutWithConstraints,
   validateAndCleanNodes,
-  createCustomWheelHandler
+  createCustomWheelHandler,
+  createCustomContextMenuHandler
 } from '@/composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
 
@@ -179,6 +181,9 @@ const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow()
 
 // Create shared wheel handler
 const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewport)
+
+// Create context menu handler to disable popup on empty space
+const onContextMenu = createCustomContextMenuHandler()
 
 // Add event listener for beforeunload
 onMounted(() => {

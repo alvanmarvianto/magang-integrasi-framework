@@ -53,6 +53,7 @@
           @pane-click="onPaneClick"
           @node-drag-stop="onNodeDragStop"
           @wheel="onWheel"
+          @contextmenu="onContextMenu"
         >
           <!-- Custom Node Types -->
           <template #node-stream="nodeProps">
@@ -117,7 +118,8 @@ import {
   handleNodeClick,
   handleNodeDragStop,
   fitView as sharedFitView,
-  createCustomWheelHandler
+  createCustomWheelHandler,
+  createCustomContextMenuHandler
 } from '../../composables/useVueFlowCommon';
 import type { Node, Edge } from '@vue-flow/core';
 
@@ -161,6 +163,9 @@ const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow();
 
 // Create shared wheel handler
 const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewport);
+
+// Create context menu handler to disable popup on empty space
+const onContextMenu = createCustomContextMenuHandler();
 
 const navigationLinks = [
   {
