@@ -54,7 +54,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 
 interface Column {
   key: string;
@@ -155,5 +154,39 @@ function handlePageClick(url: string) {
 
 .sorted .sort-icon {
   opacity: 1;
+}
+
+.admin-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-alt);
+  border-top: 1px solid var(--border-color);
+}
+
+.admin-pagination-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: white;
+  color: var(--text-color);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+}
+
+.admin-pagination-button:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+}
+
+.admin-pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-pagination-button.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
 }
 </style>

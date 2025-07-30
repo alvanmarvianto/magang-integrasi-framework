@@ -192,13 +192,6 @@ const nodeStyle = computed(() => {
   margin-top: 4px;
 }
 
-.stream-info {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
 .app-id {
   font-size: 10px;
   color: #9ca3af;

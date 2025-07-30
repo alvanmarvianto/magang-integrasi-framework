@@ -101,6 +101,7 @@ function handleLinkClick(link: NavLink) {
   padding: 0.75rem;
   text-decoration: none;
   color: var(--text-primary, #333);
+  margin-bottom: 8px;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -149,5 +150,93 @@ function handleLinkClick(link: NavLink) {
 
 .nav-links.navigation .nav-link:hover {
   background-color: var(--nav-hover, #f8f9fa);
+}
+
+/* Vue Flow specific styling */
+.vue-flow-link {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.vue-flow-link:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+  border: 1px solid rgba(99, 102, 241, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+.vue-flow-link i {
+  color: #6366f1;
+}
+
+/* Admin Link specific styling */
+.admin-link {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3));
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.admin-link:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.5), rgba(220, 38, 38, 0.5));
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+}
+
+.admin-link i {
+  color: #ef4444;
+}
+
+/* Stream Links */
+.stream-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  text-decoration: none;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  color: var(--text-color-light);
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+.stream-link:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: var(--text-color-light);
+}
+
+.stream-link i {
+  font-size: 1.1em;
+  width: 20px;
+  text-align: center;
+  color: var(--primary-color);
+}
+
+.stream-link span {
+  font-size: 0.95em;
+}
+
+@media (max-width: 768px) {
+    .stream-link {
+    padding: 10px 12px;
+    font-size: 0.9em;
+  }
+  
+  .stream-link i {
+    font-size: 1em;
+  }
+
+  .nav-link {
+    padding: 10px 12px;
+    font-size: 0.9em;
+  }
+
+  .nav-link i {
+    font-size: 1em;
+  }
 }
 </style>

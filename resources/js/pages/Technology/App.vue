@@ -140,6 +140,32 @@ const hasAnyTechnologyData = computed(() => {
 <style scoped>
 @import '../../../css/app.css';
 
+.stream-info {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.tech-stack-labels {
+  flex: none;
+}
+
+.stack-label {
+  border-radius: 0.5rem !important;
+  margin-bottom: 0.5rem;
+}
+
+.content-section {
+  border-radius: 0.5rem !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  margin-bottom: 0.5rem;
+}
+
+.content-items {
+  grid-template-columns: 1fr !important;
+}
 .app-type-label {
   background: linear-gradient(135deg, rgba(255, 248, 245, 0.1), rgba(255, 245, 240, 0.1));
   backdrop-filter: blur(15px) saturate(180%);
@@ -202,25 +228,5 @@ const hasAnyTechnologyData = computed(() => {
 
 .content-item {
   text-decoration: none !important;
-}
-
-.no-data-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: calc(100vh - 200px); /* Adjust based on your header height */
-  color: var(--text-muted);
-  text-align: center;
-  gap: 1rem;
-}
-
-.no-data-center i {
-  margin-bottom: 0.5rem;
-}
-
-.no-data-center p {
-  font-size: 1.2rem;
-  margin: 0;
 }
 </style>

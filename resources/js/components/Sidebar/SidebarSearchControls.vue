@@ -32,5 +32,7 @@ defineProps<Props>();
 </script>
 
 <style scoped>
-/* Search controls styles are in components.css */
+.search-wrapper {
+  position: relative;
+}
 </style>

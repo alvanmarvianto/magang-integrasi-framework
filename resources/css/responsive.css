@@ -39,44 +39,4 @@
   #body {
     overflow: hidden;
   }
-
-  .stream-buttons {
-    gap: 6px;
-  }
-  
-  .stream-link {
-    padding: 10px 12px;
-    font-size: 0.9em;
-  }
-  
-  .stream-link i {
-    font-size: 1em;
-  }
-
-  .nav-link {
-    padding: 10px 12px;
-    font-size: 0.9em;
-  }
-
-  .nav-link i {
-    font-size: 1em;
-  }
-
-  /* Technology Page Responsive */
-  #technology-container {
-    padding: 1rem;
-  }
-
-  .tech-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .tech-cards-container {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .tech-card {
-    padding: 1rem;
-  }
 }

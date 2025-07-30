@@ -42,5 +42,40 @@ function getLegendClass(item: LegendItem) {
 </script>
 
 <style scoped>
-/* Legend styles are in components.css */
+/* Legend */
+.legend {
+  margin-top: 20px;
+}
+
+.legend h3 {
+  margin-bottom: 10px;
+}
+
+.legend ul {
+  list-style: none;
+  padding: 0;
+}
+
+.legend li {
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.legend-key {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.legend-key.circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid #000;
+}
+
+.legend-key.line {
+  width: 20px;
+  height: 2px;
+}
 </style>

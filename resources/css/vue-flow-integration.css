@@ -20,40 +20,6 @@
   fill: rgba(0, 0, 0, 0.05);
 }
 
-/* Loading overlay */
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.loading-content {
-  text-align: center;
-  color: var(--text-color);
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 15px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 /* Custom Node Styles */
 :deep(.vue-flow__node) {
   font-family: inherit;
@@ -128,40 +94,6 @@
 
 :deep(.vue-flow__controls-button:hover) {
   background-color: #f3f4f6;
-}
-
-/* Control buttons in sidebar */
-.controls-section {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(221, 221, 221, 0.2);
-}
-
-.control-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  background-color: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: var(--text-color-light);
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.control-button:hover {
-  background-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-}
-
-.control-button i {
-  color: var(--primary-color);
-  width: 16px;
 }
 
 /* Legend styling for stream groups */

@@ -505,4 +505,54 @@ watch(() => page.props.flash, (newFlash) => {
   font-size: 0.875rem;
   font-style: italic;
 }
+
+/* Grid Styles */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Card Styles */
+.tech-card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.tech-card-header {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-alt);
+}
+
+.tech-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+  #technology-container {
+    padding: 1rem;
+  }
+
+  .tech-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .tech-cards-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .tech-card {
+    padding: 1rem;
+  }
+}
 </style> 
