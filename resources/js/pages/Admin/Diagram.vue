@@ -50,12 +50,13 @@
         @edge-click="onEdgeClick"
         @node-click="onNodeClick"
         @pane-click="onPaneClick"
+        @wheel="onWheel"
         :fit-view-on-init="false"
-        :zoom-on-scroll="true"
+        :zoom-on-scroll="false"
         :zoom-on-pinch="true"
         :pan-on-scroll="false"
         :pan-on-scroll-mode="PanOnScrollMode.Free"
-        :pan-on-drag="[1, 2]"
+        :pan-on-drag="[0, 2]"
         :selection-key-code="null"
         :multi-selection-key-code="null"
         :nodes-draggable="true"
@@ -107,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { VueFlow } from '@vue-flow/core'
+import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background, BackgroundVariant } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { PanOnScrollMode } from '@vue-flow/core'
@@ -125,7 +126,8 @@ import {
   fitView as sharedFitView,
   initializeNodesWithLayout,
   applyAutomaticLayoutWithConstraints,
-  validateAndCleanNodes
+  validateAndCleanNodes,
+  createCustomWheelHandler
 } from '@/composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
 
@@ -171,6 +173,12 @@ const vueFlowKey = ref(0) // Key to force VueFlow re-render
 const isInitializing = ref(false) // Flag to prevent marking changes during initialization
 // Use admin-specific edge handling
 const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling()
+
+// Get VueFlow instance and functions
+const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow()
+
+// Create shared wheel handler
+const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewport)
 
 // Add event listener for beforeunload
 onMounted(() => {

@@ -38,19 +38,21 @@
           :edges="edges"
           :fit-view-on-init="false"
           :nodes-draggable="true"
-          :pan-on-scroll="true"
+          :pan-on-scroll="false"
           :pan-on-scroll-mode="PanOnScrollMode.Free"
-          :zoom-on-scroll="true"
+          :zoom-on-scroll="false"
           :zoom-on-pinch="true"
           :zoom-on-double-click="true"
           :max-zoom="1.5"
           :min-zoom="0.5"
           :default-viewport="{ zoom: 1, x: 0, y: 0 }"
+          :pan-on-drag="[0, 2]"
           class="vue-flow-container"
           @node-click="onNodeClick"
           @edge-click="onEdgeClick"
           @pane-click="onPaneClick"
           @node-drag-stop="onNodeDragStop"
+          @wheel="onWheel"
         >
           <!-- Custom Node Types -->
           <template #node-stream="nodeProps">
@@ -95,7 +97,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { VueFlow, PanOnScrollMode } from '@vue-flow/core';
+import { VueFlow, PanOnScrollMode, useVueFlow } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import { Background, BackgroundVariant } from '@vue-flow/background';
 import { useRoutes } from '@/composables/useRoutes';
@@ -114,7 +116,8 @@ import {
   initializeEdgesWithLayout,
   handleNodeClick,
   handleNodeDragStop,
-  fitView as sharedFitView
+  fitView as sharedFitView,
+  createCustomWheelHandler
 } from '../../composables/useVueFlowCommon';
 import type { Node, Edge } from '@vue-flow/core';
 
@@ -152,6 +155,12 @@ const {
   handleEdgeClick,
   handlePaneClick,
 } = useVueFlowUserView();
+
+// Get VueFlow instance and functions for custom controls
+const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow();
+
+// Create shared wheel handler
+const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewport);
 
 const navigationLinks = [
   {

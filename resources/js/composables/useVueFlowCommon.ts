@@ -535,3 +535,40 @@ export function initializeEdgesWithLayout(
     return baseEdge;
   });
 }
+
+/**
+ * Custom wheel handler for Vue Flow with pan/zoom controls
+ * - Normal scroll: pan up/down
+ * - Shift + scroll: pan left/right  
+ * - Ctrl/Cmd + scroll: zoom in/out
+ */
+export function createCustomWheelHandler(zoomIn: Function, zoomOut: Function, setViewport: Function, getViewport: Function) {
+  return function onWheel(event: WheelEvent) {
+    event.preventDefault();
+    
+    const viewport = getViewport();
+    const delta = event.deltaY;
+    const ctrlKey = event.ctrlKey || event.metaKey;
+    const shiftKey = event.shiftKey;
+
+    if (ctrlKey) {
+      // Ctrl + scroll = zoom
+      const zoomFactor = 0.1;
+      if (delta < 0) {
+        zoomIn(zoomFactor);
+      } else {
+        zoomOut(zoomFactor);
+      }
+    } else if (shiftKey) {
+      // Shift + scroll = pan left/right
+      const panAmount = 50;
+      const newX = viewport.x + (delta > 0 ? -panAmount : panAmount);
+      setViewport({ x: newX, y: viewport.y, zoom: viewport.zoom });
+    } else {
+      // Normal scroll = pan up/down
+      const panAmount = 50;
+      const newY = viewport.y + (delta > 0 ? -panAmount : panAmount);
+      setViewport({ x: viewport.x, y: newY, zoom: viewport.zoom });
+    }
+  };
+}
