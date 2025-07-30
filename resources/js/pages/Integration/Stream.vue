@@ -84,7 +84,7 @@
     </main>
 
     <!-- Edge Details Sidebar -->
-    <EdgeDetailsSidebar
+    <DetailsSidebar
       :visible="showEdgeDetails"
       :edgeData="selectedEdgeData"
       :isAdmin="false"
@@ -107,7 +107,7 @@ import Sidebar from '@/components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
 import SidebarControlsSection from '@/components/Sidebar/SidebarControlsSection.vue';
 import SidebarLegend from '@/components/Sidebar/SidebarLegend.vue';
-import EdgeDetailsSidebar from '@/components/Sidebar/EdgeDetailsSidebar.vue';
+import DetailsSidebar from '@/components/Sidebar/DetailsSidebar.vue';
 import { 
   validateAndCleanNodes,
   initializeNodesWithLayout,

@@ -48,6 +48,7 @@
         @edges-change="onEdgesChange"
         @edge-update="onEdgeUpdate"
         @edge-click="onEdgeClick"
+        @node-click="onNodeClick"
         @pane-click="onPaneClick"
         :fit-view-on-init="false"
         :zoom-on-scroll="true"
@@ -85,13 +86,15 @@
         <Background :pattern="BackgroundVariant.Dots" />
       </VueFlow>
 
-      <!-- Edge Details Sidebar for Admin -->
-      <EdgeDetailsSidebar
-        :visible="showEdgeDetails"
+      <!-- Details Sidebar for Admin -->
+      <DetailsSidebar
+        :visible="showDetails"
+        :detailType="detailType"
         :edgeData="selectedEdgeData"
+        :nodeData="selectedNodeData"
         :isAdmin="true"
         :offsetTop="'5rem'"
-        @close="closeEdgeDetails"
+        @close="closeDetails"
       />
     </div>
 
@@ -113,6 +116,7 @@ import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
 import EdgeDetailsSidebar from '@/components/Sidebar/EdgeDetailsSidebar.vue'
+import DetailsSidebar from '@/components/Sidebar/DetailsSidebar.vue'
 import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
@@ -154,8 +158,10 @@ const vueFlowRef = ref()
 const saving = ref(false)
 const refreshing = ref(false)
 const selectedStream = ref(props.streamName)
-const showEdgeDetails = ref(false)
+const showDetails = ref(false)
+const detailType = ref<'edge' | 'node'>('edge')
 const selectedEdgeData = ref(null)
+const selectedNodeData = ref(null)
 
 // Reactive data
 const nodes = ref<Node[]>([])
@@ -385,7 +391,9 @@ function onEdgeClick(event: any) {
   const edge = edges.value.find(e => e.id === clickedEdgeId)
   if (edge && edge.data) {
     selectedEdgeData.value = edge.data
-    showEdgeDetails.value = true
+    selectedNodeData.value = null
+    detailType.value = 'edge'
+    showDetails.value = true
   }
   
   // Move the clicked edge to the top so it renders on top and is easier to manipulate
@@ -395,17 +403,35 @@ function onEdgeClick(event: any) {
   edges.value = updateAdminEdgeStyles(edges.value)
 }
 
-function closeEdgeDetails() {
-  showEdgeDetails.value = false
+function onNodeClick(event: any) {
+  const clickedNodeId = event.node?.id
+  if (!clickedNodeId) {
+    return
+  }
+  
+  // Find the node data for the sidebar
+  const node = nodes.value.find(n => n.id === clickedNodeId)
+  if (node && node.data && !node.data.is_parent_node) {
+    // Only show details for app nodes, not stream parent nodes
+    selectedNodeData.value = node.data
+    selectedEdgeData.value = null
+    detailType.value = 'node'
+    showDetails.value = true
+  }
+}
+
+function closeDetails() {
+  showDetails.value = false
   selectedEdgeData.value = null
+  selectedNodeData.value = null
 }
 
 function onPaneClick(event: any) {
   handlePaneClick()
   edges.value = updateAdminEdgeStyles(edges.value)
-  // Close edge details when clicking on pane
-  if (showEdgeDetails.value) {
-    closeEdgeDetails()
+  // Close details when clicking on pane
+  if (showDetails.value) {
+    closeDetails()
   }
 }
 

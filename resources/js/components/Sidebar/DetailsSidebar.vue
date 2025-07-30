@@ -1,12 +1,12 @@
 <template>
   <aside 
     v-if="visible" 
-    class="edge-details-sidebar"
-    :class="{ 'edge-details-sidebar-open': visible }"
+    class="details-sidebar"
+    :class="{ 'details-sidebar-open': visible }"
     :style="{ top: offsetTop, height: `calc(100vh - ${offsetTop} - 1rem)` }"
   >
     <header>
-      <h1>Detail Integrasi</h1>
+      <h1>{{ sidebarTitle }}</h1>
       <button 
         @click="$emit('close')" 
         class="close-button"
@@ -16,9 +16,10 @@
       </button>
     </header>
     
-    <div class="sidebar-content" v-if="edgeData">
+    <!-- Edge Details -->
+    <div class="sidebar-content" v-if="detailType === 'edge' && edgeData">
       <!-- Connection Overview -->
-      <div class="sidebar-section">
+      <div class="detail-section">
         <h3>Overview Koneksi</h3>
         <div class="connection-flow">
           <div class="app-info">
@@ -26,8 +27,7 @@
           </div>
           
           <div class="connection-arrow">
-            <font-awesome-icon icon="fa-solid fa-arrow-right" v-if="edgeData.direction === 'one_way'" />
-            <font-awesome-icon icon="fa-solid fa-exchange-alt" v-else />
+            <font-awesome-icon :icon="edgeData.direction === 'one_way' ? 'fa-solid fa-arrow-right' : 'fa-solid fa-exchange-alt'" />
           </div>
           
           <div class="app-info">
@@ -37,17 +37,19 @@
       </div>
 
       <!-- Connection Type -->
-      <div class="sidebar-section">
+      <div class="detail-section">
         <h3>Tipe Koneksi</h3>
-        <div class="connection-type-badge" :class="getConnectionTypeClass(edgeData.connection_type)">
-          {{ edgeData.connection_type?.toUpperCase() || 'DIRECT' }}
+        <div class="badges-content">
+          <div class="detail-badge" :class="getConnectionBadgeClass(edgeData.connection_type)">
+            {{ (edgeData.connection_type || 'direct').toUpperCase() }}
+          </div>
         </div>
       </div>
 
-      <!-- Admin Actions -->
-      <div class="sidebar-section" v-if="isAdmin">
+      <!-- Admin Actions for Edge -->
+      <div class="detail-section" v-if="isAdmin">
         <h3>Back Office</h3>
-        <div class="admin-buttons">
+        <div class="buttons-content">
           <button 
             @click="editIntegration" 
             class="edit-button"
@@ -60,7 +62,7 @@
       </div>
 
       <!-- Inbound -->
-      <div class="sidebar-section" v-if="edgeData.inbound">
+      <div class="detail-section" v-if="edgeData.inbound">
         <h3>Inbound</h3>
         <div class="description-content">
           {{ edgeData.inbound }}
@@ -68,34 +70,70 @@
       </div>
 
       <!-- Outbound -->
-      <div class="sidebar-section" v-if="edgeData.outbound">
+      <div class="detail-section" v-if="edgeData.outbound">
         <h3>Outbound</h3>
         <div class="description-content">
           {{ edgeData.outbound }}
         </div>
       </div>
+    </div>
 
-      <!-- Connection Endpoint -->
-      <!-- <div class="sidebar-section" v-if="edgeData.connection_endpoint">
-        <h3>Connection Endpoint</h3>
-        <div class="endpoint-content">
-          <a :href="edgeData.connection_endpoint" target="_blank" class="endpoint-link">
-            {{ edgeData.connection_endpoint }}
-            <font-awesome-icon icon="fa-solid fa-external-link-alt" />
-          </a>
+    <!-- Node Details -->
+    <div class="sidebar-content" v-else-if="detailType === 'node' && nodeData">
+      <!-- App Overview -->
+      <div class="detail-section">
+        <h3>Detail Aplikasi</h3>
+        <div class="default-content">
+          <div class="detail-item">
+            <strong>Nama Aplikasi:</strong>
+            <span>{{ nodeData.app_name }}</span>
+          </div>
+          <div class="detail-item">
+            <strong>Stream:</strong>
+            <span>{{ nodeData.stream_name?.toUpperCase() || 'Unknown' }}</span>
+          </div>
+          <div class="detail-item">
+            <strong>App ID:</strong>
+            <span>{{ nodeData.app_id }}</span>
+          </div>
         </div>
-      </div> -->
+      </div>
+
+      <!-- App Description -->
+      <div class="detail-section" v-if="nodeData.description">
+        <h3>Deskripsi</h3>
+        <div class="description-content">
+          {{ nodeData.description }}
+        </div>
+      </div>
+
+      <!-- Admin Actions for Node -->
+      <div class="detail-section" v-if="isAdmin">
+        <h3>Back Office</h3>
+        <div class="buttons-content">
+          <button 
+            @click="editApp" 
+            class="edit-button"
+            title="Edit Application"
+          >
+            <font-awesome-icon icon="fa-solid fa-edit" />
+            Edit Aplikasi
+          </button>
+        </div>
+      </div>
     </div>
     
+    <!-- Loading state -->
     <div v-else class="sidebar-content">
-      <p>Loading integration details...</p>
+      <p>Loading details...</p>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { useRoutes } from '@/composables/useRoutes';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { computed } from 'vue'
+import { useRoutes } from '@/composables/useRoutes'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 interface AppInfo {
   app_id: number;
@@ -115,26 +153,48 @@ interface EdgeData {
   connection_endpoint?: string;
 }
 
+interface NodeData {
+  app_id: number;
+  app_name: string;
+  stream_name?: string;
+  description?: string;
+  app_type?: string;
+  is_home_stream: boolean;
+  is_external: boolean;
+}
+
 interface Props {
   visible: boolean;
+  detailType?: 'edge' | 'node';
   edgeData?: EdgeData | null;
+  nodeData?: NodeData | null;
   isAdmin?: boolean;
   offsetTop?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  offsetTop: '1rem'
+  offsetTop: '1rem',
+  detailType: 'edge'
 });
 
 const { visitRoute } = useRoutes();
 
-function getConnectionTypeClass(type: string): string {
+const sidebarTitle = computed(() => {
+  if (props.detailType === 'edge') {
+    return 'Detail Integrasi';
+  } else if (props.detailType === 'node') {
+    return 'Detail Aplikasi';
+  }
+  return 'Detail';
+});
+
+function getConnectionBadgeClass(type: string): string {
   const typeMap: { [key: string]: string } = {
-    'direct': 'connection-direct',
-    'soa': 'connection-soa',
-    'sftp': 'connection-sftp'
+    'direct': 'badge-direct',
+    'soa': 'badge-soa',
+    'sftp': 'badge-sftp'
   };
-  return typeMap[type?.toLowerCase()] || 'connection-default';
+  return typeMap[type?.toLowerCase()] || 'badge-default';
 }
 
 function editIntegration() {
@@ -142,10 +202,16 @@ function editIntegration() {
   
   visitRoute('admin.integrations.edit', { id: props.edgeData.integration_id });
 }
+
+function editApp() {
+  if (!props.nodeData?.app_id) return;
+  
+  visitRoute('admin.apps.edit', { app: props.nodeData.app_id });
+}
 </script>
 
 <style scoped>
-.edge-details-sidebar {
+.details-sidebar {
   position: fixed;
   top: 1rem;
   right: -340px;
@@ -164,19 +230,19 @@ function editIntegration() {
   flex-direction: column;
 }
 
-.edge-details-sidebar.edge-details-sidebar-open {
+.details-sidebar.details-sidebar-open {
   right: 1rem;
 }
 
 /* Header styling matching left sidebar */
-.edge-details-sidebar header {
+.details-sidebar header {
   padding: 25px;
   border-bottom: 1px solid rgba(221, 221, 221, 0.2);
   transition: border-color 0.5s ease;
   position: relative;
 }
 
-.edge-details-sidebar header h1 {
+.details-sidebar header h1 {
   margin: 0;
   font-size: 1.8em;
   font-weight: 600;
@@ -210,11 +276,12 @@ function editIntegration() {
   overflow-y: auto;
 }
 
-.sidebar-section {
+/* Detail sections */
+.detail-section {
   margin-bottom: 2rem;
 }
 
-.sidebar-section h3 {
+.detail-section h3 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
   font-weight: 600;
@@ -223,7 +290,67 @@ function editIntegration() {
   letter-spacing: 0.05em;
 }
 
-/* Connection flow styling */
+/* Content styles */
+.default-content {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.description-content {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: var(--text-color);
+  line-height: 1.5;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.badges-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.buttons-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Detail items */
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.detail-item strong {
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.detail-item span {
+  color: var(--text-color);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+/* Connection flow */
 .connection-flow {
   display: flex;
   align-items: center;
@@ -247,8 +374,8 @@ function editIntegration() {
   font-size: 0.875rem;
 }
 
-/* Badge styling */
-.connection-type-badge {
+/* Badges */
+.detail-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
   border-radius: 9999px;
@@ -261,36 +388,32 @@ function editIntegration() {
   color: var(--text-color);
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
 }
 
-.connection-direct {
+.badge-direct {
   background: rgba(255, 255, 255, 0.4);
   color: var(--text-color);
 }
 
-.connection-soa {
+.badge-soa {
   background: rgba(34, 197, 94, 0.2);
   border-color: rgba(34, 197, 94, 0.3);
   color: rgb(21, 128, 61);
 }
 
-.connection-sftp {
+.badge-sftp {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.3);
   color: rgb(29, 78, 216);
 }
 
-.connection-default {
+.badge-default {
   background: rgba(255, 255, 255, 0.4);
   color: var(--text-color);
 }
 
-.admin-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
+/* Edit buttons */
 .edit-button {
   display: inline-flex;
   align-items: center;
@@ -305,6 +428,8 @@ function editIntegration() {
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  width: 100%;
+  justify-content: center;
 }
 
 .edit-button:hover {
@@ -312,42 +437,6 @@ function editIntegration() {
   border-color: rgba(34, 197, 94, 0.4);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
-}
-
-/* Content sections */
-.description-content {
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-  color: var(--text-color);
-  line-height: 1.5;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.endpoint-content {
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.endpoint-link {
-  color: var(--primary-color);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  word-break: break-all;
-  transition: color 0.3s ease;
-}
-
-.endpoint-link:hover {
-  text-decoration: underline;
-  color: var(--primary-color-dark);
 }
 
 /* Loading state */

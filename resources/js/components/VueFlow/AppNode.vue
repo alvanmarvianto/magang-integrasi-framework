@@ -70,7 +70,8 @@
     
     <!-- Node Content -->
     <div class="node-content">
-      <div class="app-label">{{ nodeData.label }}</div>
+      <div class="app-name">{{ nodeData.app_name || 'Unknown App' }}</div>
+      <div class="stream-name">{{ nodeData.stream_name || nodeData.lingkup || 'Unknown Stream' }}</div>
     </div>
   </div>
 </template>
@@ -91,6 +92,8 @@ const props = withDefaults(defineProps<Props>(), {
 // Ensure data exists and has required properties
 const nodeData = computed(() => ({
   label: props.data?.label || 'Unknown',
+  app_name: props.data?.app_name || 'Unknown App',
+  stream_name: props.data?.stream_name || props.data?.lingkup || 'Unknown Stream',
   lingkup: props.data?.lingkup || '',
   is_home_stream: props.data?.is_home_stream || false,
   ...props.data
@@ -164,25 +167,43 @@ const nodeStyle = computed(() => {
   gap: 2px;
 }
 
-.app-label {
+.app-name {
   font-size: 11px;
   font-weight: 600;
   color: #1c1c1e;
   line-height: 1.2;
   text-align: center;
-  white-space: pre-line;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  padding: 4px;
+  padding: 2px 4px;
+}
+
+.stream-name {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-color-light);
+  line-height: 1.1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 1px 4px;
+  text-transform: uppercase;
 }
 
 /* Slightly larger text for user mode (non-admin) */
-.app-node:not(.admin-mode) .app-label {
+.app-node:not(.admin-mode) .app-name {
   font-size: 12px;
   font-weight: 650;
   line-height: 1.25;
-  padding: 6px 4px;
+  padding: 3px 4px;
+}
+
+.app-node:not(.admin-mode) .stream-name {
+  font-size: 10px;
+  font-weight: 550;
+  padding: 2px 4px;
 }
 
 .admin-info {
@@ -229,11 +250,11 @@ const nodeStyle = computed(() => {
 }
 
 /* Different styles for home vs external stream apps */
-.app-node.home-stream .app-label {
+.app-node.home-stream .app-name {
   color: #065f46;
 }
 
-.app-node.external-stream .app-label {
+.app-node.external-stream .app-name {
   color: #374151;
 }
 

@@ -56,6 +56,7 @@ class DiagramController extends Controller
                 'data' => [
                     'label' => $app->app_name . "\nID: " . $app->app_id . "\nStream: " . strtoupper($streamName),
                     'app_id' => $app->app_id,
+                    'app_name' => $app->app_name,
                     'stream_name' => $streamName,
                     'lingkup' => $app->stream->stream_name ?? 'unknown',
                     'is_home_stream' => true,
@@ -93,6 +94,7 @@ class DiagramController extends Controller
                 'data' => [
                     'label' => $app->app_name . "\nID: " . $app->app_id . "\nStream: " . strtoupper($app->stream->stream_name ?? 'external'),
                     'app_id' => $app->app_id,
+                    'app_name' => $app->app_name,
                     'stream_name' => $app->stream->stream_name ?? 'external',
                     'lingkup' => $app->stream->stream_name ?? 'external',
                     'is_home_stream' => false,
@@ -206,6 +208,9 @@ class DiagramController extends Controller
                 'type' => 'app',
                 'data' => [
                     'label' => $app->app_name,
+                    'app_id' => $app->app_id,
+                    'app_name' => $app->app_name,
+                    'stream_name' => $lingkup,
                     'lingkup' => $lingkup,
                     'is_home_stream' => $isHomeStream,
                     'is_parent_node' => false,
