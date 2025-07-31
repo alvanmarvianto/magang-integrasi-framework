@@ -13,6 +13,11 @@ interface StreamRepositoryInterface
     public function getAll(): Collection;
 
     /**
+     * Get all streams with their apps
+     */
+    public function getAllWithApps(): Collection;
+
+    /**
      * Find stream by ID
      */
     public function findById(int $id): ?Stream;
@@ -21,6 +26,11 @@ interface StreamRepositoryInterface
      * Find stream by name
      */
     public function findByName(string $name): ?Stream;
+
+    /**
+     * Find stream by name with apps
+     */
+    public function findByNameWithApps(string $name): ?Stream;
 
     /**
      * Create new stream
@@ -36,4 +46,19 @@ interface StreamRepositoryInterface
      * Delete stream
      */
     public function delete(Stream $stream): bool;
+
+    /**
+     * Get streams by multiple names
+     */
+    public function getStreamsByNames(array $names): Collection;
+
+    /**
+     * Check if stream exists by name
+     */
+    public function existsByName(string $name): bool;
+
+    /**
+     * Get stream statistics
+     */
+    public function getStreamStatistics(): array;
 } 
