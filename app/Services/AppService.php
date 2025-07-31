@@ -3,30 +3,43 @@
 namespace App\Services;
 
 use App\Models\App;
+use App\DTOs\AppDTO;
 use App\Http\Resources\AppResource;
 use App\Repositories\Interfaces\AppRepositoryInterface;
+use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
+use App\Repositories\Interfaces\TechnologyRepositoryInterface;
 
 class AppService
 {
     protected AppRepositoryInterface $appRepository;
     protected TechnologyService $technologyService;
     protected StreamService $streamService;
+    protected TechnologyRepositoryInterface $technologyRepository;
+    protected StreamLayoutRepositoryInterface $streamLayoutRepository;
 
     public function __construct(
         AppRepositoryInterface $appRepository,
         TechnologyService $technologyService,
-        StreamService $streamService
+        StreamService $streamService,
+        TechnologyRepositoryInterface $technologyRepository,
+        StreamLayoutRepositoryInterface $streamLayoutRepository
     ) {
         $this->appRepository = $appRepository;
         $this->technologyService = $technologyService;
         $this->streamService = $streamService;
+        $this->technologyRepository = $technologyRepository;
+        $this->streamLayoutRepository = $streamLayoutRepository;
     }
 
     /**
-     * Get paginated list of apps with optional search
+     * Get paginated list of apps with optional search and sorting
      */
-    public function getPaginatedApps(string $search = null, int $perPage = 10, string $sortBy = 'app_name', bool $sortDesc = false): array
-    {
+    public function getPaginatedApps(
+        ?string $search = null,
+        int $perPage = 10,
+        string $sortBy = 'app_name',
+        bool $sortDesc = false
+    ): array {
         $apps = $this->appRepository->getPaginatedApps($search, $perPage, $sortBy, $sortDesc);
         
         return [
@@ -36,42 +49,44 @@ class AppService
     }
 
     /**
-     * Get app form data for create/edit
+     * Get app form data for create/edit operations
      */
     public function getFormData(?int $appId = null): array
     {
-        $app = $appId ? $this->appRepository->findWithRelations($appId) : null;
+        $appDTO = $appId ? $this->appRepository->findAsDTO($appId) : null;
 
         return [
-            'app' => $app ? new AppResource($app) : null,
+            'app' => $appDTO ? $appDTO->toArray() : null,
             'streams' => $this->streamService->getAllStreams(),
-            'appTypes' => ['cots', 'inhouse', 'outsource'],
-            'stratifications' => ['strategis', 'kritikal', 'umum'],
-            'vendors' => $this->technologyService->getEnumValues('technology_vendors'),
-            'operatingSystems' => $this->technologyService->getEnumValues('technology_operating_systems'),
-            'databases' => $this->technologyService->getEnumValues('technology_databases'),
-            'languages' => $this->technologyService->getEnumValues('technology_programming_languages'),
-            'frameworks' => $this->technologyService->getEnumValues('technology_frameworks'),
-            'middlewares' => $this->technologyService->getEnumValues('technology_middlewares'),
-            'thirdParties' => $this->technologyService->getEnumValues('technology_third_parties'),
-            'platforms' => $this->technologyService->getEnumValues('technology_platforms'),
+            'appTypes' => $this->getAppTypes(),
+            'stratifications' => $this->getStratifications(),
+            'technologyOptions' => $this->getTechnologyOptions(),
         ];
     }
 
     /**
      * Create new app with technology components
      */
-    public function createApp(array $data): App
+    public function createApp(array $validatedData): AppDTO
     {
-        return $this->appRepository->createWithTechnology($data);
+        $appDTO = $this->buildAppDTOFromValidatedData($validatedData);
+        $app = $this->appRepository->createWithTechnology($appDTO);
+        
+        return AppDTO::fromModel($app);
     }
 
     /**
      * Update app and its technology components
      */
-    public function updateApp(App $app, array $data): bool
+    public function updateApp(App $app, array $validatedData): AppDTO
     {
-        return $this->appRepository->updateWithTechnology($app, $data);
+        $appDTO = $this->buildAppDTOFromValidatedData($validatedData, $app->app_id);
+        $this->appRepository->updateWithTechnology($app, $appDTO);
+        
+        // Reload the app to get updated data
+        $updatedApp = $this->appRepository->findWithRelations($app->app_id);
+        
+        return AppDTO::fromModel($updatedApp);
     }
 
     /**
