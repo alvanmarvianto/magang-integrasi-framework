@@ -19,23 +19,34 @@ class IntegrationController extends Controller
         $this->integrationService = $integrationService;
     }
 
+    /**
+     * Display paginated list of integrations
+     */
     public function index(Request $request): Response
     {
-        $data = $this->integrationService->getPaginatedIntegrations(
-            $request->get('search'),
-            10,
-            $request->get('sort_by', 'source_app_name'),
-            $request->boolean('sort_desc', false)
+        $paginationData = $this->integrationService->getPaginatedIntegrations(
+            search: $request->get('search'),
+            perPage: $request->get('per_page', 10),
+            sortBy: $request->get('sort_by', 'source_app_name'),
+            sortDesc: $request->boolean('sort_desc', false)
         );
 
-        return Inertia::render('Admin/Integrations', $data);
+        return Inertia::render('Admin/Integrations', $paginationData);
     }
 
+    /**
+     * Show form for creating new integration
+     */
     public function create(): Response
     {
-        return Inertia::render('Admin/IntegrationForm', $this->integrationService->getFormData());
+        $formData = $this->integrationService->getFormData();
+        
+        return Inertia::render('Admin/IntegrationForm', $formData);
     }
 
+    /**
+     * Store newly created integration
+     */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
