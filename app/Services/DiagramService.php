@@ -2,15 +2,22 @@
 
 namespace App\Services;
 
+use App\DTOs\DiagramDataDTO;
+use App\DTOs\DiagramEdgeDTO;
+use App\DTOs\DiagramNodeDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\Stream;
-use App\Models\StreamLayout;
+use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use Illuminate\Support\Collection;
 
 class DiagramService
 {
     private const ALLOWED_STREAMS = ['sp', 'mi', 'ssk', 'moneter', 'market'];
+
+    public function __construct(
+        private readonly StreamLayoutRepositoryInterface $streamLayoutRepository
+    ) {}
 
     /**
      * Validate stream name
@@ -96,17 +103,7 @@ class DiagramService
      */
     public function getSavedLayout(string $streamName): ?array
     {
-        $streamLayout = StreamLayout::where('stream_name', $streamName)->first();
-        
-        if (!$streamLayout) {
-            return null;
-        }
-
-        return [
-            'nodes_layout' => $streamLayout->nodes_layout,
-            'edges_layout' => $streamLayout->edges_layout,
-            'stream_config' => $streamLayout->stream_config,
-        ];
+        return $this->streamLayoutRepository->getLayoutData($streamName);
     }
 
     /**
@@ -118,7 +115,7 @@ class DiagramService
             throw new \InvalidArgumentException('Invalid stream name');
         }
 
-        StreamLayout::saveLayout($streamName, $nodesLayout, $streamConfig, $edgesLayout);
+        $this->streamLayoutRepository->saveLayout($streamName, $nodesLayout, $edgesLayout, $streamConfig);
     }
 
     /**
@@ -203,13 +200,13 @@ class DiagramService
             : $edgeTransformer->transformForAdmin($integrations);
 
         // Get saved layout
-        $savedLayout = StreamLayout::where('stream_name', $streamName)->first();
+        $savedLayoutData = $this->streamLayoutRepository->getLayoutData($streamName);
 
         // Apply saved positions if available
-        if ($savedLayout && $savedLayout->nodes_layout) {
+        if ($savedLayoutData && $savedLayoutData['nodes_layout']) {
             foreach ($nodes as &$node) {
-                if (isset($savedLayout->nodes_layout[$node['id']])) {
-                    $savedPosition = $savedLayout->nodes_layout[$node['id']];
+                if (isset($savedLayoutData['nodes_layout'][$node['id']])) {
+                    $savedPosition = $savedLayoutData['nodes_layout'][$node['id']];
                     $node['position'] = [
                         'x' => $savedPosition['x'] ?? $node['position']['x'],
                         'y' => $savedPosition['y'] ?? $node['position']['y']
@@ -221,7 +218,7 @@ class DiagramService
         return [
             'nodes' => $nodes,
             'edges' => $edges,
-            'savedLayout' => $savedLayout,
+            'savedLayout' => $savedLayoutData,
         ];
     }
 }

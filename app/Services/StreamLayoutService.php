@@ -2,14 +2,18 @@
 
 namespace App\Services;
 
+use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\Stream;
-use App\Models\StreamLayout;
+use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use Illuminate\Support\Facades\Log;
 
 class StreamLayoutService
 {
+    public function __construct(
+        private readonly StreamLayoutRepositoryInterface $streamLayoutRepository
+    ) {}
     /**
      * Update stream layouts when integration data changes
      */
@@ -19,12 +23,12 @@ class StreamLayoutService
         $integration->load(['sourceApp.stream', 'targetApp.stream', 'connectionType']);
         
         // Get all stream layouts
-        $layouts = StreamLayout::all();
+        $layouts = $this->streamLayoutRepository->getAll();
         
-        foreach ($layouts as $layout) {
+        foreach ($layouts as $layoutDto) {
             $updated = false;
-            $edgesLayout = $layout->edges_layout ?? [];
-            $streamName = $layout->getAttribute('stream_name');
+            $edgesLayout = $layoutDto->edgesLayout;
+            $streamName = $layoutDto->streamName;
             
             // Check if this integration involves apps from this stream
             $sourceAppStream = $integration->sourceApp->stream->stream_name ?? null;
@@ -80,9 +84,13 @@ class StreamLayoutService
             
             // Save the updated layout if changes were made
             if ($updated) {
-                $layout->update([
-                    'edges_layout' => $edgesLayout,
-                ]);
+                $updatedDto = StreamLayoutDTO::forSave(
+                    $layoutDto->streamName,
+                    $layoutDto->nodesLayout,
+                    $edgesLayout,
+                    $layoutDto->streamConfig
+                );
+                $this->streamLayoutRepository->update($layoutDto->id, $updatedDto);
             }
         }
     }
@@ -92,8 +100,8 @@ class StreamLayoutService
      */
     public function synchronizeStreamLayoutEdges(string $streamName): int
     {
-        $layout = StreamLayout::where('stream_name', $streamName)->first();
-        if (!$layout) {
+        $layoutDto = $this->streamLayoutRepository->findByStreamName($streamName);
+        if (!$layoutDto) {
             return 0;
         }
 
@@ -131,7 +139,7 @@ class StreamLayoutService
             ->get();
 
         // Get existing edges layout to preserve handle positions
-        $existingEdgesLayout = $layout->edges_layout ?? [];
+        $existingEdgesLayout = $layoutDto->edgesLayout;
         $existingEdgesMap = [];
         foreach ($existingEdgesLayout as $edge) {
             $edgeId = $edge['id'] ?? '';
@@ -163,12 +171,12 @@ class StreamLayoutService
         }
 
         // Update stream config
-        $streamConfig = $layout->stream_config ?? [];
+        $streamConfig = $layoutDto->streamConfig;
         $streamConfig['totalEdges'] = count($newEdgesLayout);
         $streamConfig['lastUpdated'] = now()->toISOString();
 
         // Count of valid nodes (excluding stream parent node)
-        $nodesLayout = $layout->nodes_layout ?? [];
+        $nodesLayout = $layoutDto->nodesLayout;
         $validNodesCount = count(array_filter($nodesLayout, function($key) use ($streamName) {
             return $key !== $streamName && $key !== 'sp'; // Exclude stream parent nodes
         }, ARRAY_FILTER_USE_KEY));
@@ -176,10 +184,13 @@ class StreamLayoutService
         $streamConfig['totalNodes'] = $validNodesCount;
 
         // Update the layout
-        $layout->update([
-            'edges_layout' => $newEdgesLayout,
-            'stream_config' => $streamConfig
-        ]);
+        $updatedDto = StreamLayoutDTO::forSave(
+            $layoutDto->streamName,
+            $nodesLayout,
+            $newEdgesLayout,
+            $streamConfig
+        );
+        $this->streamLayoutRepository->update($layoutDto->id, $updatedDto);
 
         Log::info("Synchronized {$streamName} stream layout: " . count($newEdgesLayout) . " edges updated");
 
@@ -191,10 +202,10 @@ class StreamLayoutService
      */
     public function removeIntegrationFromLayouts(AppIntegration $integration): void
     {
-        $layouts = StreamLayout::all();
+        $layouts = $this->streamLayoutRepository->getAll();
         
-        foreach ($layouts as $layout) {
-            $edgesLayout = $layout->edges_layout ?? [];
+        foreach ($layouts as $layoutDto) {
+            $edgesLayout = $layoutDto->edgesLayout;
             $originalCount = count($edgesLayout);
             
             // Remove edges that involve this integration by integration_id
@@ -212,15 +223,18 @@ class StreamLayoutService
             
             // Update stream config if edges were removed
             if (count($edgesLayout) !== $originalCount) {
-                $streamConfig = $layout->stream_config ?? [];
+                $streamConfig = $layoutDto->streamConfig;
                 if (isset($streamConfig['totalEdges'])) {
                     $streamConfig['totalEdges'] = count($edgesLayout);
                 }
                 
-                $layout->update([
-                    'edges_layout' => array_values($edgesLayout), // Re-index array
-                    'stream_config' => $streamConfig,
-                ]);
+                $updatedDto = StreamLayoutDTO::forSave(
+                    $layoutDto->streamName,
+                    $layoutDto->nodesLayout,
+                    array_values($edgesLayout), // Re-index array
+                    $streamConfig
+                );
+                $this->streamLayoutRepository->update($layoutDto->id, $updatedDto);
             }
         }
     }

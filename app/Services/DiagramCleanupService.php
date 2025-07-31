@@ -2,13 +2,17 @@
 
 namespace App\Services;
 
+use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
-use App\Models\StreamLayout;
+use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use Illuminate\Support\Facades\Log;
 
 class DiagramCleanupService
 {
+    public function __construct(
+        private readonly StreamLayoutRepositoryInterface $streamLayoutRepository
+    ) {}
     /**
      * Remove duplicate integrations from the database
      */
@@ -111,21 +115,28 @@ class DiagramCleanupService
         $allValidAppIds = array_unique(array_merge($validAppIds, $externalAppIds));
 
         // Clean up layout data
-        $layout = StreamLayout::where('stream_name', $streamName)->first();
-        if ($layout && $layout->nodes_layout) {
+        $layoutDto = $this->streamLayoutRepository->findByStreamName($streamName);
+        if ($layoutDto && $layoutDto->nodesLayout) {
             $validNodeIds = collect($allValidAppIds)->map(fn($id) => (string)$id)->toArray();
             $validNodeIds[] = $streamName; // Include stream parent node
 
             $cleanedLayout = array_filter(
-                $layout->nodes_layout,
+                $layoutDto->nodesLayout,
                 fn($key) => in_array($key, $validNodeIds),
                 ARRAY_FILTER_USE_KEY
             );
 
-            if (count($cleanedLayout) !== count($layout->nodes_layout)) {
-                $removedCount = count($layout->nodes_layout) - count($cleanedLayout);
+            if (count($cleanedLayout) !== count($layoutDto->nodesLayout)) {
+                $removedCount = count($layoutDto->nodesLayout) - count($cleanedLayout);
                 Log::info("Cleaning layout for stream {$streamName}: {$removedCount} layout nodes removed from stream_layouts");
-                $layout->update(['nodes_layout' => $cleanedLayout]);
+                
+                $updatedDto = StreamLayoutDTO::forSave(
+                    $layoutDto->streamName,
+                    $cleanedLayout,
+                    $layoutDto->edgesLayout,
+                    $layoutDto->streamConfig
+                );
+                $this->streamLayoutRepository->update($layoutDto->id, $updatedDto);
             }
         }
     }
