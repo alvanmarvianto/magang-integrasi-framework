@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Interfaces;
 
+use App\DTOs\StreamDTO;
 use App\Models\Stream;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -18,14 +19,29 @@ interface StreamRepositoryInterface
     public function getAllWithApps(): Collection;
 
     /**
+     * Get all streams as DTOs
+     */
+    public function getAllAsDTO(): Collection;
+
+    /**
      * Find stream by ID
      */
     public function findById(int $id): ?Stream;
 
     /**
+     * Find stream by ID and return as DTO
+     */
+    public function findByIdAsDTO(int $id): ?StreamDTO;
+
+    /**
      * Find stream by name
      */
     public function findByName(string $name): ?Stream;
+
+    /**
+     * Find stream by name and return as DTO
+     */
+    public function findByNameAsDTO(string $name): ?StreamDTO;
 
     /**
      * Find stream by name with apps
@@ -38,9 +54,19 @@ interface StreamRepositoryInterface
     public function create(array $data): Stream;
 
     /**
+     * Create new stream from DTO
+     */
+    public function createFromDTO(StreamDTO $streamDTO): Stream;
+
+    /**
      * Update stream
      */
     public function update(Stream $stream, array $data): bool;
+
+    /**
+     * Update stream from DTO
+     */
+    public function updateFromDTO(Stream $stream, StreamDTO $streamDTO): bool;
 
     /**
      * Delete stream

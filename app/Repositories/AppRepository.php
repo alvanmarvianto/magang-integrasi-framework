@@ -4,22 +4,76 @@ namespace App\Repositories;
 
 use App\Models\App;
 use App\DTOs\AppDTO;
+use App\Repositories\BaseRepository;
+use App\Repositories\CacheConfig;
+use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
-class AppRepository implements AppRepositoryInterface
+class AppRepository extends BaseRepository implements AppRepositoryInterface
 {
-    private const CACHE_TTL = 3600; // 1 hour
-
     protected TechnologyRepositoryInterface $technologyRepository;
 
     public function __construct(TechnologyRepositoryInterface $technologyRepository)
     {
         $this->technologyRepository = $technologyRepository;
+    }
+
+    /**
+     * Get allowed sort fields for apps
+     */
+    protected function getAllowedSortFields(): array
+    {
+        return [
+            'app_name',
+            'app_type', 
+            'stratification',
+            'description',
+            'created_at',
+            'updated_at',
+            'stream_name',
+            'stream'
+        ];
+    }
+
+    /**
+     * Get default sort field for apps
+     */
+    protected function getDefaultSortField(): string
+    {
+        return 'app_name';
+    }
+
+    /**
+     * Get entity name for cache operations
+     */
+    protected function getEntityName(): string
+    {
+        return 'app';
+    }
+
+    /**
+     * Apply custom sorting logic for apps
+     */
+    protected function applySortingLogic($query, string $sortBy, string $direction): void
+    {
+        switch ($sortBy) {
+            case 'stream':
+            case 'stream_name':
+                $query->leftJoin('streams', 'apps.stream_id', '=', 'streams.stream_id')
+                      ->orderBy('streams.stream_name', $direction)
+                      ->select('apps.*');
+                break;
+            default:
+                $query->orderBy($sortBy, $direction);
+                break;
+        }
     }
 
     public function getPaginatedApps(
@@ -28,38 +82,60 @@ class AppRepository implements AppRepositoryInterface
         string $sortBy = 'app_name',
         bool $sortDesc = false
     ): LengthAwarePaginator {
-        $query = App::with([
-            'stream',
-            'vendors',
-            'operatingSystems',
-            'databases',
-            'programmingLanguages',
-            'frameworks',
-            'middlewares',
-            'thirdParties',
-            'platforms'
-        ]);
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('app_name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('stream', function ($streamQuery) use ($search) {
-                      $streamQuery->where('stream_name', 'like', "%{$search}%");
-                  });
-            });
+        // Validate parameters
+        $this->validatePaginationParams($perPage);
+        
+        if ($search !== null) {
+            $this->validateNotEmpty($search, 'search');
         }
 
-        $this->applySorting($query, $sortBy, $sortDesc);
+        try {
+            $query = App::with([
+                'stream',
+                'vendors',
+                'operatingSystems',
+                'databases',
+                'programmingLanguages',
+                'frameworks',
+                'middlewares',
+                'thirdParties',
+                'platforms'
+            ]);
 
-        return $query->paginate($perPage);
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('app_name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhereHas('stream', function ($streamQuery) use ($search) {
+                          $streamQuery->where('stream_name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            $this->applySorting($query, $sortBy, $sortDesc ? 'desc' : 'asc');
+
+            return $query->paginate($perPage);
+        } catch (\Exception $e) {
+            Log::error('Failed to get paginated apps', [
+                'search' => $search,
+                'perPage' => $perPage,
+                'sortBy' => $sortBy,
+                'sortDesc' => $sortDesc,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::createFailed('app pagination', $e->getMessage());
+        }
     }
 
     public function findWithRelations(int $id): ?App
     {
-        return Cache::remember(
-            "app.{$id}.with_relations",
-            self::CACHE_TTL,
+        $this->validateId($id);
+        
+        $cacheKey = $this->buildCacheKey('app', 'with_relations', $id);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => App::with([
                 'stream',
                 'vendors',
@@ -76,88 +152,138 @@ class AppRepository implements AppRepositoryInterface
 
     public function findAsDTO(int $id): ?AppDTO
     {
-        $app = $this->findWithRelations($id);
-        return $app ? AppDTO::fromModel($app) : null;
+        $this->validateId($id);
+        
+        try {
+            $app = $this->findWithRelations($id);
+            return $app ? AppDTO::fromModel($app) : null;
+        } catch (\Exception $e) {
+            Log::error('Failed to find app as DTO', [
+                'id' => $id,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::entityNotFound('app', $id);
+        }
     }
 
     public function createWithTechnology(AppDTO $appData): App
     {
-        return DB::transaction(function () use ($appData) {
-            $app = App::create([
-                'app_name' => $appData->appName,
-                'description' => $appData->description,
-                'stream_id' => $appData->streamId,
-                'app_type' => $appData->appType,
-                'stratification' => $appData->stratification,
+        // Validate required fields
+        $this->validateNotEmpty($appData->appName, 'appName');
+        $this->validateId($appData->streamId);
+
+        try {
+            return DB::transaction(function () use ($appData) {
+                $app = App::create([
+                    'app_name' => $appData->appName,
+                    'description' => $appData->description,
+                    'stream_id' => $appData->streamId,
+                    'app_type' => $appData->appType,
+                    'stratification' => $appData->stratification,
+                ]);
+
+                if (!empty($appData->technologyComponents)) {
+                    $this->technologyRepository->bulkUpdateTechnologyComponents(
+                        $app->app_id,
+                        $appData->technologyComponents
+                    );
+                }
+
+                $this->clearEntityCache($this->getEntityName(), $app->app_id);
+
+                return $app->load([
+                    'stream',
+                    'vendors',
+                    'operatingSystems',
+                    'databases',
+                    'programmingLanguages',
+                    'frameworks',
+                    'middlewares',
+                    'thirdParties',
+                    'platforms',
+                ]);
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to create app with technology', [
+                'appData' => $appData->toArray(),
+                'exception' => $e->getMessage()
             ]);
-
-            if (!empty($appData->technologyComponents)) {
-                $this->technologyRepository->bulkUpdateTechnologyComponents(
-                    $app->app_id,
-                    $appData->technologyComponents
-                );
-            }
-
-            $this->clearAppCache($app->app_id);
-
-            return $app->load([
-                'stream',
-                'vendors',
-                'operatingSystems',
-                'databases',
-                'programmingLanguages',
-                'frameworks',
-                'middlewares',
-                'thirdParties',
-                'platforms',
-            ]);
-        });
+            
+            throw RepositoryException::createFailed('app', $e->getMessage());
+        }
     }
 
     public function updateWithTechnology(App $app, AppDTO $appData): bool
     {
-        return DB::transaction(function () use ($app, $appData) {
-            $updated = $app->update([
-                'app_name' => $appData->appName,
-                'description' => $appData->description,
-                'stream_id' => $appData->streamId,
-                'app_type' => $appData->appType,
-                'stratification' => $appData->stratification,
+        // Validate required fields
+        $this->validateNotEmpty($appData->appName, 'appName');
+        $this->validateId($appData->streamId);
+
+        try {
+            return DB::transaction(function () use ($app, $appData) {
+                $updated = $app->update([
+                    'app_name' => $appData->appName,
+                    'description' => $appData->description,
+                    'stream_id' => $appData->streamId,
+                    'app_type' => $appData->appType,
+                    'stratification' => $appData->stratification,
+                ]);
+
+                if ($updated && !empty($appData->technologyComponents)) {
+                    $this->technologyRepository->bulkUpdateTechnologyComponents(
+                        $app->app_id,
+                        $appData->technologyComponents
+                    );
+                }
+
+                if ($updated) {
+                    $this->clearEntityCache($this->getEntityName(), $app->app_id);
+                }
+
+                return $updated;
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to update app with technology', [
+                'appId' => $app->app_id,
+                'appData' => $appData->toArray(),
+                'exception' => $e->getMessage()
             ]);
-
-            if ($updated && !empty($appData->technologyComponents)) {
-                $this->technologyRepository->bulkUpdateTechnologyComponents(
-                    $app->app_id,
-                    $appData->technologyComponents
-                );
-            }
-
-            if ($updated) {
-                $this->clearAppCache($app->app_id);
-            }
-
-            return $updated;
-        });
+            
+            throw RepositoryException::updateFailed('app', $app->app_id, $e->getMessage());
+        }
     }
 
     public function delete(App $app): bool
     {
         $appId = $app->app_id;
         
-        $deleted = $app->delete();
+        try {
+            $deleted = $app->delete();
 
-        if ($deleted) {
-            $this->clearAppCache($appId);
+            if ($deleted) {
+                $this->clearEntityCache($this->getEntityName(), $appId);
+            }
+
+            return $deleted;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete app', [
+                'appId' => $appId,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::deleteFailed('app', $appId, $e->getMessage());
         }
-
-        return $deleted;
     }
 
     public function getAppsByStreamId(int $streamId): Collection
     {
-        return Cache::remember(
-            "stream.{$streamId}.apps",
-            self::CACHE_TTL,
+        $this->validateId($streamId);
+        
+        $cacheKey = $this->buildCacheKey('stream', 'apps', $streamId);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => App::where('stream_id', $streamId)
                 ->with('stream')
                 ->orderBy('app_name')
@@ -167,9 +293,12 @@ class AppRepository implements AppRepositoryInterface
 
     public function getAppsByStreamName(string $streamName): Collection
     {
-        return Cache::remember(
-            "stream.name.{$streamName}.apps",
-            self::CACHE_TTL,
+        $this->validateNotEmpty($streamName, 'streamName');
+        
+        $cacheKey = $this->buildCacheKey('stream', 'name_apps', $streamName);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => App::whereHas('stream', function ($query) use ($streamName) {
                 $query->where('stream_name', $streamName);
             })->with('stream')->orderBy('app_name')->get()
@@ -178,26 +307,66 @@ class AppRepository implements AppRepositoryInterface
 
     public function getAppsByIds(array $appIds): Collection
     {
-        return App::whereIn('app_id', $appIds)
-            ->with('stream')
-            ->orderBy('app_name')
-            ->get();
+        if (empty($appIds)) {
+            return new Collection();
+        }
+
+        // Validate all IDs are positive integers
+        foreach ($appIds as $id) {
+            $this->validateId($id);
+        }
+
+        try {
+            return App::whereIn('app_id', $appIds)
+                ->with('stream')
+                ->orderBy('app_name')
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Failed to get apps by IDs', [
+                'appIds' => $appIds,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw new RepositoryException('Failed to get apps by IDs: ' . $e->getMessage());
+        }
     }
 
     public function searchAppsByName(string $searchTerm): Collection
     {
-        return App::where('app_name', 'like', "%{$searchTerm}%")
-            ->with('stream')
-            ->orderBy('app_name')
-            ->limit(20)
-            ->get();
+        $this->validateNotEmpty($searchTerm, 'searchTerm');
+
+        if (strlen($searchTerm) < 2) {
+            throw new InvalidArgumentException('Search term must be at least 2 characters');
+        }
+
+        try {
+            $cacheKey = $this->buildCacheKey('apps', 'search', $searchTerm);
+            
+            return $this->handleCacheOperation(
+                $cacheKey,
+                fn() => App::where('app_name', 'like', "%{$searchTerm}%")
+                    ->with('stream')
+                    ->orderBy('app_name')
+                    ->limit(20)
+                    ->get(),
+                CacheConfig::getTTL('search')
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to search apps by name', [
+                'searchTerm' => $searchTerm,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw new RepositoryException('Failed to search apps: ' . $e->getMessage());
+        }
     }
 
     public function getAppsWithIntegrationCounts(): Collection
     {
-        return Cache::remember(
-            'apps.with_integration_counts',
-            self::CACHE_TTL,
+        $cacheKey = $this->buildCacheKey('apps', 'with_integration_counts');
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             function () {
                 return App::withCount([
                     'integrations',
@@ -209,24 +378,29 @@ class AppRepository implements AppRepositoryInterface
                     $app->total_integrations = $app->integrations_count + $app->integrated_by_count;
                     return $app;
                 });
-            }
+            },
+            CacheConfig::getTTL('statistics')
         );
     }
 
     public function existsByName(string $appName): bool
     {
-        return Cache::remember(
-            "app.exists.{$appName}",
-            self::CACHE_TTL,
+        $this->validateNotEmpty($appName, 'appName');
+        
+        $cacheKey = $this->buildCacheKey('app', 'exists', $appName);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => App::where('app_name', $appName)->exists()
         );
     }
 
     public function getAppStatistics(): array
     {
-        return Cache::remember(
-            'apps.statistics',
-            self::CACHE_TTL,
+        $cacheKey = $this->buildCacheKey('apps', 'statistics');
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             function () {
                 $apps = App::with('stream')->get();
                 
@@ -238,67 +412,44 @@ class AppRepository implements AppRepositoryInterface
                     'apps_with_description' => $apps->whereNotNull('description')->count(),
                     'apps_without_description' => $apps->whereNull('description')->count(),
                 ];
-            }
+            },
+            CacheConfig::getTTL('statistics')
         );
     }
 
     public function bulkUpdateApps(array $appData): bool
     {
-        return DB::transaction(function () use ($appData) {
-            $updated = 0;
-            
-            foreach ($appData as $data) {
-                if (isset($data['app_id'])) {
-                    $app = App::find($data['app_id']);
-                    if ($app) {
-                        $appDTO = AppDTO::fromArray($data);
-                        if ($this->updateWithTechnology($app, $appDTO)) {
-                            $updated++;
+        if (empty($appData)) {
+            return false;
+        }
+
+        try {
+            return DB::transaction(function () use ($appData) {
+                $updated = 0;
+                
+                foreach ($appData as $data) {
+                    if (isset($data['app_id'])) {
+                        $this->validateId($data['app_id']);
+                        
+                        $app = App::find($data['app_id']);
+                        if ($app) {
+                            $appDTO = AppDTO::fromArray($data);
+                            if ($this->updateWithTechnology($app, $appDTO)) {
+                                $updated++;
+                            }
                         }
                     }
                 }
-            }
 
-            return $updated > 0;
-        });
-    }
-
-    private function applySorting($query, string $sortBy, bool $sortDesc): void
-    {
-        $sortDirection = $sortDesc ? 'desc' : 'asc';
-        
-        switch ($sortBy) {
-            case 'stream':
-            case 'stream_name':
-                $query->leftJoin('streams', 'apps.stream_id', '=', 'streams.stream_id')
-                      ->orderBy('streams.stream_name', $sortDirection)
-                      ->select('apps.*');
-                break;
-            case 'app_name':
-            case 'app_type':
-            case 'stratification':
-            case 'description':
-                $query->orderBy($sortBy, $sortDirection);
-                break;
-            default:
-                $query->orderBy('app_name', $sortDirection);
-                break;
-        }
-    }
-
-    private function clearAppCache(int $appId): void
-    {
-        Cache::forget("app.{$appId}.with_relations");
-        Cache::forget('apps.with_integration_counts');
-        Cache::forget('apps.statistics');
-        
-        // Clear stream-related caches
-        $app = App::find($appId);
-        if ($app && $app->stream_id) {
-            Cache::forget("stream.{$app->stream_id}.apps");
-            if ($app->stream) {
-                Cache::forget("stream.name.{$app->stream->stream_name}.apps");
-            }
+                return $updated > 0;
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to bulk update apps', [
+                'appDataCount' => count($appData),
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::updateFailed('bulk apps', 'multiple', $e->getMessage());
         }
     }
 } 

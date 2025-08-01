@@ -2,86 +2,213 @@
 
 namespace App\Repositories;
 
+use App\DTOs\StreamDTO;
 use App\Models\Stream;
+use App\Repositories\BaseRepository;
+use App\Repositories\CacheConfig;
+use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\StreamRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
-class StreamRepository implements StreamRepositoryInterface
+class StreamRepository extends BaseRepository implements StreamRepositoryInterface
 {
-    private const CACHE_TTL = 3600; // 1 hour
+    /**
+     * Get allowed sort fields for streams
+     */
+    protected function getAllowedSortFields(): array
+    {
+        return [
+            'stream_name',
+            'stream_id',
+            'created_at',
+            'updated_at'
+        ];
+    }
+
+    /**
+     * Get default sort field for streams
+     */
+    protected function getDefaultSortField(): string
+    {
+        return 'stream_name';
+    }
+
+    /**
+     * Get entity name for cache operations
+     */
+    protected function getEntityName(): string
+    {
+        return 'stream';
+    }
 
     public function getAll(): Collection
     {
-        return Cache::remember(
-            'streams.all',
-            self::CACHE_TTL,
+        $cacheKey = $this->buildCacheKey('streams', 'all');
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => Stream::orderBy('stream_name')->get()
         );
     }
 
     public function getAllWithApps(): Collection
     {
-        return Cache::remember(
-            'streams.all_with_apps',
-            self::CACHE_TTL,
+        $cacheKey = $this->buildCacheKey('streams', 'all_with_apps');
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => Stream::with('apps')->orderBy('stream_name')->get()
         );
     }
 
+    public function getAllAsDTO(): Collection
+    {
+        try {
+            $streams = $this->getAll();
+            return $streams->map(fn($stream) => StreamDTO::fromModel($stream));
+        } catch (\Exception $e) {
+            Log::error('Failed to get all streams as DTO', [
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw new RepositoryException('Failed to get streams as DTO: ' . $e->getMessage());
+        }
+    }
+
     public function findById(int $id): ?Stream
     {
-        return Cache::remember(
-            "stream.{$id}",
-            self::CACHE_TTL,
+        $this->validateId($id);
+        
+        $cacheKey = $this->buildCacheKey('stream', 'id', $id);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => Stream::find($id)
         );
     }
 
+    public function findByIdAsDTO(int $id): ?StreamDTO
+    {
+        try {
+            $stream = $this->findById($id);
+            return $stream ? StreamDTO::fromModel($stream) : null;
+        } catch (\Exception $e) {
+            Log::error('Failed to find stream by ID as DTO', [
+                'id' => $id,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::entityNotFound('stream', $id);
+        }
+    }
+
     public function findByName(string $name): ?Stream
     {
-        return Cache::remember(
-            "stream.name.{$name}",
-            self::CACHE_TTL,
+        $this->validateNotEmpty($name, 'stream name');
+        
+        $cacheKey = $this->buildCacheKey('stream', 'name', $name);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => Stream::where('stream_name', $name)->first()
         );
     }
 
+    public function findByNameAsDTO(string $name): ?StreamDTO
+    {
+        try {
+            $stream = $this->findByName($name);
+            return $stream ? StreamDTO::fromModel($stream) : null;
+        } catch (\Exception $e) {
+            Log::error('Failed to find stream by name as DTO', [
+                'name' => $name,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw new RepositoryException('Failed to find stream by name: ' . $e->getMessage());
+        }
+    }
+
     public function findByNameWithApps(string $name): ?Stream
     {
-        return Cache::remember(
-            "stream.name.{$name}.with_apps",
-            self::CACHE_TTL,
+        $this->validateNotEmpty($name, 'stream name');
+        
+        $cacheKey = $this->buildCacheKey('stream', 'name_with_apps', $name);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => Stream::with('apps')->where('stream_name', $name)->first()
         );
     }
 
     public function create(array $data): Stream
     {
-        $stream = Stream::create([
-            'stream_name' => $data['stream_name'],
+        $this->validateNotEmpty($data['stream_name'] ?? '', 'stream_name');
+
+        try {
+            $stream = Stream::create([
+                'stream_name' => $data['stream_name'],
+            ]);
+
+            $this->clearEntityCache($this->getEntityName());
+
+            return $stream;
+        } catch (\Exception $e) {
+            Log::error('Failed to create stream', [
+                'data' => $data,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::createFailed('stream', $e->getMessage());
+        }
+    }
+
+    public function createFromDTO(StreamDTO $streamDTO): Stream
+    {
+        return $this->create([
+            'stream_name' => $streamDTO->streamName
         ]);
-
-        $this->clearStreamCache();
-
-        return $stream;
     }
 
     public function update(Stream $stream, array $data): bool
     {
+        $this->validateNotEmpty($data['stream_name'] ?? '', 'stream_name');
+        
         $oldName = $stream->stream_name;
         
-        $updated = $stream->update([
-            'stream_name' => $data['stream_name'],
-        ]);
+        try {
+            $updated = $stream->update([
+                'stream_name' => $data['stream_name'],
+            ]);
 
-        if ($updated) {
-            $this->clearStreamCache();
-            Cache::forget("stream.name.{$oldName}");
-            Cache::forget("stream.name.{$oldName}.with_apps");
+            if ($updated) {
+                $this->clearEntityCache($this->getEntityName(), $stream->stream_id);
+                // Clear old name caches
+                Cache::forget($this->buildCacheKey('stream', 'name', $oldName));
+                Cache::forget($this->buildCacheKey('stream', 'name_with_apps', $oldName));
+            }
+
+            return $updated;
+        } catch (\Exception $e) {
+            Log::error('Failed to update stream', [
+                'streamId' => $stream->stream_id,
+                'data' => $data,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::updateFailed('stream', $stream->stream_id, $e->getMessage());
         }
+    }
 
-        return $updated;
+    public function updateFromDTO(Stream $stream, StreamDTO $streamDTO): bool
+    {
+        return $this->update($stream, [
+            'stream_name' => $streamDTO->streamName
+        ]);
     }
 
     public function delete(Stream $stream): bool
@@ -89,45 +216,64 @@ class StreamRepository implements StreamRepositoryInterface
         $streamName = $stream->stream_name;
         $streamId = $stream->stream_id;
         
-        $deleted = $stream->delete();
+        try {
+            $deleted = $stream->delete();
 
-        if ($deleted) {
-            $this->clearStreamCache();
-            Cache::forget("stream.{$streamId}");
-            Cache::forget("stream.name.{$streamName}");
-            Cache::forget("stream.name.{$streamName}.with_apps");
+            if ($deleted) {
+                $this->clearEntityCache($this->getEntityName(), $streamId);
+                Cache::forget($this->buildCacheKey('stream', 'name', $streamName));
+                Cache::forget($this->buildCacheKey('stream', 'name_with_apps', $streamName));
+            }
+
+            return $deleted;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete stream', [
+                'streamId' => $streamId,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::deleteFailed('stream', $streamId, $e->getMessage());
         }
-
-        return $deleted;
     }
 
     public function getStreamsByNames(array $names): Collection
     {
+        if (empty($names)) {
+            return new Collection();
+        }
+
+        foreach ($names as $name) {
+            $this->validateNotEmpty($name, 'stream name');
+        }
+
         $sortedNames = $names;
         sort($sortedNames);
-        $cacheKey = 'streams.names.' . md5(implode(',', $sortedNames));
+        $cacheKey = $this->buildCacheKey('streams', 'names', md5(implode(',', $sortedNames)));
         
-        return Cache::remember(
+        return $this->handleCacheOperation(
             $cacheKey,
-            self::CACHE_TTL,
             fn() => Stream::whereIn('stream_name', $names)->get()
         );
     }
 
     public function existsByName(string $name): bool
     {
-        return Cache::remember(
-            "stream.exists.{$name}",
-            self::CACHE_TTL,
+        $this->validateNotEmpty($name, 'stream name');
+        
+        $cacheKey = $this->buildCacheKey('stream', 'exists', $name);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             fn() => Stream::where('stream_name', $name)->exists()
         );
     }
 
     public function getStreamStatistics(): array
     {
-        return Cache::remember(
-            'streams.statistics',
-            self::CACHE_TTL,
+        $cacheKey = $this->buildCacheKey('streams', 'statistics');
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
             function () {
                 $streams = Stream::withCount('apps')->get();
                 
@@ -147,14 +293,8 @@ class StreamRepository implements StreamRepositoryInterface
                         ];
                     })->toArray(),
                 ];
-            }
+            },
+            CacheConfig::getTTL('statistics')
         );
-    }
-
-    private function clearStreamCache(): void
-    {
-        Cache::forget('streams.all');
-        Cache::forget('streams.all_with_apps');
-        Cache::forget('streams.statistics');
     }
 } 
