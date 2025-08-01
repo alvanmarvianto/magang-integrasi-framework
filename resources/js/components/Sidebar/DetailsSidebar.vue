@@ -192,7 +192,8 @@ function getConnectionBadgeClass(type: string): string {
   const typeMap: { [key: string]: string } = {
     'direct': 'badge-direct',
     'soa': 'badge-soa',
-    'sftp': 'badge-sftp'
+    'sftp': 'badge-sftp',
+    'soa-sftp': 'badge-soa-sftp'
   };
   return typeMap[type?.toLowerCase()] || 'badge-default';
 }
@@ -406,6 +407,12 @@ function editApp() {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.3);
   color: rgb(29, 78, 216);
+}
+
+.badge-soa-sftp {
+  background: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.3);
+  color: rgb(75, 85, 99);
 }
 
 .badge-default {

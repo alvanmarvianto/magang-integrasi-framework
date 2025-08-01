@@ -73,7 +73,7 @@ class EdgeTransformer
                 }
             }
 
-            return DiagramEdgeDTO::fromArray($edgeData);
+            return $edgeData;
         });
     }
 
@@ -142,7 +142,7 @@ class EdgeTransformer
                 }
             }
 
-            return DiagramEdgeDTO::fromArray($edgeData);
+            return $edgeData;
         });
     }
 }

@@ -174,7 +174,7 @@ const layoutChanged = ref(false)
 const vueFlowKey = ref(0) // Key to force VueFlow re-render
 const isInitializing = ref(false) // Flag to prevent marking changes during initialization
 // Use admin-specific edge handling
-const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling()
+const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, updateAdminEdgeStylesWithSelection, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling()
 
 // Get VueFlow instance and functions
 const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow()
@@ -374,7 +374,7 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     edges.value = moveEdgeToTop(edges.value, edgeId)
 
     // Apply proper styling
-    edges.value = updateAdminEdgeStyles(edges.value)
+    edges.value = updateAdminEdgeStylesWithSelection(edges.value)
 
     // Force VueFlow to re-render the edge with new handle positions
     nextTick(() => {
@@ -413,7 +413,7 @@ function onEdgeClick(event: any) {
   edges.value = moveEdgeToTop(edges.value, clickedEdgeId)
   
   handleEdgeClick(clickedEdgeId)
-  edges.value = updateAdminEdgeStyles(edges.value)
+  edges.value = updateAdminEdgeStylesWithSelection(edges.value)
   
   // Note: Clicking an edge does not mark layout as changed - only actual modifications do
 }
@@ -445,7 +445,7 @@ function closeDetails() {
 
 function onPaneClick(event: any) {
   handlePaneClick()
-  edges.value = updateAdminEdgeStyles(edges.value)
+  edges.value = updateAdminEdgeStylesWithSelection(edges.value)
   // Close details when clicking on pane
   if (showDetails.value) {
     closeDetails()

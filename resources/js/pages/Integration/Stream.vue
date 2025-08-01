@@ -154,6 +154,7 @@ const {
   removeDuplicateEdges,
   applyAutomaticLayoutWithConstraints,
   updateEdgeStyles,
+  updateEdgeStylesWithSelection,
   handleEdgeClick,
   handlePaneClick,
 } = useVueFlowUserView();
@@ -271,12 +272,12 @@ function onEdgeClick(event: any) {
   }
   
   handleEdgeClick(clickedEdgeId);
-  edges.value = updateEdgeStyles(edges.value);
+  edges.value = updateEdgeStylesWithSelection(edges.value);
 }
 
 function onPaneClick(event: any) {
   handlePaneClick();
-  edges.value = updateEdgeStyles(edges.value);
+  edges.value = updateEdgeStylesWithSelection(edges.value);
   // Close edge details when clicking on pane
   if (showEdgeDetails.value) {
     closeEdgeDetails();

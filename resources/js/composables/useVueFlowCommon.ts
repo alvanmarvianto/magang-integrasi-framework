@@ -35,6 +35,7 @@ const EDGE_COLORS: { [key: string]: string } = {
   'direct': '#000000',
   'soa': '#02a330', 
   'sftp': '#002ac0',
+  'soa-sftp': '#6b7280',
 };
 
 /**
@@ -308,7 +309,37 @@ export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
  * Update edge styles based on selection
  */
 export function updateEdgeStyles(edges: Edge[], selectedEdgeId?: string): Edge[] {
-  return edges.map(edge => createStyledEdge(edge, selectedEdgeId));
+  return edges.map(edge => {
+    // Preserve original color from backend or fall back to calculated color
+    const originalColor = edge.style?.stroke
+    const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct')
+    const isSelected = selectedEdgeId === edge.id;
+    const isBothWays = edge.data?.direction === 'both_ways';
+    
+    const updatedEdge = {
+      ...edge,
+      animated: isSelected,
+      style: {
+        ...edge.style,
+        stroke: edgeColor, // Use preserved color
+        strokeWidth: isSelected ? 4 : 2,
+      },
+      markerEnd: {
+        type: 'arrowclosed',
+        color: edgeColor,
+      } as any,
+    };
+
+    // Add arrow at the start for bidirectional connections
+    if (isBothWays) {
+      updatedEdge.markerStart = {
+        type: 'arrowclosed',
+        color: edgeColor,
+      } as any;
+    }
+
+    return updatedEdge;
+  });
 }
 
 /**
@@ -331,10 +362,15 @@ export function useEdgeSelection() {
     }
   }
   
+  function updateEdgeStylesWithSelection(edges: Edge[]): Edge[] {
+    return updateEdgeStyles(edges, selectedEdgeId.value ?? undefined);
+  }
+  
   return {
     selectedEdgeId,
     handleEdgeClick,
     handlePaneClick,
+    updateEdgeStylesWithSelection,
   };
 }
 
@@ -480,10 +516,29 @@ export function initializeEdgesWithLayout(
           sourceHandle: savedEdge.sourceHandle,
           targetHandle: savedEdge.targetHandle,
           style: savedEdge.style || freshEdge.style,
+          // Ensure we have proper data structure
+          data: {
+            ...freshEdge.data,
+            // Preserve connection type and direction from saved layout if available
+            connection_type: savedEdge.data?.connection_type || freshEdge.data?.connection_type || 'direct',
+            direction: savedEdge.data?.direction || freshEdge.data?.direction || 'one_way',
+            label: savedEdge.data?.label || freshEdge.data?.label || (savedEdge.data?.connection_type || 'direct'),
+          }
         };
       }
-      // If no fresh data found, use saved edge as fallback
-      return savedEdge;
+      // If no fresh data found, enhance saved edge with default values
+      return {
+        ...savedEdge,
+        data: {
+          ...savedEdge.data,
+          connection_type: savedEdge.data?.connection_type || 'direct',
+          direction: savedEdge.data?.direction || 'one_way',
+          label: savedEdge.data?.label || (savedEdge.data?.connection_type || 'direct'),
+          // Ensure we have app names for display
+          source_app_name: savedEdge.data?.source_app_name || `App ${savedEdge.source}`,
+          target_app_name: savedEdge.data?.target_app_name || `App ${savedEdge.target}`,
+        }
+      };
     });
     
     // Add any new edges that weren't in the saved layout
@@ -516,6 +571,8 @@ export function initializeEdgesWithLayout(
       } as any,
       data: {
         connection_type: edge.data?.connection_type || 'direct',
+        direction: edge.data?.direction || 'one_way',
+        label: edge.data?.label || (edge.data?.connection_type || 'direct'),
         ...edge.data
       }
     };

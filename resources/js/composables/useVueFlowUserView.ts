@@ -8,7 +8,7 @@ import {
 } from './useVueFlowCommon'
 
 export function useVueFlowUserView() {
-  const { selectedEdgeId, handleEdgeClick, handlePaneClick } = useEdgeSelection()
+  const { selectedEdgeId, handleEdgeClick, handlePaneClick, updateEdgeStylesWithSelection } = useEdgeSelection()
 
   return {
     selectedEdgeId,
@@ -17,6 +17,7 @@ export function useVueFlowUserView() {
     removeDuplicateEdges,
     applyAutomaticLayoutWithConstraints,
     updateEdgeStyles,
+    updateEdgeStylesWithSelection,
     handleEdgeClick,
     handlePaneClick,
   }
