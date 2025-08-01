@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\Stream;
+use App\Services\DiagramService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -12,11 +13,11 @@ class AppController extends Controller
 {
     private const ALLOWED_STREAMS = ['sp', 'mi', 'ssk', 'moneter', 'market'];
     
-    protected DiagramController $diagramController;
+    protected DiagramService $diagramService;
 
-    public function __construct(DiagramController $diagramController)
+    public function __construct(DiagramService $diagramService)
     {
-        $this->diagramController = $diagramController;
+        $this->diagramService = $diagramService;
     }
     public function index(): Response
     {
@@ -124,24 +125,6 @@ class AppController extends Controller
             'parentAppId' => $app->app_id,
             'appName' => $app->app_name,
             'streamName' => $app->stream?->stream_name,
-        ]);
-    }
-
-    public function vueFlowStreamIntegrations(string $streamName): Response
-    {
-        if (!$this->diagramController->validateStreamName($streamName)) {
-            abort(404, 'Stream not found');
-        }
-
-        $data = $this->diagramController->getVueFlowUserData($streamName);
-
-        return Inertia::render('Integration/Stream', [
-            'streamName' => $streamName,
-            'nodes' => $data['nodes'],
-            'edges' => $data['edges'],
-            'savedLayout' => $data['savedLayout'],
-            'streams' => $data['streams'],
-            'allowedStreams' => $data['allowedStreams'],
         ]);
     }
 }

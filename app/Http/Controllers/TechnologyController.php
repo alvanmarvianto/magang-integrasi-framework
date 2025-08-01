@@ -22,8 +22,8 @@ class TechnologyController extends Controller
 
     public function index(): Response
     {
-        // Get all available technology enums
-        $technologies = $this->getTechnologyEnums();
+        // Get all available technology enums using DTOs
+        $allTechnologies = $this->technologyService->getAllTechnologyTypes();
         
         // Get app type and stratification enums from the apps table
         $appTypes = $this->getEnumValues('apps', 'app_type');
@@ -33,14 +33,14 @@ class TechnologyController extends Controller
             'technologies' => [
                 'appTypes' => $appTypes,
                 'stratifications' => $stratifications,
-                'vendors' => $technologies['vendors'],
-                'operatingSystems' => $technologies['operatingSystems'],
-                'databases' => $technologies['databases'],
-                'languages' => $technologies['languages'],
-                'frameworks' => $technologies['frameworks'],
-                'middlewares' => $technologies['middlewares'],
-                'thirdParties' => $technologies['thirdParties'],
-                'platforms' => $technologies['platforms'],
+                'vendors' => $allTechnologies['vendors']->values ?? [],
+                'operatingSystems' => $allTechnologies['operatingSystems']->values ?? [],
+                'databases' => $allTechnologies['databases']->values ?? [],
+                'languages' => $allTechnologies['languages']->values ?? [],
+                'frameworks' => $allTechnologies['frameworks']->values ?? [],
+                'middlewares' => $allTechnologies['middlewares']->values ?? [],
+                'thirdParties' => $allTechnologies['thirdParties']->values ?? [],
+                'platforms' => $allTechnologies['platforms']->values ?? [],
             ]
         ]);
     }
@@ -51,18 +51,26 @@ class TechnologyController extends Controller
         $app = App::with(['stream'])
             ->findOrFail($appId);
         
-        // Fetch normalized technology data
+        // Fetch normalized technology data using DTOs
         $technologyData = [
             'app_type' => $app->getAttribute('app_type'),
             'stratification' => $app->getAttribute('stratification'),
-            'vendor' => $this->technologyService->getTechnologyData('technology_vendors', $app->getAttribute('app_id')),
-            'os' => $this->technologyService->getTechnologyData('technology_operating_systems', $app->getAttribute('app_id')),
-            'database' => $this->technologyService->getTechnologyData('technology_databases', $app->getAttribute('app_id')),
-            'language' => $this->technologyService->getTechnologyData('technology_programming_languages', $app->getAttribute('app_id')),
-            'third_party' => $this->technologyService->getTechnologyData('technology_third_parties', $app->getAttribute('app_id')),
-            'middleware' => $this->technologyService->getTechnologyData('technology_middlewares', $app->getAttribute('app_id')),
-            'framework' => $this->technologyService->getTechnologyData('technology_frameworks', $app->getAttribute('app_id')),
-            'platform' => $this->technologyService->getTechnologyData('technology_platforms', $app->getAttribute('app_id')),
+            'vendor' => $this->technologyService->getTechnologyData('technology_vendors', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'os' => $this->technologyService->getTechnologyData('technology_operating_systems', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'database' => $this->technologyService->getTechnologyData('technology_databases', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'language' => $this->technologyService->getTechnologyData('technology_programming_languages', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'third_party' => $this->technologyService->getTechnologyData('technology_third_parties', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'middleware' => $this->technologyService->getTechnologyData('technology_middlewares', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'framework' => $this->technologyService->getTechnologyData('technology_frameworks', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'platform' => $this->technologyService->getTechnologyData('technology_platforms', $app->getAttribute('app_id'))
+                ->map(fn($dto) => $dto->toArray())->toArray(),
         ];
 
         return Inertia::render('Technology/App', [
@@ -76,24 +84,10 @@ class TechnologyController extends Controller
 
     public function getAppType(string $appType): Response
     {
-        $apps = App::with('stream')->where('app_type', $appType)->get();
-        
-        $formattedApps = $apps->map(function ($app) use ($appType) {
-            return [
-                'id' => $app->getAttribute('app_id'),
-                'name' => $app->getAttribute('app_name'),
-                'description' => $app->getAttribute('description'),
-                'version' => null,
-                'stream' => [
-                    'id' => $app->stream?->stream_id,
-                    'name' => $app->stream?->stream_name
-                ],
-                'technology_detail' => strtoupper(str_replace('_', ' ', $appType))
-            ];
-        })->toArray();
+        $apps = $this->technologyService->getAppsByAttribute('app_type', $appType);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $formattedApps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'App Type',
             'technologyName' => strtoupper(str_replace('_', ' ', $appType)),
             'pageTitle' => strtoupper(str_replace('_', ' ', $appType)),
@@ -103,24 +97,10 @@ class TechnologyController extends Controller
 
     public function getStratification(string $stratification): Response
     {
-        $apps = App::with('stream')->where('stratification', $stratification)->get();
-        
-        $formattedApps = $apps->map(function ($app) use ($stratification) {
-            return [
-                'id' => $app->getAttribute('app_id'),
-                'name' => $app->getAttribute('app_name'),
-                'description' => $app->getAttribute('description'),
-                'version' => null,
-                'stream' => [
-                    'id' => $app->stream?->stream_id,
-                    'name' => $app->stream?->stream_name
-                ],
-                'technology_detail' => strtoupper(str_replace('_', ' ', $stratification))
-            ];
-        })->toArray();
+        $apps = $this->technologyService->getAppsByAttribute('stratification', $stratification);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $formattedApps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Stratification',
             'technologyName' => strtoupper(str_replace('_', ' ', $stratification)),
             'pageTitle' => strtoupper(str_replace('_', ' ', $stratification)),
@@ -133,7 +113,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_vendors', $vendorName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Vendor',
             'technologyName' => $vendorName,
             'pageTitle' => $vendorName,
@@ -146,7 +126,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_operating_systems', $osName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Operating System',
             'technologyName' => $osName,
             'pageTitle' => $osName,
@@ -159,7 +139,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_databases', $databaseName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Database',
             'technologyName' => $databaseName,
             'pageTitle' => $databaseName,
@@ -172,7 +152,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_programming_languages', $languageName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Programming Language',
             'technologyName' => $languageName,
             'pageTitle' => $languageName,
@@ -185,7 +165,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_third_parties', $thirdPartyName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Third Party',
             'technologyName' => $thirdPartyName,
             'pageTitle' => $thirdPartyName,
@@ -198,7 +178,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_middlewares', $middlewareName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Middleware',
             'technologyName' => $middlewareName,
             'pageTitle' => $middlewareName,
@@ -211,7 +191,7 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_frameworks', $frameworkName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Framework',
             'technologyName' => $frameworkName,
             'pageTitle' => $frameworkName,
@@ -224,11 +204,13 @@ class TechnologyController extends Controller
         $apps = $this->technologyService->getAppByCondition('technology_platforms', $platformName);
         
         return Inertia::render('Technology/Listing', [
-            'apps' => $apps,
+            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
             'technologyType' => 'Platform',
             'technologyName' => $platformName,
             'pageTitle' => $platformName,
             'icon' => 'fas fa-cloud'
         ]);
     }
+
+
 }

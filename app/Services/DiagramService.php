@@ -48,7 +48,7 @@ class DiagramService
      */
     public function getStreamApps(Stream $stream): Collection
     {
-        return App::where('stream_id', $stream->getAttribute('stream_id'))->get();
+        return App::with('stream')->where('stream_id', $stream->getAttribute('stream_id'))->get();
     }
 
     /**
@@ -58,25 +58,24 @@ class DiagramService
     {
         // Get apps that have integrations TO home stream apps
         $sourceAppIds = AppIntegration::whereIn('target_app_id', $homeAppIds)
+            ->whereNotIn('source_app_id', $homeAppIds)
             ->pluck('source_app_id')
             ->unique();
 
         // Get apps that have integrations FROM home stream apps
         $targetAppIds = AppIntegration::whereIn('source_app_id', $homeAppIds)
+            ->whereNotIn('target_app_id', $homeAppIds)
             ->pluck('target_app_id')
             ->unique();
 
         // Combine and remove home stream app IDs to get only external apps
-        $externalAppIds = $sourceAppIds->merge($targetAppIds)
-            ->diff($homeAppIds)
-            ->unique()
-            ->values();
+        $externalAppIds = $sourceAppIds->merge($targetAppIds)->unique();
 
         return App::whereIn('app_id', $externalAppIds)->with('stream')->get();
     }
 
     /**
-     * Get integrations involving specific apps
+     * Get integrations involving specific apps using DTOs
      */
     public function getIntegrations(array $appIds, array $homeAppIds = []): Collection
     {
@@ -99,15 +98,7 @@ class DiagramService
     }
 
     /**
-     * Get saved layout for a stream
-     */
-    public function getSavedLayout(string $streamName): ?array
-    {
-        return $this->streamLayoutRepository->getLayoutData($streamName);
-    }
-
-    /**
-     * Save layout configuration
+     * Save layout configuration using DTOs
      */
     public function saveLayout(string $streamName, array $nodesLayout, array $streamConfig, array $edgesLayout = []): void
     {
@@ -119,106 +110,73 @@ class DiagramService
     }
 
     /**
-     * Remove duplicate nodes by ID
+     * Get Vue Flow data for a specific stream using DTOs
      */
-    public function removeDuplicateNodes(array $nodes): array
-    {
-        $uniqueNodes = [];
-        $seenIds = [];
-        
-        foreach ($nodes as $node) {
-            $nodeId = $node['id'];
-            if (!in_array($nodeId, $seenIds)) {
-                $uniqueNodes[] = $node;
-                $seenIds[] = $nodeId;
-            }
-        }
-        
-        return $uniqueNodes;
-    }
-
-    /**
-     * Get Vue Flow data for a specific stream
-     */
-    public function getVueFlowData(string $streamName, bool $isUserView = false): array
+    public function getVueFlowData(string $streamName, bool $isUserView = false): DiagramDataDTO
     {
         // Validate stream
         if (!$this->validateStreamName($streamName)) {
-            return [
-                'nodes' => [],
-                'edges' => [],
-                'error' => "Stream '{$streamName}' not found"
-            ];
+            return DiagramDataDTO::withError('Invalid stream name');
         }
 
         $stream = $this->getStream($streamName);
         if (!$stream) {
-            return [
-                'nodes' => [],
-                'edges' => [],
-                'error' => "Stream '{$streamName}' not found"
-            ];
+            return DiagramDataDTO::withError('Stream not found');
         }
 
-        // Get apps in this stream
-        $streamApps = $this->getStreamApps($stream);
-        $streamAppIds = $streamApps->pluck('app_id')->toArray();
+        try {
+            // Get apps in this stream
+            $streamApps = $this->getStreamApps($stream);
+            $streamAppIds = $streamApps->pluck('app_id')->toArray();
 
-        // Get all integrations involving these stream apps
-        $integrations = AppIntegration::with(['sourceApp', 'targetApp', 'connectionType'])
-            ->where(function ($query) use ($streamAppIds) {
-                $query->whereIn('source_app_id', $streamAppIds)
-                      ->orWhereIn('target_app_id', $streamAppIds);
-            })
-            ->get();
+            // Get all integrations involving these stream apps
+            $integrations = AppIntegration::with(['sourceApp.stream', 'targetApp.stream', 'connectionType'])
+                ->where(function ($query) use ($streamAppIds) {
+                    $query->whereIn('source_app_id', $streamAppIds)
+                          ->orWhereIn('target_app_id', $streamAppIds);
+                })
+                ->get();
 
-        // Get connected external apps
-        $externalApps = $this->getConnectedExternalApps($streamAppIds);
+            // Get connected external apps with stream relationships
+            $externalApps = $this->getConnectedExternalApps($streamAppIds);
+            $externalApps->load('stream');
 
-        // Combine all apps
-        $allApps = $streamApps->merge($externalApps)->keyBy('app_id');
+            // Combine all apps
+            $allApps = $streamApps->merge($externalApps)->keyBy('app_id');
 
-        // Create nodes using transformer
-        $nodeTransformer = new \App\Services\NodeTransformer();
-        $nodes = [];
-        
-        // Add stream parent node
-        $nodes[] = $nodeTransformer->createStreamNode($streamName, !$isUserView);
-        
-        // Add stream apps
-        $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView);
-        $nodes = array_merge($nodes, $streamNodeApps);
-        
-        // Add external apps
-        $externalNodeApps = $nodeTransformer->transformExternalApps($externalApps, !$isUserView);
-        $nodes = array_merge($nodes, $externalNodeApps);
-
-        // Create edges using transformer
-        $edgeTransformer = new \App\Services\EdgeTransformer();
-        $edges = $isUserView 
-            ? $edgeTransformer->transformForUser($integrations)
-            : $edgeTransformer->transformForAdmin($integrations);
-
-        // Get saved layout
-        $savedLayoutData = $this->streamLayoutRepository->getLayoutData($streamName);
-
-        // Apply saved positions if available
-        if ($savedLayoutData && $savedLayoutData['nodes_layout']) {
-            foreach ($nodes as &$node) {
-                if (isset($savedLayoutData['nodes_layout'][$node['id']])) {
-                    $savedPosition = $savedLayoutData['nodes_layout'][$node['id']];
-                    $node['position'] = [
-                        'x' => $savedPosition['x'] ?? $node['position']['x'],
-                        'y' => $savedPosition['y'] ?? $node['position']['y']
-                    ];
-                }
+            // Create nodes using transformer
+            $nodeTransformer = new \App\Services\NodeTransformer();
+            $nodes = [];
+            
+            // Add stream parent node
+            $streamNodeData = $nodeTransformer->createStreamNode($streamName, !$isUserView);
+            $nodes[] = DiagramNodeDTO::fromArray($streamNodeData);
+            
+            // Add stream apps
+            $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView);
+            foreach ($streamNodeApps as $nodeData) {
+                $nodes[] = DiagramNodeDTO::fromArray($nodeData);
             }
-        }
+            
+            // Add external apps
+            $externalNodeApps = $nodeTransformer->transformExternalApps($externalApps, !$isUserView);
+            foreach ($externalNodeApps as $nodeData) {
+                $nodes[] = DiagramNodeDTO::fromArray($nodeData);
+            }
 
-        return [
-            'nodes' => $nodes,
-            'edges' => $edges,
-            'savedLayout' => $savedLayoutData,
-        ];
+            // Get saved layout if exists
+            $savedLayout = $this->streamLayoutRepository->getLayoutData($streamName);
+
+            // Create edges using transformer with saved layout
+            $edgeTransformer = new \App\Services\EdgeTransformer();
+            $edges = $isUserView 
+                ? $edgeTransformer->transformForUser($integrations, $savedLayout)
+                : $edgeTransformer->transformForAdmin($integrations, $savedLayout);
+
+            return DiagramDataDTO::create($nodes, $edges, $savedLayout);
+
+        } catch (\Exception $e) {
+            return DiagramDataDTO::withError('Failed to generate diagram data: ' . $e->getMessage());
+        }
     }
 }

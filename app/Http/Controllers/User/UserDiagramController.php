@@ -4,9 +4,8 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Services\DiagramService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UserDiagramController extends Controller
 {
@@ -18,39 +17,35 @@ class UserDiagramController extends Controller
     }
 
     /**
-     * Get Vue Flow data for user view
+     * Show diagram view for user
      */
-    public function getVueFlowData(string $streamName): JsonResponse
+    public function show(string $streamName): Response
     {
-        try {
-            $data = $this->diagramService->getVueFlowData($streamName, true);
-            return response()->json($data);
-        } catch (\Exception $e) {
-            Log::error('Error fetching user diagram data: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to load diagram data'], 500);
+        if (!$this->diagramService->validateStreamName($streamName)) {
+            abort(404, 'Stream not found');
         }
-    }
 
-    /**
-     * Save layout configuration for user (read-only, optional for future use)
-     */
-    public function saveLayout(Request $request, string $streamName): JsonResponse
-    {
         try {
-            // For user view, we could save user-specific layouts in the future
-            // For now, just return success without saving
-            return response()->json(['success' => true, 'message' => 'User layout preferences saved']);
-        } catch (\Exception $e) {
-            Log::error('Error saving user layout: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to save layout'], 500);
-        }
-    }
+            $diagramData = $this->diagramService->getVueFlowData($streamName, true);
+            $diagramArray = $diagramData->toArray();
 
-    /**
-     * Get allowed streams for user
-     */
-    public function getAllowedStreams(): JsonResponse
-    {
-        return response()->json($this->diagramService->getAllowedStreams());
+            return Inertia::render('User/Diagram', [
+                'streamName' => $streamName,
+                'nodes' => $diagramArray['nodes'] ?? [],
+                'edges' => $diagramArray['edges'] ?? [],
+                'savedLayout' => $diagramArray['layout'] ?? null,
+                'allowedStreams' => $this->diagramService->getAllowedStreams(),
+                'error' => $diagramArray['error'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            return Inertia::render('User/Diagram', [
+                'streamName' => $streamName,
+                'nodes' => [],
+                'edges' => [],
+                'savedLayout' => null,
+                'allowedStreams' => $this->diagramService->getAllowedStreams(),
+                'error' => 'Failed to load diagram data',
+            ]);
+        }
     }
 }

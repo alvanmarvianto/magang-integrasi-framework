@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AppController;
+use App\Http\Controllers\DiagramController;
 use App\Http\Controllers\TechnologyController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
@@ -13,7 +14,7 @@ use App\Http\Controllers\Admin\AdminDiagramController;
 
 Route::get('/', [AppController::class, 'index'])->name('index');
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
-Route::get('/integration/stream/{stream}', [AppController::class, 'vueFlowStreamIntegrations'])
+Route::get('/integration/stream/{stream}', [DiagramController::class, 'show'])
     ->name('integrations.stream');
 
 Route::prefix('technology')->as('technology.')->group(function () {
