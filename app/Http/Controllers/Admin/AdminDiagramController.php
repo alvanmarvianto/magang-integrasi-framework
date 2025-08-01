@@ -152,7 +152,10 @@ class AdminDiagramController extends Controller
      */
     public function cleanupDiagramData(array $data): array
     {
-        return $this->cleanupService->cleanupDiagramData($data);
+        // Convert array to DTO, clean it up, then convert back to array
+        $diagramDataDto = \App\DTOs\DiagramDataDTO::fromArray($data);
+        $cleanedDto = $this->cleanupService->cleanupDiagramData($diagramDataDto);
+        return $cleanedDto->toArray();
     }
 
     /**

@@ -2,10 +2,14 @@
 
 namespace App\Services;
 
+use App\DTOs\DiagramDataDTO;
+use App\DTOs\DiagramNodeDTO;
+use App\DTOs\DiagramEdgeDTO;
 use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class DiagramCleanupService
@@ -13,6 +17,7 @@ class DiagramCleanupService
     public function __construct(
         private readonly StreamLayoutRepositoryInterface $streamLayoutRepository
     ) {}
+
     /**
      * Remove duplicate integrations from the database
      */
@@ -144,14 +149,14 @@ class DiagramCleanupService
     /**
      * Clean up diagram data by removing non-existent apps and connections
      */
-    public function cleanupDiagramData(array $data): array
+    public function cleanupDiagramData(DiagramDataDTO $diagramData): DiagramDataDTO
     {
         // First, clean up duplicates and invalid integrations in the database
         $this->removeDuplicateIntegrations();
         $this->removeInvalidIntegrations();
 
-        $nodes = $data['nodes'] ?? [];
-        $edges = $data['edges'] ?? [];
+        $nodes = collect($diagramData->nodes);
+        $edges = collect($diagramData->edges);
 
         // Get all valid app IDs from the database
         $validAppIds = App::pluck('app_id')->map(fn($id) => (string)$id)->toArray();
@@ -164,23 +169,23 @@ class DiagramCleanupService
             });
 
         // Filter nodes - keep only stream nodes and valid app nodes
-        $cleanedNodes = array_filter($nodes, function($node) use ($validAppIds) {
+        $cleanedNodes = $nodes->filter(function($nodeDto) use ($validAppIds) {
             // Keep stream nodes (parent nodes)
-            if (isset($node['data']['is_parent_node']) && $node['data']['is_parent_node']) {
+            if (($nodeDto->data['is_parent_node'] ?? false)) {
                 return true;
             }
             
             // Keep only nodes that correspond to existing apps
-            return in_array($node['id'], $validAppIds);
+            return in_array($nodeDto->id, $validAppIds);
         });
 
         // Filter edges - keep only edges between valid apps with valid integrations
-        $cleanedEdges = [];
+        $cleanedEdges = collect();
         $seenConnections = [];
 
-        foreach ($edges as $edge) {
-            $sourceId = $edge['source'] ?? null;
-            $targetId = $edge['target'] ?? null;
+        foreach ($edges as $edgeDto) {
+            $sourceId = $edgeDto->source ?? null;
+            $targetId = $edgeDto->target ?? null;
             
             // Skip if either app doesn't exist
             if (!in_array($sourceId, $validAppIds) || !in_array($targetId, $validAppIds)) {
@@ -230,13 +235,15 @@ class DiagramCleanupService
                 ],
             ];
 
-            $cleanedEdges[] = $edgeData;
+            $cleanedEdges->push(DiagramEdgeDTO::fromArray($edgeData));
         }
 
-        return [
-            'nodes' => array_values($cleanedNodes),
-            'edges' => $cleanedEdges,
-            'savedLayout' => $data['savedLayout'] ?? null,
-        ];
+        return new DiagramDataDTO(
+            $cleanedNodes->values()->toArray(),
+            $cleanedEdges->values()->toArray(),
+            $diagramData->layout,
+            $diagramData->config,
+            $diagramData->error
+        );
     }
 }

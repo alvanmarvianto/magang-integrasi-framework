@@ -150,19 +150,15 @@ class DiagramService
             
             // Add stream parent node
             $streamNodeData = $nodeTransformer->createStreamNode($streamName, !$isUserView);
-            $nodes[] = DiagramNodeDTO::fromArray($streamNodeData);
+            $nodes[] = $streamNodeData;
             
             // Add stream apps
             $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView);
-            foreach ($streamNodeApps as $nodeData) {
-                $nodes[] = DiagramNodeDTO::fromArray($nodeData);
-            }
+            $nodes = array_merge($nodes, $streamNodeApps->toArray());
             
             // Add external apps
             $externalNodeApps = $nodeTransformer->transformExternalApps($externalApps, !$isUserView);
-            foreach ($externalNodeApps as $nodeData) {
-                $nodes[] = DiagramNodeDTO::fromArray($nodeData);
-            }
+            $nodes = array_merge($nodes, $externalNodeApps->toArray());
 
             // Get saved layout if exists
             $savedLayout = $this->streamLayoutRepository->getLayoutData($streamName);
@@ -173,7 +169,7 @@ class DiagramService
                 ? $edgeTransformer->transformForUser($integrations, $savedLayout)
                 : $edgeTransformer->transformForAdmin($integrations, $savedLayout);
 
-            return DiagramDataDTO::create($nodes, $edges, $savedLayout);
+            return DiagramDataDTO::create($nodes, $edges->toArray(), $savedLayout);
 
         } catch (\Exception $e) {
             return DiagramDataDTO::withError('Failed to generate diagram data: ' . $e->getMessage());

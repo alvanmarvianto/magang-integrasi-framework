@@ -28,7 +28,17 @@ class AppRepository implements AppRepositoryInterface
         string $sortBy = 'app_name',
         bool $sortDesc = false
     ): LengthAwarePaginator {
-        $query = App::with('stream');
+        $query = App::with([
+            'stream',
+            'vendors',
+            'operatingSystems',
+            'databases',
+            'programmingLanguages',
+            'frameworks',
+            'middlewares',
+            'thirdParties',
+            'platforms'
+        ]);
 
         if ($search) {
             $query->where(function ($q) use ($search) {

@@ -193,14 +193,17 @@ interface Props {
     stream_id: number;
     app_type: string | null;
     stratification: string | null;
-    vendors: RawTechItem[];
-    operating_systems: RawTechItem[];
-    databases: RawTechItem[];
-    programming_languages: RawTechItem[];
-    frameworks: RawTechItem[];
-    middlewares: RawTechItem[];
-    third_parties: RawTechItem[];
-    platforms: RawTechItem[];
+    stream_name: string;
+    technology_components: {
+      vendors: RawTechItem[];
+      operating_systems: RawTechItem[];
+      databases: RawTechItem[];
+      languages: RawTechItem[];
+      frameworks: RawTechItem[];
+      middlewares: RawTechItem[];
+      third_parties: RawTechItem[];
+      platforms: RawTechItem[];
+    };
   };
   streams: {
     data: {
@@ -211,6 +214,16 @@ interface Props {
   }[];
   appTypes: string[];
   stratifications: string[];
+  technologyOptions: {
+    vendors: string[];
+    operating_systems: string[];
+    databases: string[];
+    programming_languages: string[];
+    frameworks: string[];
+    middlewares: string[];
+    third_parties: string[];
+    platforms: string[];
+  };
   vendors: string[];
   operatingSystems: string[];
   databases: string[];
@@ -243,45 +256,44 @@ onMounted(() => {
   try {
     if (props.app) {
       // Get raw values from the Proxy object
-      const rawApp = JSON.parse(JSON.stringify(props.app));
+      const appData = props.app;
+      const techComponents = appData.technology_components || {};
       
-      // Initialize form with app data
-      const appData = rawApp.data;  // Access the nested data property
       form.value = {
         app_name: appData.app_name,
         description: appData.description,
         stream_id: appData.stream_id,
         app_type: appData.app_type,
         stratification: appData.stratification,
-        vendors: (appData.vendors || []).map((v: RawTechItem) => ({ 
+        vendors: (techComponents.vendors || []).map((v: RawTechItem) => ({ 
           name: v.name || '', 
           version: v.version || undefined 
         })),
-        operating_systems: (appData.operating_systems || []).map((os: RawTechItem) => ({ 
+        operating_systems: (techComponents.operating_systems || []).map((os: RawTechItem) => ({ 
           name: os.name || '', 
           version: os.version || undefined 
         })),
-        databases: (appData.databases || []).map((db: RawTechItem) => ({ 
+        databases: (techComponents.databases || []).map((db: RawTechItem) => ({ 
           name: db.name || '', 
           version: db.version || undefined 
         })),
-        languages: (appData.programming_languages || []).map((lang: RawTechItem) => ({ 
+        languages: (techComponents.languages || []).map((lang: RawTechItem) => ({ 
           name: lang.name || '', 
           version: lang.version || undefined 
         })),
-        frameworks: (appData.frameworks || []).map((fw: RawTechItem) => ({ 
+        frameworks: (techComponents.frameworks || []).map((fw: RawTechItem) => ({ 
           name: fw.name || '', 
           version: fw.version || undefined 
         })),
-        middlewares: (appData.middlewares || []).map((mw: RawTechItem) => ({ 
+        middlewares: (techComponents.middlewares || []).map((mw: RawTechItem) => ({ 
           name: mw.name || '', 
           version: mw.version || undefined 
         })),
-        third_parties: (appData.third_parties || []).map((tp: RawTechItem) => ({ 
+        third_parties: (techComponents.third_parties || []).map((tp: RawTechItem) => ({ 
           name: tp.name || '', 
           version: tp.version || undefined 
         })),
-        platforms: (appData.platforms || []).map((p: RawTechItem) => ({ 
+        platforms: (techComponents.platforms || []).map((p: RawTechItem) => ({ 
           name: p.name || '', 
           version: p.version || undefined 
         })),
@@ -302,7 +314,7 @@ function removeItem(type: string, index: number) {
 
 function submit() {
   if (props.app) {
-    router.put(`/admin/apps/${JSON.parse(JSON.stringify(props.app)).data.app_id}`, form.value, {
+    router.put(`/admin/apps/${props.app.app_id}`, form.value, {
       onSuccess: () => {
         showSuccess('Aplikasi berhasil diperbarui');
       },

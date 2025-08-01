@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\DTOs\DiagramEdgeDTO;
 use App\Models\AppIntegration;
 use Illuminate\Support\Collection;
 
@@ -10,7 +11,7 @@ class EdgeTransformer
     /**
      * Transform integrations to edges for admin view
      */
-    public function transformForAdmin(Collection $integrations, ?array $savedLayout = null): array
+    public function transformForAdmin(Collection $integrations, ?array $savedLayout = null): Collection
     {
         $edgesLayout = $savedLayout['edges'] ?? [];
         
@@ -28,7 +29,7 @@ class EdgeTransformer
             // Find saved edge layout for this edge
             $savedEdge = collect($edgesLayout)->firstWhere('id', $edgeId);
 
-            $edge = [
+            $edgeData = [
                 'id' => $edgeId,
                 'source' => (string)$integration->getAttribute('source_app_id'),
                 'target' => (string)$integration->getAttribute('target_app_id'),
@@ -61,25 +62,25 @@ class EdgeTransformer
             // Add handle information if available in saved layout
             if ($savedEdge) {
                 if (isset($savedEdge['sourceHandle'])) {
-                    $edge['sourceHandle'] = $savedEdge['sourceHandle'];
+                    $edgeData['sourceHandle'] = $savedEdge['sourceHandle'];
                 }
                 if (isset($savedEdge['targetHandle'])) {
-                    $edge['targetHandle'] = $savedEdge['targetHandle'];
+                    $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
                 // Override style if saved layout has different styling
                 if (isset($savedEdge['style'])) {
-                    $edge['style'] = array_merge($edge['style'], $savedEdge['style']);
+                    $edgeData['style'] = array_merge($edgeData['style'], $savedEdge['style']);
                 }
             }
 
-            return $edge;
-        })->toArray();
+            return DiagramEdgeDTO::fromArray($edgeData);
+        });
     }
 
     /**
      * Transform integrations to edges for user view
      */
-    public function transformForUser(Collection $integrations, ?array $savedLayout = null): array
+    public function transformForUser(Collection $integrations, ?array $savedLayout = null): Collection
     {
         $edgesLayout = $savedLayout['edges'] ?? [];
         
@@ -97,7 +98,7 @@ class EdgeTransformer
             // Find saved edge layout for this edge
             $savedEdge = collect($edgesLayout)->firstWhere('id', $edgeId);
 
-            $edge = [
+            $edgeData = [
                 'id' => $edgeId,
                 'source' => (string)$integration->getAttribute('source_app_id'),
                 'target' => (string)$integration->getAttribute('target_app_id'),
@@ -130,18 +131,18 @@ class EdgeTransformer
             // Add handle information if available in saved layout
             if ($savedEdge) {
                 if (isset($savedEdge['sourceHandle'])) {
-                    $edge['sourceHandle'] = $savedEdge['sourceHandle'];
+                    $edgeData['sourceHandle'] = $savedEdge['sourceHandle'];
                 }
                 if (isset($savedEdge['targetHandle'])) {
-                    $edge['targetHandle'] = $savedEdge['targetHandle'];
+                    $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
                 // Override style if saved layout has different styling
                 if (isset($savedEdge['style'])) {
-                    $edge['style'] = array_merge($edge['style'], $savedEdge['style']);
+                    $edgeData['style'] = array_merge($edgeData['style'], $savedEdge['style']);
                 }
             }
 
-            return $edge;
-        })->toArray();
+            return DiagramEdgeDTO::fromArray($edgeData);
+        });
     }
 }

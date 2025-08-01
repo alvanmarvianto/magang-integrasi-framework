@@ -2,6 +2,8 @@
 
 namespace App\DTOs;
 
+use App\DTOs\TechnologyComponentDTO;
+
 readonly class AppDTO
 {
     public function __construct(
@@ -9,8 +11,8 @@ readonly class AppDTO
         public string $appName,
         public ?string $description,
         public int $streamId,
-        public string $appType,
-        public string $stratification,
+        public ?string $appType,
+        public ?string $stratification,
         public ?string $streamName = null,
         public array $technologyComponents = []
     ) {}
@@ -22,8 +24,8 @@ readonly class AppDTO
             appName: $data['app_name'],
             description: $data['description'] ?? null,
             streamId: $data['stream_id'],
-            appType: $data['app_type'],
-            stratification: $data['stratification'],
+            appType: $data['app_type'] ?? null,
+            stratification: $data['stratification'] ?? null,
             streamName: $data['stream_name'] ?? null,
             technologyComponents: $data['technology_components'] ?? []
         );

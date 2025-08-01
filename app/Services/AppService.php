@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\App;
 use App\DTOs\AppDTO;
-use App\Http\Resources\AppResource;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
@@ -40,10 +39,29 @@ class AppService
         string $sortBy = 'app_name',
         bool $sortDesc = false
     ): array {
-        $apps = $this->appRepository->getPaginatedApps($search, $perPage, $sortBy, $sortDesc);
+        $paginatedApps = $this->appRepository->getPaginatedApps($search, $perPage, $sortBy, $sortDesc);
+        
+        // Convert the paginated app models to DTOs
+        $appDTOs = $paginatedApps->map(function ($app) {
+            return AppDTO::fromModel($app);
+        });
+        
+        // Create pagination data structure that matches Laravel's default pagination
+        $paginationData = [
+            'data' => $appDTOs->map(fn($dto) => $dto->toArray())->all(),
+            'meta' => [
+                'current_page' => $paginatedApps->currentPage(),
+                'last_page' => $paginatedApps->lastPage(),
+                'per_page' => $paginatedApps->perPage(),
+                'total' => $paginatedApps->total(),
+                'from' => $paginatedApps->firstItem(),
+                'to' => $paginatedApps->lastItem(),
+                'links' => $this->buildPaginationLinks($paginatedApps),
+            ],
+        ];
         
         return [
-            'apps' => AppResource::collection($apps),
+            'apps' => $paginationData,
             'streams' => $this->streamService->getAllStreams(),
         ];
     }
@@ -54,13 +72,25 @@ class AppService
     public function getFormData(?int $appId = null): array
     {
         $appDTO = $appId ? $this->appRepository->findAsDTO($appId) : null;
+        $technologyOptions = $this->getTechnologyOptions();
 
         return [
             'app' => $appDTO ? $appDTO->toArray() : null,
-            'streams' => $this->streamService->getAllStreams(),
+            'streams' => $this->streamService->getAllStreams()->map(fn($streamDto) => [
+                'data' => $streamDto->toArray()
+            ]),
             'appTypes' => $this->getAppTypes(),
             'stratifications' => $this->getStratifications(),
-            'technologyOptions' => $this->getTechnologyOptions(),
+            'technologyOptions' => $technologyOptions,
+            // Individual technology arrays for frontend compatibility
+            'vendors' => $technologyOptions['vendors'] ?? [],
+            'operatingSystems' => $technologyOptions['operating_systems'] ?? [],
+            'databases' => $technologyOptions['databases'] ?? [],
+            'languages' => $technologyOptions['programming_languages'] ?? [],
+            'frameworks' => $technologyOptions['frameworks'] ?? [],
+            'middlewares' => $technologyOptions['middlewares'] ?? [],
+            'thirdParties' => $technologyOptions['third_parties'] ?? [],
+            'platforms' => $technologyOptions['platforms'] ?? [],
         ];
     }
 
@@ -238,5 +268,38 @@ class AppService
             stratification: $validatedData['stratification'],
             technologyComponents: $technologyComponents
         );
+    }
+
+    /**
+     * Build pagination links array that matches Laravel's default pagination format
+     */
+    private function buildPaginationLinks($paginator): array
+    {
+        $links = [];
+        
+        // Previous link
+        $links[] = [
+            'url' => $paginator->previousPageUrl(),
+            'label' => '&laquo; Previous',
+            'active' => false,
+        ];
+        
+        // Page number links
+        foreach (range(1, $paginator->lastPage()) as $page) {
+            $links[] = [
+                'url' => $paginator->url($page),
+                'label' => (string) $page,
+                'active' => $page === $paginator->currentPage(),
+            ];
+        }
+        
+        // Next link
+        $links[] = [
+            'url' => $paginator->nextPageUrl(),
+            'label' => 'Next &raquo;',
+            'active' => false,
+        ];
+        
+        return $links;
     }
 } 

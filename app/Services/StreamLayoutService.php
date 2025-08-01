@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\DTOs\DiagramEdgeDTO;
 use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\Stream;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class StreamLayoutService
@@ -14,6 +16,7 @@ class StreamLayoutService
     public function __construct(
         private readonly StreamLayoutRepositoryInterface $streamLayoutRepository
     ) {}
+
     /**
      * Update stream layouts when integration data changes
      */
@@ -77,8 +80,8 @@ class StreamLayoutService
             
             // If no existing edge was found, add a new edge for this integration
             if (!$foundExistingEdge) {
-                $newEdge = $this->createNewEdgeFromIntegration($integration);
-                $edgesLayout[] = $newEdge;
+                $newEdgeDto = $this->createNewEdgeFromIntegration($integration);
+                $edgesLayout[] = $newEdgeDto->toArray();
                 $updated = true;
             }
             
@@ -158,7 +161,8 @@ class StreamLayoutService
                 $existingEdge = $existingEdgesMap[$edgeId] ?? null;
 
                 // Create new edge data with current integration data
-                $newEdge = $this->createNewEdgeFromIntegration($integration);
+                $newEdgeDto = $this->createNewEdgeFromIntegration($integration);
+                $newEdge = $newEdgeDto->toArray();
                 
                 // Preserve handle positions if they exist
                 if ($existingEdge) {
@@ -287,12 +291,12 @@ class StreamLayoutService
     /**
      * Create a new edge from integration data
      */
-    private function createNewEdgeFromIntegration(AppIntegration $integration): array
+    private function createNewEdgeFromIntegration(AppIntegration $integration): DiagramEdgeDTO
     {
         $connectionType = $integration->connectionType->type_name ?? 'direct';
         $edgeColor = $this->getEdgeColorByConnectionType($connectionType);
         
-        return [
+        $edgeData = [
             'id' => $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
             'source' => (string)$integration->getAttribute('source_app_id'),
             'target' => (string)$integration->getAttribute('target_app_id'),
@@ -325,6 +329,8 @@ class StreamLayoutService
                 ]
             ]
         ];
+
+        return DiagramEdgeDTO::fromArray($edgeData);
     }
 
     /**

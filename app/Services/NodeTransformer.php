@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\DTOs\DiagramNodeDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use Illuminate\Support\Collection;
@@ -11,13 +12,14 @@ class NodeTransformer
     /**
      * Create stream parent node
      */
-    public function createStreamNode(string $streamName, bool $isAdmin = false): array
+    public function createStreamNode(string $streamName, bool $isAdmin = false): DiagramNodeDTO
     {
-        $baseData = [
+        $nodeData = [
             'id' => $streamName,
             'data' => [
                 'label' => strtoupper($streamName) . ' Stream',
                 'app_id' => -1,
+                'app_name' => strtoupper($streamName) . ' Stream',
                 'stream_name' => $streamName,
                 'lingkup' => $streamName,
                 'is_home_stream' => true,
@@ -26,24 +28,33 @@ class NodeTransformer
         ];
 
         if (!$isAdmin) {
-            $baseData['type'] = 'stream';
-            $baseData['position'] = ['x' => 100, 'y' => 100];
-            $baseData['style'] = [
+            $nodeData['type'] = 'stream';
+            $nodeData['position'] = ['x' => 100, 'y' => 100];
+            $nodeData['style'] = [
                 'backgroundColor' => 'rgba(59, 130, 246, 0.3)',
                 'width' => '400px',
                 'height' => '300px',
                 'border' => '2px solid #3b82f6',
                 'borderRadius' => '8px',
             ];
+        } else {
+            $nodeData['type'] = 'group';
+            $nodeData['position'] = ['x' => 0, 'y' => 0];
+            $nodeData['style'] = [
+                'backgroundColor' => 'rgba(240, 240, 240, 0.25)',
+                'width' => 600,
+                'height' => 400,
+                'border' => '2px dashed #999',
+            ];
         }
 
-        return $baseData;
+        return DiagramNodeDTO::fromArray($nodeData);
     }
 
     /**
      * Transform home stream apps to nodes
      */
-    public function transformHomeStreamApps(Collection $apps, string $streamName, bool $isAdmin = false): array
+    public function transformHomeStreamApps(Collection $apps, string $streamName, bool $isAdmin = false): Collection
     {
         return $apps->map(function ($app) use ($streamName, $isAdmin) {
             $appStreamName = $app->stream?->stream_name ?? $streamName;
@@ -59,6 +70,7 @@ class NodeTransformer
                     'lingkup' => $appStreamName,
                     'is_home_stream' => true,
                     'is_external' => false,
+                    'is_parent_node' => false,
                 ]
             ];
 
@@ -70,20 +82,19 @@ class NodeTransformer
                 $baseData['extent'] = 'parent';
             } else {
                 $baseData['type'] = 'app';
-                $baseData['data']['is_parent_node'] = false;
                 $baseData['position'] = ['x' => 0, 'y' => 0];
                 $baseData['parentNode'] = null;
                 $baseData['extent'] = null;
             }
 
-            return $baseData;
-        })->toArray();
+            return DiagramNodeDTO::fromArray($baseData);
+        });
     }
 
     /**
      * Transform external apps to nodes
      */
-    public function transformExternalApps(Collection $apps, bool $isAdmin = false): array
+    public function transformExternalApps(Collection $apps, bool $isAdmin = false): Collection
     {
         return $apps->map(function ($app) use ($isAdmin) {
             $appStreamName = $app->stream?->stream_name ?? 'external';
@@ -99,6 +110,7 @@ class NodeTransformer
                     'lingkup' => $appStreamName,
                     'is_home_stream' => false,
                     'is_external' => true,
+                    'is_parent_node' => false,
                 ]
             ];
 
@@ -110,13 +122,12 @@ class NodeTransformer
                 $baseData['extent'] = null;
             } else {
                 $baseData['type'] = 'app';
-                $baseData['data']['is_parent_node'] = false;
                 $baseData['position'] = ['x' => 0, 'y' => 0];
                 $baseData['parentNode'] = null;
                 $baseData['extent'] = null;
             }
 
-            return $baseData;
-        })->toArray();
+            return DiagramNodeDTO::fromArray($baseData);
+        });
     }
 }

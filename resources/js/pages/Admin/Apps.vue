@@ -41,7 +41,7 @@
         </template>
         
         <template #column:stream="{ item }">
-          {{ getStreamName(item.stream_id) }}
+          {{ item.stream_name || '-' }}
         </template>
         
         <template #column:actions="{ item }">
@@ -91,6 +91,7 @@ interface App {
     stream_name: string;
   };
   stream_id: number;
+  stream_name: string | null;
   app_type: string | null;
   stratification: string | null;
   vendors: Array<{ name: string; version: string | null; }>;
@@ -132,12 +133,6 @@ const columns = [
   { key: 'stream', label: 'Stream', sortable: true },
   { key: 'actions', label: 'Aksi', centered: true }
 ];
-
-function getStreamName(streamId: number): string {
-  if (!props.streams) return '-';
-  const stream = props.streams.find(s => s.data?.stream_id === streamId);
-  return stream?.data?.stream_name ?? '-';
-}
 
 function deleteApp(appId: number) {
   if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
