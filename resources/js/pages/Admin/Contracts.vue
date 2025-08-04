@@ -91,17 +91,6 @@
           </span>
         </template>
         
-        <template #column:contract_value="{ item }">
-          <div class="text-right">
-            <div v-if="item.currency_type === 'rp'" class="font-medium">
-              {{ formatCurrency(item.contract_value_rp) }}
-            </div>
-            <div v-else class="font-medium">
-              {{ formatCurrency(item.contract_value_non_rp) }}
-            </div>
-          </div>
-        </template>
-        
         <template #column:actions="{ item }">
           <div class="flex justify-center gap-2">
             <a 
@@ -184,21 +173,8 @@ const columns = [
   { key: 'title', label: 'Contract Title', sortable: true },
   { key: 'contract_number', label: 'Contract Number', sortable: true },
   { key: 'currency_type', label: 'Currency', sortable: true },
-  { key: 'contract_value', label: 'Contract Value', sortable: false, centered: true },
   { key: 'actions', label: 'Actions', centered: true }
 ];
-
-const formatCurrency = (value: string | number): string => {
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(numValue)) return '0';
-  
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(numValue);
-};
 
 function deleteContract(contractId: number) {
   if (confirm('Are you sure you want to delete this contract?')) {

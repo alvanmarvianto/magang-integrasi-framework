@@ -130,6 +130,17 @@
         </div>
       </div>
     </div>
+    
+    <!-- Bottom Add Button for better UX -->
+    <div v-if="periods.length > 0" class="period-section-bottom">
+      <button
+        type="button"
+        @click="$emit('add')"
+        class="period-section-add-bottom"
+      >
+        <font-awesome-icon icon="fa-solid fa-plus" /> Tambah Periode Lainnya
+      </button>
+    </div>
   </div>
 </template>
 
@@ -313,5 +324,39 @@ defineEmits<{
   background-color: var(--danger-color);
   color: white;
   border-color: var(--danger-color);
+}
+
+.period-section-bottom {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+}
+
+.period-section-add-bottom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.period-section-add-bottom:hover {
+  background-color: var(--primary-color-dark, #1e40af);
+  border-color: var(--primary-color-dark, #1e40af);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.period-section-add-bottom:active {
+  transform: translateY(1px);
 }
 </style>

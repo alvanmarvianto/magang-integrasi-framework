@@ -13,7 +13,7 @@
               required
             >
               <option value="">Pilih Aplikasi</option>
-              <option v-for="app in formData.apps" :key="app.app_id" :value="app.app_id">
+              <option v-for="app in sortedApps" :key="app.app_id" :value="app.app_id">
                 {{ app.app_name }}
               </option>
             </select>
@@ -139,7 +139,7 @@
 
 <script setup lang="ts">
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminForm from '@/components/Admin/AdminForm.vue';
 import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
@@ -190,6 +190,12 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// Computed property to sort apps alphabetically
+const sortedApps = computed(() => {
+  if (!props.formData?.apps) return [];
+  return [...props.formData.apps].sort((a, b) => a.app_name.localeCompare(b.app_name));
+});
+
 const form = ref({
   app_id: '',
   title: '',
@@ -221,7 +227,7 @@ onMounted(() => {
     
     // Load existing contract periods if available
     if (props.contract.contract_periods && Array.isArray(props.contract.contract_periods)) {
-      contractPeriods.value = props.contract.contract_periods.map(period => ({
+      const periods = props.contract.contract_periods.map(period => ({
         id: period.id,
         period_name: period.period_name || '',
         budget_type: period.budget_type || '',
@@ -231,6 +237,30 @@ onMounted(() => {
         payment_value_non_rp: period.payment_value_non_rp || '',
         payment_status: period.payment_status || ''
       }));
+      
+      // Sort periods by start_date, then by end_date
+      periods.sort((a, b) => {
+        // Handle empty dates - put them at the top
+        if (!a.start_date && !b.start_date) {
+          if (!a.end_date && !b.end_date) return 0;
+          if (!a.end_date) return -1;
+          if (!b.end_date) return 1;
+          return a.end_date.localeCompare(b.end_date);
+        }
+        if (!a.start_date) return -1;
+        if (!b.start_date) return 1;
+        
+        const startComparison = a.start_date.localeCompare(b.start_date);
+        if (startComparison !== 0) return startComparison;
+        
+        // If start dates are equal, sort by end date
+        if (!a.end_date && !b.end_date) return 0;
+        if (!a.end_date) return -1;
+        if (!b.end_date) return 1;
+        return a.end_date.localeCompare(b.end_date);
+      });
+      
+      contractPeriods.value = periods;
     }
   }
 });
