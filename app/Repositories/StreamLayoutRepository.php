@@ -4,15 +4,14 @@ namespace App\Repositories;
 
 use App\DTOs\StreamLayoutDTO;
 use App\Models\StreamLayout;
+use App\Repositories\CacheConfig;
+use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class StreamLayoutRepository implements StreamLayoutRepositoryInterface
 {
-    private const CACHE_PREFIX = 'stream_layout';
-    private const CACHE_TTL = 3600; // 1 hour
-
     public function __construct(
         private readonly StreamLayout $model
     ) {}
@@ -22,10 +21,19 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
      */
     public function getAll(): Collection
     {
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'all');
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            self::CACHE_PREFIX . '.all',
-            self::CACHE_TTL,
-            fn() => $this->model->all()->map(fn($layout) => StreamLayoutDTO::fromModel($layout))
+            $cacheKey,
+            $cacheTTL,
+            function() {
+                try {
+                    return $this->model->all()->map(fn($layout) => StreamLayoutDTO::fromModel($layout));
+                } catch (\Exception $e) {
+                    throw RepositoryException::createFailed('stream layouts list', $e->getMessage());
+                }
+            }
         );
     }
 
@@ -34,14 +42,23 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
      */
     public function findById(int $id): ?StreamLayoutDTO
     {
-        $cacheKey = self::CACHE_PREFIX . ".id.{$id}";
+        if ($id <= 0) {
+            throw new \InvalidArgumentException('ID must be a positive integer');
+        }
+
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'id', $id);
+        $cacheTTL = CacheConfig::getTTL('default');
         
         return Cache::remember(
             $cacheKey,
-            self::CACHE_TTL,
+            $cacheTTL,
             function() use ($id) {
-                $layout = $this->model->find($id);
-                return $layout ? StreamLayoutDTO::fromModel($layout) : null;
+                try {
+                    $layout = $this->model->find($id);
+                    return $layout ? StreamLayoutDTO::fromModel($layout) : null;
+                } catch (\Exception $e) {
+                    throw RepositoryException::entityNotFound('stream layout', $id);
+                }
             }
         );
     }
@@ -51,11 +68,12 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
      */
     public function findByStreamName(string $streamName): ?StreamLayoutDTO
     {
-        $cacheKey = self::CACHE_PREFIX . ".stream_name.{$streamName}";
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'stream_name', $streamName);
+        $cacheTTL = CacheConfig::getTTL('default');
         
         return Cache::remember(
             $cacheKey,
-            self::CACHE_TTL,
+            $cacheTTL,
             function() use ($streamName) {
                 $layout = $this->model->where('stream_name', $streamName)->first();
                 return $layout ? StreamLayoutDTO::fromModel($layout) : null;
@@ -91,8 +109,8 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         
         // Clear relevant caches
         $this->clearCaches();
-        Cache::forget(self::CACHE_PREFIX . ".id.{$id}");
-        Cache::forget(self::CACHE_PREFIX . ".stream_name.{$dto->streamName}");
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'id', $id));
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_name', $dto->streamName));
         
         return StreamLayoutDTO::fromModel($layout->fresh());
     }
@@ -113,7 +131,7 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         
         // Clear relevant caches
         $this->clearCaches();
-        Cache::forget(self::CACHE_PREFIX . ".stream_name.{$streamName}");
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_name', $streamName));
         
         return StreamLayoutDTO::fromModel($layout);
     }
@@ -135,8 +153,8 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         if ($deleted) {
             // Clear relevant caches
             $this->clearCaches();
-            Cache::forget(self::CACHE_PREFIX . ".id.{$id}");
-            Cache::forget(self::CACHE_PREFIX . ".stream_name.{$streamName}");
+            Cache::forget(CacheConfig::buildKey('stream_layout', 'id', $id));
+            Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_name', $streamName));
         }
         
         return $deleted;
@@ -216,9 +234,12 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
      */
     public function getStatistics(): array
     {
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'statistics');
+        $cacheTTL = CacheConfig::getTTL('statistics');
+        
         return Cache::remember(
-            self::CACHE_PREFIX . '.statistics',
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             function() {
                 $totalLayouts = $this->model->count();
                 
@@ -233,13 +254,13 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
                         'largest_layout_edges' => 0,
                     ];
                 }
-                
+
                 $layouts = $this->model->all();
                 $totalNodes = 0;
                 $totalEdges = 0;
                 $maxNodes = 0;
                 $maxEdges = 0;
-                
+
                 foreach ($layouts as $layout) {
                     $nodeCount = count($layout->nodes_layout ?? []);
                     $edgeCount = count($layout->edges_layout ?? []);
@@ -249,7 +270,7 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
                     $maxNodes = max($maxNodes, $nodeCount);
                     $maxEdges = max($maxEdges, $edgeCount);
                 }
-                
+
                 return [
                     'total_layouts' => $totalLayouts,
                     'avg_nodes_per_layout' => round($totalNodes / $totalLayouts, 2),
@@ -261,16 +282,17 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
                 ];
             }
         );
-    }
-
-    /**
+    }    /**
      * Get streams with most nodes
      */
     public function getStreamsWithMostNodes(int $limit = 10): Collection
     {
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'most_nodes', $limit);
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            self::CACHE_PREFIX . ".most_nodes.{$limit}",
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             function() use ($limit) {
                 return $this->model->all()
                     ->map(function($layout) {
@@ -292,9 +314,12 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
      */
     public function getStreamsWithMostEdges(int $limit = 10): Collection
     {
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'most_edges', $limit);
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            self::CACHE_PREFIX . ".most_edges.{$limit}",
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             function() use ($limit) {
                 return $this->model->all()
                     ->map(function($layout) {
@@ -316,13 +341,13 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
      */
     private function clearCaches(): void
     {
-        Cache::forget(self::CACHE_PREFIX . '.all');
-        Cache::forget(self::CACHE_PREFIX . '.statistics');
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'all'));
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'statistics'));
         
         // Clear cached lists
         for ($i = 1; $i <= 20; $i++) {
-            Cache::forget(self::CACHE_PREFIX . ".most_nodes.{$i}");
-            Cache::forget(self::CACHE_PREFIX . ".most_edges.{$i}");
+            Cache::forget(CacheConfig::buildKey('stream_layout', 'most_nodes', $i));
+            Cache::forget(CacheConfig::buildKey('stream_layout', 'most_edges', $i));
         }
     }
 }

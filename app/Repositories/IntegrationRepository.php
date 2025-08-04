@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\DTOs\IntegrationDTO;
+use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\IntegrationRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -12,58 +13,81 @@ use Illuminate\Support\Facades\Cache;
 
 class IntegrationRepository implements IntegrationRepositoryInterface
 {
-    private const CACHE_TTL = 3600; // 1 hour
-
     public function getPaginatedIntegrations(
         ?string $search = null,
         int $perPage = 10,
         string $sortBy = 'source_app_name',
         bool $sortDesc = false
     ): LengthAwarePaginator {
-        $query = AppIntegration::with(['connectionType', 'sourceApp', 'targetApp']);
-
-        if ($search) {
-            $query->where(function ($query) use ($search) {
-                $query->whereHas('sourceApp', function ($q) use ($search) {
-                    $q->where('app_name', 'like', "%{$search}%");
-                })->orWhereHas('targetApp', function ($q) use ($search) {
-                    $q->where('app_name', 'like', "%{$search}%");
-                })->orWhereHas('connectionType', function ($q) use ($search) {
-                    $q->where('type_name', 'like', "%{$search}%");
-                });
-            });
+        if ($perPage < 1 || $perPage > 100) {
+            throw new \InvalidArgumentException('Per page must be between 1 and 100');
         }
 
-        $this->applySorting($query, $sortBy, $sortDesc);
+        try {
+            $query = AppIntegration::with(['connectionType', 'sourceApp', 'targetApp']);
 
-        return $query->paginate($perPage);
+            if ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('sourceApp', function ($q) use ($search) {
+                        $q->where('app_name', 'like', "%{$search}%");
+                    })->orWhereHas('targetApp', function ($q) use ($search) {
+                        $q->where('app_name', 'like', "%{$search}%");
+                    })->orWhereHas('connectionType', function ($q) use ($search) {
+                        $q->where('type_name', 'like', "%{$search}%");
+                    });
+                });
+            }
+
+            $this->applySorting($query, $sortBy, $sortDesc);
+
+            return $query->paginate($perPage);
+        } catch (\Exception $e) {
+            throw RepositoryException::createFailed('paginated integrations', $e->getMessage());
+        }
     }
 
     public function findWithRelations(int $integrationId): ?AppIntegration
     {
+        if ($integrationId <= 0) {
+            throw new \InvalidArgumentException('Integration ID must be a positive integer');
+        }
+
+        $cacheKey = CacheConfig::buildKey('integration', 'with_relations', $integrationId);
+        $cacheTTL = CacheConfig::getTTL('relations');
+
         return Cache::remember(
-            "integration.{$integrationId}.with_relations",
-            self::CACHE_TTL,
-            fn() => AppIntegration::with(['connectionType', 'sourceApp.stream', 'targetApp.stream'])
-                ->find($integrationId)
+            $cacheKey,
+            $cacheTTL,
+            function() use ($integrationId) {
+                try {
+                    return AppIntegration::with(['connectionType', 'sourceApp.stream', 'targetApp.stream'])
+                        ->find($integrationId);
+                } catch (\Exception $e) {
+                    throw RepositoryException::entityNotFound('integration', $integrationId);
+                }
+            }
         );
     }
 
     public function create(IntegrationDTO $integrationData): AppIntegration
     {
-        $integration = AppIntegration::create([
-            'source_app_id' => $integrationData->sourceAppId,
-            'target_app_id' => $integrationData->targetAppId,
-            'connection_type_id' => $integrationData->connectionTypeId,
-            'inbound' => $integrationData->inbound,
-            'outbound' => $integrationData->outbound,
-            'connection_endpoint' => $integrationData->connectionEndpoint,
-            'direction' => $integrationData->direction,
-        ]);
+        try {
+            $integration = AppIntegration::create([
+                'source_app_id' => $integrationData->sourceAppId,
+                'target_app_id' => $integrationData->targetAppId,
+                'connection_type_id' => $integrationData->connectionTypeId,
+                'inbound' => $integrationData->inbound,
+                'outbound' => $integrationData->outbound,
+                'connection_endpoint' => $integrationData->connectionEndpoint,
+                'direction' => $integrationData->direction,
+            ]);
 
-        $this->clearIntegrationCache($integrationData->sourceAppId, $integrationData->targetAppId);
+            $this->clearIntegrationCache($integrationData->sourceAppId, $integrationData->targetAppId);
 
-        return $integration->load(['connectionType', 'sourceApp', 'targetApp']);
+            return $integration->load(['connectionType', 'sourceApp', 'targetApp']);
+        } catch (\Exception $e) {
+            throw RepositoryException::createFailed('integration', $e->getMessage());
+        }
     }
 
     public function update(AppIntegration $integration, IntegrationDTO $integrationData): bool
@@ -71,23 +95,27 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         $oldSourceAppId = $integration->source_app_id;
         $oldTargetAppId = $integration->target_app_id;
 
-        $updated = $integration->update([
-            'source_app_id' => $integrationData->sourceAppId,
-            'target_app_id' => $integrationData->targetAppId,
-            'connection_type_id' => $integrationData->connectionTypeId,
-            'inbound' => $integrationData->inbound,
-            'outbound' => $integrationData->outbound,
-            'connection_endpoint' => $integrationData->connectionEndpoint,
-            'direction' => $integrationData->direction,
-        ]);
+        try {
+            $updated = $integration->update([
+                'source_app_id' => $integrationData->sourceAppId,
+                'target_app_id' => $integrationData->targetAppId,
+                'connection_type_id' => $integrationData->connectionTypeId,
+                'inbound' => $integrationData->inbound,
+                'outbound' => $integrationData->outbound,
+                'connection_endpoint' => $integrationData->connectionEndpoint,
+                'direction' => $integrationData->direction,
+            ]);
 
-        if ($updated) {
-            $this->clearIntegrationCache($oldSourceAppId, $oldTargetAppId);
-            $this->clearIntegrationCache($integrationData->sourceAppId, $integrationData->targetAppId);
-            Cache::forget("integration.{$integration->integration_id}.with_relations");
+            if ($updated) {
+                $this->clearIntegrationCache($oldSourceAppId, $oldTargetAppId);
+                $this->clearIntegrationCache($integrationData->sourceAppId, $integrationData->targetAppId);
+                Cache::forget("integration.{$integration->integration_id}.with_relations");
+            }
+
+            return $updated;
+        } catch (\Exception $e) {
+            throw RepositoryException::updateFailed('integration', $integration->integration_id, $e->getMessage());
         }
-
-        return $updated;
     }
 
     public function delete(AppIntegration $integration): bool
@@ -96,21 +124,28 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         $targetAppId = $integration->target_app_id;
         $integrationId = $integration->integration_id;
 
-        $deleted = $integration->delete();
+        try {
+            $deleted = $integration->delete();
 
-        if ($deleted) {
-            $this->clearIntegrationCache($sourceAppId, $targetAppId);
-            Cache::forget("integration.{$integrationId}.with_relations");
+            if ($deleted) {
+                $this->clearIntegrationCache($sourceAppId, $targetAppId);
+                Cache::forget("integration.{$integrationId}.with_relations");
+            }
+
+            return $deleted;
+        } catch (\Exception $e) {
+            throw RepositoryException::deleteFailed('integration', $integrationId, $e->getMessage());
         }
-
-        return $deleted;
     }
 
     public function getIntegrationsForApp(int $appId): Collection
     {
+        $cacheKey = CacheConfig::buildKey('app', 'integrations', $appId);
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            "app.{$appId}.integrations",
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             fn() => AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
                 ->where('source_app_id', $appId)
                 ->orWhere('target_app_id', $appId)
@@ -120,11 +155,12 @@ class IntegrationRepository implements IntegrationRepositoryInterface
 
     public function getIntegrationsBetweenApps(int $sourceAppId, int $targetAppId): Collection
     {
-        $cacheKey = "integrations.{$sourceAppId}.{$targetAppId}";
+        $cacheKey = CacheConfig::buildKey('integrations', 'between_apps', $sourceAppId, $targetAppId);
+        $cacheTTL = CacheConfig::getTTL('default');
         
         return Cache::remember(
             $cacheKey,
-            self::CACHE_TTL,
+            $cacheTTL,
             fn() => AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
                 ->where(function ($query) use ($sourceAppId, $targetAppId) {
                     $query->where('source_app_id', $sourceAppId)
@@ -151,9 +187,12 @@ class IntegrationRepository implements IntegrationRepositoryInterface
 
     public function getConnectedAppsForApp(int $appId): Collection
     {
+        $cacheKey = CacheConfig::buildKey('app', 'connected_apps', $appId);
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            "app.{$appId}.connected_apps",
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             function () use ($appId) {
                 $sourceAppIds = AppIntegration::where('target_app_id', $appId)
                     ->pluck('source_app_id');
@@ -265,11 +304,14 @@ class IntegrationRepository implements IntegrationRepositoryInterface
 
     private function clearIntegrationCache(int $sourceAppId, int $targetAppId): void
     {
-        Cache::forget("app.{$sourceAppId}.integrations");
-        Cache::forget("app.{$targetAppId}.integrations");
-        Cache::forget("app.{$sourceAppId}.connected_apps");
-        Cache::forget("app.{$targetAppId}.connected_apps");
-        Cache::forget("integrations.{$sourceAppId}.{$targetAppId}");
-        Cache::forget("integrations.{$targetAppId}.{$sourceAppId}");
+        // Clear using CacheConfig format
+        Cache::forget(CacheConfig::buildKey('app', 'integrations', $sourceAppId));
+        Cache::forget(CacheConfig::buildKey('app', 'integrations', $targetAppId));
+        Cache::forget(CacheConfig::buildKey('app', 'connected_apps', $sourceAppId));
+        Cache::forget(CacheConfig::buildKey('app', 'connected_apps', $targetAppId));
+        Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $sourceAppId, $targetAppId));
+        Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $targetAppId, $sourceAppId));
+        Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $sourceAppId));
+        Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $targetAppId));
     }
 }

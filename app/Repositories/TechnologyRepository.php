@@ -4,15 +4,14 @@ namespace App\Repositories;
 
 use App\DTOs\TechnologyComponentDTO;
 use App\DTOs\TechnologyEnumDTO;
+use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
 class TechnologyRepository implements TechnologyRepositoryInterface
-{
-    private const CACHE_TTL = 3600; // 1 hour
-    
+{    
     private const TECHNOLOGY_TYPE_MAPPINGS = [
         'vendors' => [
             'table' => 'technology_vendors',
@@ -58,62 +57,94 @@ class TechnologyRepository implements TechnologyRepositoryInterface
 
     public function getEnumValues(string $tableName): TechnologyEnumDTO
     {
+        if (empty(trim($tableName))) {
+            throw new \InvalidArgumentException('Table name cannot be empty');
+        }
+
+        $cacheKey = CacheConfig::buildKey('technology', 'enum', $tableName);
+        $cacheTTL = CacheConfig::getTTL('long'); // Cache for longer since enum values rarely change
+        
         return Cache::remember(
-            "technology.enum.{$tableName}",
-            self::CACHE_TTL * 24, // Cache for 24 hours since enum values rarely change
+            $cacheKey,
+            $cacheTTL,
             function () use ($tableName) {
-                $type = DB::table('information_schema.COLUMNS')
-                    ->where('TABLE_NAME', $tableName)
-                    ->where('COLUMN_NAME', 'name')
-                    ->value('COLUMN_TYPE');
+                try {
+                    $type = DB::table('information_schema.COLUMNS')
+                        ->where('TABLE_NAME', $tableName)
+                        ->where('COLUMN_NAME', 'name')
+                        ->value('COLUMN_TYPE');
 
-                if (!$type || !str_starts_with($type, 'enum')) {
-                    return new TechnologyEnumDTO($tableName, []);
+                    if (!$type || !str_starts_with($type, 'enum')) {
+                        return new TechnologyEnumDTO($tableName, []);
+                    }
+
+                    preg_match('/^enum\((.*)\)$/', $type, $matches);
+                    $values = str_getcsv($matches[1], ',', "'");
+
+                    $cleanValues = array_map(fn($value) => trim($value), $values);
+
+                    return new TechnologyEnumDTO($tableName, $cleanValues);
+                } catch (\Exception $e) {
+                    throw RepositoryException::createFailed("technology enum values for {$tableName}", $e->getMessage());
                 }
-
-                preg_match('/^enum\((.*)\)$/', $type, $matches);
-                $values = str_getcsv($matches[1], ',', "'");
-
-                $cleanValues = array_map(fn($value) => trim($value), $values);
-
-                return new TechnologyEnumDTO($tableName, $cleanValues);
             }
         );
     }
 
     public function getTechnologyComponentsForApp(int $appId, string $technologyType): Collection
     {
+        if ($appId <= 0) {
+            throw new \InvalidArgumentException('App ID must be a positive integer');
+        }
+
         $mapping = $this->getTechnologyTypeMapping($technologyType);
         
+        $cacheKey = CacheConfig::buildKey('app', $appId, 'technology', $technologyType);
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            "app.{$appId}.technology.{$technologyType}",
-            self::CACHE_TTL,
-            fn() => $mapping['model']::where('app_id', $appId)->get()
+            $cacheKey,
+            $cacheTTL,
+            function() use ($appId, $mapping) {
+                try {
+                    return $mapping['model']::where('app_id', $appId)->get();
+                } catch (\Exception $e) {
+                    throw RepositoryException::createFailed("technology components for app {$appId}", $e->getMessage());
+                }
+            }
         );
     }
 
     public function saveTechnologyComponentsForApp(int $appId, string $technologyType, array $components): void
     {
+        if ($appId <= 0) {
+            throw new \InvalidArgumentException('App ID must be a positive integer');
+        }
+
         $mapping = $this->getTechnologyTypeMapping($technologyType);
         $modelClass = $mapping['model'];
 
-        DB::transaction(function () use ($appId, $technologyType, $components, $modelClass) {
-            // Delete existing components
-            $this->deleteTechnologyComponentsForApp($appId, $technologyType);
+        try {
+            DB::transaction(function () use ($appId, $technologyType, $components, $modelClass) {
+                // Delete existing components
+                $this->deleteTechnologyComponentsForApp($appId, $technologyType);
 
-            // Create new components
-            foreach ($components as $component) {
-                $componentData = is_array($component) ? $component : $component->toArray();
-                
-                $modelClass::create([
-                    'app_id' => $appId,
-                    'name' => $componentData['name'],
-                    'version' => $componentData['version'] ?? null,
-                ]);
-            }
-        });
+                // Create new components
+                foreach ($components as $component) {
+                    $componentData = is_array($component) ? $component : $component->toArray();
+                    
+                    $modelClass::create([
+                        'app_id' => $appId,
+                        'name' => $componentData['name'],
+                        'version' => $componentData['version'] ?? null,
+                    ]);
+                }
+            });
 
-        $this->clearTechnologyCache($appId, $technologyType);
+            $this->clearTechnologyCache($appId, $technologyType);
+        } catch (\Exception $e) {
+            throw RepositoryException::createFailed("technology components for app {$appId}", $e->getMessage());
+        }
     }
 
     public function deleteTechnologyComponentsForApp(int $appId, string $technologyType): bool
@@ -135,9 +166,12 @@ class TechnologyRepository implements TechnologyRepositoryInterface
         $mapping = $this->getTechnologyTypeMapping($technologyType);
         $modelClass = $mapping['model'];
 
+        $cacheKey = CacheConfig::buildKey('technology', $technologyType, $technologyName, 'apps');
+        $cacheTTL = CacheConfig::getTTL('default');
+
         return Cache::remember(
-            "technology.{$technologyType}.{$technologyName}.apps",
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             function () use ($modelClass, $technologyName) {
                 return $modelClass::where('name', $technologyName)
                     ->with('app.stream')
@@ -168,9 +202,12 @@ class TechnologyRepository implements TechnologyRepositoryInterface
 
     public function getTechnologyStatistics(): array
     {
+        $cacheKey = CacheConfig::buildKey('technology', 'statistics');
+        $cacheTTL = CacheConfig::getTTL('default');
+        
         return Cache::remember(
-            'technology.statistics',
-            self::CACHE_TTL,
+            $cacheKey,
+            $cacheTTL,
             function () {
                 $statistics = [];
 
@@ -234,11 +271,18 @@ class TechnologyRepository implements TechnologyRepositoryInterface
 
     private function clearTechnologyCache(int $appId, string $technologyType): void
     {
-        Cache::forget("app.{$appId}.technology.{$technologyType}");
-        Cache::forget('technology.statistics');
+        $mapping = $this->getTechnologyTypeMapping($technologyType);
+        
+        // Clear app-specific technology cache
+        $appCacheKey = CacheConfig::buildKey('app', $appId, 'technology', $technologyType);
+        Cache::forget($appCacheKey);
+        
+        // Clear statistics cache
+        $statisticsCacheKey = CacheConfig::buildKey('technology', 'statistics');
+        Cache::forget($statisticsCacheKey);
         
         // Clear enum cache if needed
-        $mapping = $this->getTechnologyTypeMapping($technologyType);
-        Cache::forget("technology.enum.{$mapping['table']}");
+        $enumCacheKey = CacheConfig::buildKey('technology', 'enum', $mapping['table']);
+        Cache::forget($enumCacheKey);
     }
 }

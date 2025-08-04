@@ -2,23 +2,20 @@
 
 namespace App\Repositories;
 
+use App\Repositories\Exceptions\RepositoryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 abstract class BaseRepository
 {
-    protected const CACHE_TTL = 3600; // 1 hour
-    protected const ENUM_CACHE_TTL = 86400; // 24 hours
-    protected const STATISTICS_CACHE_TTL = 1800; // 30 minutes
-
     /**
      * Handle cache operations with error handling
      */
     protected function handleCacheOperation(string $key, callable $callback, ?int $ttl = null): mixed
     {
         try {
-            return Cache::remember($key, $ttl ?? static::CACHE_TTL, $callback);
+            return Cache::remember($key, $ttl ?? CacheConfig::DEFAULT_TTL, $callback);
         } catch (\Exception $e) {
             Log::warning("Cache operation failed for key {$key}: " . $e->getMessage(), [
                 'exception' => $e,
@@ -26,8 +23,12 @@ abstract class BaseRepository
                 'repository' => static::class
             ]);
             
-            // Fall back to direct execution
-            return $callback();
+            // Try direct execution, if that fails too, throw RepositoryException
+            try {
+                return $callback();
+            } catch (\Exception $directException) {
+                throw RepositoryException::cacheOperationFailed('remember', $key, $directException->getMessage());
+            }
         }
     }
 
@@ -60,6 +61,9 @@ abstract class BaseRepository
                 'identifier' => $identifier,
                 'repository' => static::class
             ]);
+            
+            // For critical operations, we might want to throw an exception
+            throw RepositoryException::cacheOperationFailed('clear', $entity, $e->getMessage());
         }
     }
 
@@ -161,17 +165,15 @@ abstract class BaseRepository
      */
     protected function buildCacheKey(string $entity, string $operation, ...$params): string
     {
-        $key = $entity . '.' . $operation;
-        
-        foreach ($params as $param) {
-            if (is_array($param)) {
-                $key .= '.' . md5(serialize($param));
-            } else {
-                $key .= '.' . $param;
-            }
-        }
-        
-        return $key;
+        return CacheConfig::buildKey($entity, $operation, ...$params);
+    }
+    
+    /**
+     * Get TTL for cache operation
+     */
+    protected function getCacheTTL(string $entity, string $operation): int
+    {
+        return CacheConfig::getTTLForOperation($entity, $operation);
     }
 
     /**
