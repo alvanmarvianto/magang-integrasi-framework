@@ -43,7 +43,6 @@
 </template>
 
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useSidebar } from '../composables/useSidebar';
 import { useD3Tree } from '../composables/useD3Tree';
@@ -64,6 +63,7 @@ const streamLinks = [
   { text: 'SSK Stream', onClick: () => visitRoute('integrations.stream', { stream: 'ssk' }) },
   { text: 'Moneter Stream', onClick: () => visitRoute('integrations.stream', { stream: 'moneter' }) },
   { text: 'Market Stream', onClick: () => visitRoute('integrations.stream', { stream: 'market' }) },
+  { text: 'Middleware Stream', onClick: () => visitRoute('integrations.stream', { stream: 'middleware' }) },
 ];
 
 const technologyLinks = [

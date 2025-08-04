@@ -65,13 +65,35 @@ class StreamRepository extends BaseRepository implements StreamRepositoryInterfa
         );
     }
 
-    public function getAllWithAppsLimited(int $limit = 5): Collection
+    public function getAllWithAppsLimited(array $allowedStreamNames = []): Collection
     {
-        $cacheKey = $this->buildCacheKey('streams', 'all_with_apps_limited', $limit);
+        $sortedNames = $allowedStreamNames;
+        sort($sortedNames);
+        $cacheKey = $this->buildCacheKey('streams', 'all_with_apps_limited', md5(implode(',', $sortedNames)));
         
         return $this->handleCacheOperation(
             $cacheKey,
-            fn() => Stream::with('apps')->orderBy('stream_id')->take($limit)->get()
+            function () use ($allowedStreamNames) {
+                $query = Stream::with('apps');
+                
+                if (!empty($allowedStreamNames)) {
+                    $query->whereIn('stream_name', $allowedStreamNames);
+                    
+                    // Order by the custom order defined in the allowed streams array
+                    $orderCases = [];
+                    foreach ($allowedStreamNames as $index => $streamName) {
+                        $orderCases[] = "WHEN stream_name = '{$streamName}' THEN {$index}";
+                    }
+                    if (!empty($orderCases)) {
+                        $orderByCase = 'CASE ' . implode(' ', $orderCases) . ' ELSE 999 END';
+                        $query->orderByRaw($orderByCase);
+                    }
+                } else {
+                    $query->orderBy('stream_name');
+                }
+                
+                return $query->get();
+            }
         );
     }
 

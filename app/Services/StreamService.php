@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Constants\StreamConstants;
 use App\Models\Stream;
 use App\DTOs\StreamDTO;
 use App\DTOs\HierarchyNodeDTO;
@@ -131,7 +132,7 @@ class StreamService
      */
     public function getAllowedDiagramStreams(): array
     {
-        return ['sp', 'mi', 'ssk', 'moneter', 'market'];
+        return StreamConstants::ALLOWED_DIAGRAM_STREAMS;
     }
 
     /**
@@ -193,7 +194,8 @@ class StreamService
      */
     public function getAppHierarchyForIndex(): HierarchyNodeDTO
     {
-        $streams = $this->streamRepository->getAllWithAppsLimited(5);
+        $allowedStreamNames = $this->getAllowedDiagramStreams();
+        $streams = $this->streamRepository->getAllWithAppsLimited($allowedStreamNames);
         
         $streamChildren = [];
         foreach ($streams as $stream) {
