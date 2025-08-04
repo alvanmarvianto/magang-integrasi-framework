@@ -1,6 +1,6 @@
 <template>
   <div class="admin-container">
-    <AdminNavbar :title="(contract ? 'Edit' : 'Create') + ' Contract'" :showBackButton="true" backUrl="/admin/contracts" />
+    <AdminNavbar :title="(contract ? 'Edit' : 'Buat') + ' Kontrak'" :showBackButton="true" backUrl="/admin/contracts" />
 
     <AdminForm @submit="submit">
       <AdminFormSection title="Informasi Dasar">
@@ -54,7 +54,7 @@
         </div>
       </AdminFormSection>
 
-      <AdminFormSection title="Financial Information">
+      <AdminFormSection title="Informasi Finansial">
         <div class="admin-form-grid">
           <AdminFormField 
             v-if="form.currency_type === 'rp'" 
