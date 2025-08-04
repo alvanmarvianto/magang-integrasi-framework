@@ -19,6 +19,11 @@ interface StreamRepositoryInterface
     public function getAllWithApps(): Collection;
 
     /**
+     * Get limited number of streams with their apps for hierarchy
+     */
+    public function getAllWithAppsLimited(int $limit = 5): Collection;
+
+    /**
      * Get all streams as DTOs
      */
     public function getAllAsDTO(): Collection;

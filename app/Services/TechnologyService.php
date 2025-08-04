@@ -5,6 +5,8 @@ namespace App\Services;
 use App\DTOs\TechnologyComponentDTO;
 use App\DTOs\TechnologyEnumDTO;
 use App\DTOs\TechnologyAppListingDTO;
+use App\DTOs\AppTechnologyDataDTO;
+use App\DTOs\TechnologyListingPageDTO;
 use App\Models\App;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -292,5 +294,99 @@ class TechnologyService
                 'version' => $item->version,
             ]);
         });
+    }
+
+    /**
+     * Get app technology data by app ID
+     */
+    public function getAppTechnologyData(int $appId): AppTechnologyDataDTO
+    {
+        // Get app data using AppRepository
+        $appRepository = app(\App\Repositories\Interfaces\AppRepositoryInterface::class);
+        $app = $appRepository->findAsDTOFresh($appId);
+        
+        if (!$app) {
+            throw new \Exception("App with ID {$appId} not found");
+        }
+
+        // Get all technology data for this app
+        $technologies = [
+            'app_type' => $app->appType,
+            'stratification' => $app->stratification,
+            'vendor' => $this->getTechnologyData('technology_vendors', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'os' => $this->getTechnologyData('technology_operating_systems', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'database' => $this->getTechnologyData('technology_databases', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'language' => $this->getTechnologyData('technology_programming_languages', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'third_party' => $this->getTechnologyData('technology_third_parties', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'middleware' => $this->getTechnologyData('technology_middlewares', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'framework' => $this->getTechnologyData('technology_frameworks', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+            'platform' => $this->getTechnologyData('technology_platforms', $appId)
+                ->map(fn($dto) => $dto->toArray())->toArray(),
+        ];
+
+        return AppTechnologyDataDTO::fromAppWithTechnologies($app, $technologies);
+    }
+
+    /**
+     * Get technology listing page data by technology type and name
+     */
+    public function getTechnologyListingData(string $type, string $name): TechnologyListingPageDTO
+    {
+        $typeMap = [
+            'app_type' => ['type' => 'App Type', 'icon' => 'fas fa-cube'],
+            'stratification' => ['type' => 'Stratification', 'icon' => 'fas fa-layer-group'],
+            'vendor' => ['type' => 'Vendor', 'icon' => 'fas fa-building'],
+            'os' => ['type' => 'Operating System', 'icon' => 'fas fa-desktop'],
+            'database' => ['type' => 'Database', 'icon' => 'fas fa-database'],
+            'language' => ['type' => 'Programming Language', 'icon' => 'fas fa-code'],
+            'third_party' => ['type' => 'Third Party', 'icon' => 'fas fa-plug'],
+            'middleware' => ['type' => 'Middleware', 'icon' => 'fas fa-exchange-alt'],
+            'framework' => ['type' => 'Framework', 'icon' => 'fas fa-tools'],
+            'platform' => ['type' => 'Platform', 'icon' => 'fas fa-cloud'],
+        ];
+
+        if (!isset($typeMap[$type])) {
+            throw new \InvalidArgumentException("Invalid technology type: {$type}");
+        }
+
+        // Get apps based on type
+        if (in_array($type, ['app_type', 'stratification'])) {
+            $apps = $this->getAppsByAttribute($type, $name);
+        } else {
+            $tableName = $this->getTableName($this->getServiceTypeKey($type));
+            $apps = $this->getAppByCondition($tableName, $name);
+        }
+
+        return TechnologyListingPageDTO::create(
+            apps: $apps->map(fn($dto) => $dto->toArray())->toArray(),
+            technologyType: $typeMap[$type]['type'],
+            technologyName: $name,
+            icon: $typeMap[$type]['icon']
+        );
+    }
+
+    /**
+     * Map controller parameter to service type key
+     */
+    private function getServiceTypeKey(string $controllerType): string
+    {
+        return match ($controllerType) {
+            'vendor' => 'vendors',
+            'os' => 'operatingSystems',
+            'database' => 'databases',
+            'language' => 'languages',
+            'third_party' => 'thirdParties',
+            'middleware' => 'middlewares',
+            'framework' => 'frameworks',
+            'platform' => 'platforms',
+            default => throw new \InvalidArgumentException("Invalid controller type: {$controllerType}"),
+        };
     }
 } 

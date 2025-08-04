@@ -65,6 +65,16 @@ class StreamRepository extends BaseRepository implements StreamRepositoryInterfa
         );
     }
 
+    public function getAllWithAppsLimited(int $limit = 5): Collection
+    {
+        $cacheKey = $this->buildCacheKey('streams', 'all_with_apps_limited', $limit);
+        
+        return $this->handleCacheOperation(
+            $cacheKey,
+            fn() => Stream::with('apps')->orderBy('stream_id')->take($limit)->get()
+        );
+    }
+
     public function getAllAsDTO(): Collection
     {
         try {

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Stream;
 use App\DTOs\StreamDTO;
+use App\DTOs\HierarchyNodeDTO;
 use App\Http\Resources\StreamResource;
 use App\Repositories\Interfaces\StreamRepositoryInterface;
 use Illuminate\Support\Collection;
@@ -185,5 +186,44 @@ class StreamService
 
         // Use the relationship to check if apps exist
         return $stream->apps()->exists();
+    }
+
+    /**
+     * Get app hierarchy for index page
+     */
+    public function getAppHierarchyForIndex(): HierarchyNodeDTO
+    {
+        $streams = $this->streamRepository->getAllWithAppsLimited(5);
+        
+        $streamChildren = [];
+        foreach ($streams as $stream) {
+            $appChildren = [];
+            foreach ($stream->apps as $app) {
+                $appNode = HierarchyNodeDTO::createFolder($app->app_name, [
+                    HierarchyNodeDTO::createUrl(
+                        'Integrasi',
+                        '/integration/app/' . $app->app_id,
+                        $stream->stream_name
+                    ),
+                    HierarchyNodeDTO::createUrl(
+                        'Teknologi', 
+                        '/technology/' . $app->app_id,
+                        $stream->stream_name
+                    )
+                ]);
+                $appChildren[] = $appNode;
+            }
+
+            $streamNode = HierarchyNodeDTO::createFolder(
+                'Stream - ' . strtoupper($stream->stream_name),
+                $appChildren
+            );
+            $streamChildren[] = $streamNode;
+        }
+
+        return HierarchyNodeDTO::createFolder(
+            'Bank Indonesia - DLDS',
+            $streamChildren
+        );
     }
 } 

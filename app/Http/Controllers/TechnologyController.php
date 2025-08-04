@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\App;
 use App\Services\TechnologyService;
-use App\Http\Resources\AppResource;
 use App\Http\Controllers\Traits\HandlesTechnologyEnums;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -47,170 +45,92 @@ class TechnologyController extends Controller
 
     public function show(int $appId): Response
     {
-        /** @var App $app */
-        $app = App::with(['stream'])
-            ->findOrFail($appId);
-        
-        // Fetch normalized technology data using DTOs
-        $technologyData = [
-            'app_type' => $app->getAttribute('app_type'),
-            'stratification' => $app->getAttribute('stratification'),
-            'vendor' => $this->technologyService->getTechnologyData('technology_vendors', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'os' => $this->technologyService->getTechnologyData('technology_operating_systems', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'database' => $this->technologyService->getTechnologyData('technology_databases', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'language' => $this->technologyService->getTechnologyData('technology_programming_languages', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'third_party' => $this->technologyService->getTechnologyData('technology_third_parties', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'middleware' => $this->technologyService->getTechnologyData('technology_middlewares', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'framework' => $this->technologyService->getTechnologyData('technology_frameworks', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-            'platform' => $this->technologyService->getTechnologyData('technology_platforms', $app->getAttribute('app_id'))
-                ->map(fn($dto) => $dto->toArray())->toArray(),
-        ];
-
-        return Inertia::render('Technology/App', [
-            'app' => new AppResource($app),
-            'appDescription' => $app->getAttribute('description'),
-            'technology' => $technologyData,
-            'appName' => $app->getAttribute('app_name'),
-            'streamName' => $app->stream?->stream_name,
-        ]);
+        try {
+            $appTechnologyData = $this->technologyService->getAppTechnologyData($appId);
+            
+            return Inertia::render('Technology/App', [
+                'app' => [
+                    'app_id' => $appTechnologyData->appId,
+                    'app_name' => $appTechnologyData->appName,
+                    'stream_name' => $appTechnologyData->streamName,
+                ],
+                'appDescription' => $appTechnologyData->description,
+                'technology' => $appTechnologyData->technologies,
+                'appName' => $appTechnologyData->appName,
+                'streamName' => $appTechnologyData->streamName,
+            ]);
+        } catch (\Exception $e) {
+            abort(404, 'Application not found');
+        }
     }
 
     public function getAppType(string $appType): Response
     {
-        $apps = $this->technologyService->getAppsByAttribute('app_type', $appType);
+        $listingData = $this->technologyService->getTechnologyListingData('app_type', $appType);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'App Type',
-            'technologyName' => strtoupper(str_replace('_', ' ', $appType)),
-            'pageTitle' => strtoupper(str_replace('_', ' ', $appType)),
-            'icon' => 'fas fa-cube'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getStratification(string $stratification): Response
     {
-        $apps = $this->technologyService->getAppsByAttribute('stratification', $stratification);
+        $listingData = $this->technologyService->getTechnologyListingData('stratification', $stratification);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Stratification',
-            'technologyName' => strtoupper(str_replace('_', ' ', $stratification)),
-            'pageTitle' => strtoupper(str_replace('_', ' ', $stratification)),
-            'icon' => 'fas fa-layer-group'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByVendor(string $vendorName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_vendors', $vendorName);
+        $listingData = $this->technologyService->getTechnologyListingData('vendor', $vendorName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Vendor',
-            'technologyName' => $vendorName,
-            'pageTitle' => $vendorName,
-            'icon' => 'fas fa-building'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByOS(string $osName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_operating_systems', $osName);
+        $listingData = $this->technologyService->getTechnologyListingData('os', $osName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Operating System',
-            'technologyName' => $osName,
-            'pageTitle' => $osName,
-            'icon' => 'fas fa-desktop'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByDatabase(string $databaseName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_databases', $databaseName);
+        $listingData = $this->technologyService->getTechnologyListingData('database', $databaseName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Database',
-            'technologyName' => $databaseName,
-            'pageTitle' => $databaseName,
-            'icon' => 'fas fa-database'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByLanguage(string $languageName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_programming_languages', $languageName);
+        $listingData = $this->technologyService->getTechnologyListingData('language', $languageName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Programming Language',
-            'technologyName' => $languageName,
-            'pageTitle' => $languageName,
-            'icon' => 'fas fa-code'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByThirdParty(string $thirdPartyName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_third_parties', $thirdPartyName);
+        $listingData = $this->technologyService->getTechnologyListingData('third_party', $thirdPartyName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Third Party',
-            'technologyName' => $thirdPartyName,
-            'pageTitle' => $thirdPartyName,
-            'icon' => 'fas fa-plug'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByMiddleware(string $middlewareName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_middlewares', $middlewareName);
+        $listingData = $this->technologyService->getTechnologyListingData('middleware', $middlewareName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Middleware',
-            'technologyName' => $middlewareName,
-            'pageTitle' => $middlewareName,
-            'icon' => 'fas fa-exchange-alt'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByFramework(string $frameworkName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_frameworks', $frameworkName);
+        $listingData = $this->technologyService->getTechnologyListingData('framework', $frameworkName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Framework',
-            'technologyName' => $frameworkName,
-            'pageTitle' => $frameworkName,
-            'icon' => 'fas fa-tools'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
 
     public function getAppByPlatform(string $platformName): Response
     {
-        $apps = $this->technologyService->getAppByCondition('technology_platforms', $platformName);
+        $listingData = $this->technologyService->getTechnologyListingData('platform', $platformName);
         
-        return Inertia::render('Technology/Listing', [
-            'apps' => $apps->map(fn($dto) => $dto->toArray())->toArray(),
-            'technologyType' => 'Platform',
-            'technologyName' => $platformName,
-            'pageTitle' => $platformName,
-            'icon' => 'fas fa-cloud'
-        ]);
+        return Inertia::render('Technology/Listing', $listingData->toArray());
     }
-
-
 }

@@ -8,6 +8,7 @@ use App\Models\ConnectionType;
 use App\DTOs\IntegrationDTO;
 use App\DTOs\ConnectionTypeDTO;
 use App\DTOs\AppDTO;
+use App\DTOs\AppIntegrationDataDTO;
 use App\Repositories\Interfaces\IntegrationRepositoryInterface;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use Illuminate\Support\Collection;
@@ -317,5 +318,68 @@ class IntegrationService
             })
             ->values()
             ->toArray();
+    }
+
+    /**
+     * Get app integration data for app integration page
+     */
+    public function getAppIntegrationData(int $appId): AppIntegrationDataDTO
+    {
+        // Get app with stream information
+        $app = $this->appRepository->findWithRelationsFresh($appId);
+        
+        if (!$app) {
+            throw new \Exception("App with ID {$appId} not found");
+        }
+
+        // Check if the app belongs to an allowed stream
+        $allowedStreams = ['sp', 'mi', 'ssk', 'moneter', 'market'];
+        if (!$app->stream || !in_array(strtolower($app->stream->stream_name), array_map('strtolower', $allowedStreams))) {
+            throw new \Exception('Access to this app integration is not allowed');
+        }
+
+        // Get app as DTO
+        $appDTO = AppDTO::fromModel($app);
+
+        // Get integrations data
+        $integrations = $this->getAppIntegrationsForDisplay($app);
+
+        return AppIntegrationDataDTO::fromAppWithIntegrations($appDTO, $integrations);
+    }
+
+    /**
+     * Get formatted integrations for display
+     */
+    private function getAppIntegrationsForDisplay(App $app): Collection
+    {
+        // Load relationships if not already loaded
+        $app->loadMissing(['integrations.stream', 'integrations.pivot.connectionType', 'integratedBy.stream', 'integratedBy.pivot.connectionType']);
+
+        // Get outgoing integrations
+        $integrations = $app->integrations->map(function ($integration) {
+            return [
+                'app_id' => $integration->app_id,
+                'app_name' => $integration->app_name,
+                'stream_name' => $integration->stream?->stream_name,
+                'connection_type' => $integration->pivot?->connectionType?->type_name,
+            ];
+        });
+
+        // Get incoming integrations
+        $integratedBy = $app->integratedBy->map(function ($integration) {
+            return [
+                'app_id' => $integration->app_id,
+                'app_name' => $integration->app_name,
+                'stream_name' => $integration->stream?->stream_name,
+                'connection_type' => $integration->pivot?->connectionType?->type_name,
+            ];
+        });
+
+        // Combine and filter
+        return $integrations
+            ->concat($integratedBy)
+            ->filter(fn($i) => !is_null($i['connection_type']))
+            ->unique('app_name')
+            ->values();
     }
 }
