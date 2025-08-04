@@ -25,9 +25,19 @@ interface AppRepositoryInterface
     public function findWithRelations(int $id): ?App;
 
     /**
+     * Find app by ID with relationships bypassing cache
+     */
+    public function findWithRelationsFresh(int $id): ?App;
+
+    /**
      * Find app by ID and return as DTO
      */
     public function findAsDTO(int $id): ?AppDTO;
+
+    /**
+     * Find app by ID and return as DTO bypassing cache
+     */
+    public function findAsDTOFresh(int $id): ?AppDTO;
 
     /**
      * Create new app with technology components

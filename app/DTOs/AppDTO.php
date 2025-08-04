@@ -67,7 +67,7 @@ readonly class AppDTO
             'vendors' => 'vendors',
             'operating_systems' => 'operatingSystems',
             'databases' => 'databases',
-            'languages' => 'programmingLanguages',
+            'programming_languages' => 'programmingLanguages',
             'frameworks' => 'frameworks',
             'middlewares' => 'middlewares',
             'third_parties' => 'thirdParties',

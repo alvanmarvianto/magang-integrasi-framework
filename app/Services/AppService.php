@@ -7,6 +7,7 @@ use App\DTOs\AppDTO;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 class AppService
 {
@@ -71,7 +72,14 @@ class AppService
      */
     public function getFormData(?int $appId = null): array
     {
-        $appDTO = $appId ? $this->appRepository->findAsDTO($appId) : null;
+        // For edit operations, use fresh data to bypass cache
+        $appDTO = $appId ? $this->appRepository->findAsDTOFresh($appId) : null;
+        
+        // Debug logging to verify fresh data is being used
+        if ($appDTO) {
+            Log::info("Admin form data loaded for app {$appId}: " . $appDTO->appName);
+        }
+        
         $technologyOptions = $this->getTechnologyOptions();
 
         return [
@@ -111,10 +119,10 @@ class AppService
     public function updateApp(App $app, array $validatedData): AppDTO
     {
         $appDTO = $this->buildAppDTOFromValidatedData($validatedData, $app->app_id);
-        $this->appRepository->updateWithTechnology($app, $appDTO);
+        $updateResult = $this->appRepository->updateWithTechnology($app, $appDTO);
         
-        // Reload the app to get updated data
-        $updatedApp = $this->appRepository->findWithRelations($app->app_id);
+        // Reload the app with fresh data (bypassing cache)
+        $updatedApp = $this->appRepository->findWithRelationsFresh($app->app_id);
         
         return AppDTO::fromModel($updatedApp);
     }
@@ -243,7 +251,7 @@ class AppService
             'vendors' => 'vendors',
             'operating_systems' => 'operating_systems',
             'databases' => 'databases',
-            'languages' => 'languages',
+            'programming_languages' => 'languages',
             'frameworks' => 'frameworks',
             'middlewares' => 'middlewares',
             'third_parties' => 'third_parties',

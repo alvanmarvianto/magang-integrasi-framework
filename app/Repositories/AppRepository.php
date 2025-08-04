@@ -150,6 +150,26 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         );
     }
 
+    /**
+     * Find app with relations bypassing cache (for immediate fresh data)
+     */
+    public function findWithRelationsFresh(int $id): ?App
+    {
+        $this->validateId($id);
+        
+        return App::with([
+            'stream',
+            'vendors',
+            'operatingSystems',
+            'databases',
+            'programmingLanguages',
+            'frameworks',
+            'middlewares',
+            'thirdParties',
+            'platforms',
+        ])->find($id);
+    }
+
     public function findAsDTO(int $id): ?AppDTO
     {
         $this->validateId($id);
@@ -159,6 +179,26 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
             return $app ? AppDTO::fromModel($app) : null;
         } catch (\Exception $e) {
             Log::error('Failed to find app as DTO', [
+                'id' => $id,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::entityNotFound('app', $id);
+        }
+    }
+
+    /**
+     * Find app by ID and return as DTO with fresh data (bypassing cache)
+     */
+    public function findAsDTOFresh(int $id): ?AppDTO
+    {
+        $this->validateId($id);
+        
+        try {
+            $app = $this->findWithRelationsFresh($id);
+            return $app ? AppDTO::fromModel($app) : null;
+        } catch (\Exception $e) {
+            Log::error('Failed to find app as DTO (fresh)', [
                 'id' => $id,
                 'exception' => $e->getMessage()
             ]);
@@ -190,7 +230,7 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                     );
                 }
 
-                $this->clearEntityCache($this->getEntityName(), $app->app_id);
+                $this->clearAllAppCaches($app->app_id);
 
                 return $app->load([
                     'stream',
@@ -238,7 +278,8 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                 }
 
                 if ($updated) {
-                    $this->clearEntityCache($this->getEntityName(), $app->app_id);
+                    // Clear all app-related caches comprehensively
+                    $this->clearAllAppCaches($app->app_id);
                 }
 
                 return $updated;
@@ -254,6 +295,46 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         }
     }
 
+    /**
+     * Comprehensive cache clearing for app updates
+     */
+    private function clearAllAppCaches(int $appId): void
+    {
+        try {
+            // Clear the basic entity cache
+            $this->clearEntityCache($this->getEntityName(), $appId);
+            
+            // Clear specific app-related cache keys
+            $keysToForget = [
+                "app.{$appId}",
+                "app.{$appId}.with_relations", 
+                "app.{$appId}.with_apps",
+                "app.exists.{$appId}",
+                // Clear general app caches that might include this app
+                "apps.all",
+                "apps.statistics",
+                "apps.with_integration_counts",
+                // Clear stream-related caches since apps belong to streams
+                "stream.apps",
+                "stream.name_apps"
+            ];
+            
+            foreach ($keysToForget as $key) {
+                Cache::forget($key);
+            }
+            
+            // Clear any search result caches (limited scope)
+            for ($i = 1; $i <= 20; $i++) {
+                Cache::forget("apps.search.{$i}");
+            }
+            
+            Log::info("Cleared comprehensive app caches for app ID: {$appId}");
+            
+        } catch (\Exception $e) {
+            Log::warning("Failed to clear comprehensive app caches for app {$appId}: " . $e->getMessage());
+        }
+    }
+
     public function delete(App $app): bool
     {
         $appId = $app->app_id;
@@ -262,7 +343,7 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
             $deleted = $app->delete();
 
             if ($deleted) {
-                $this->clearEntityCache($this->getEntityName(), $appId);
+                $this->clearAllAppCaches($appId);
             }
 
             return $deleted;

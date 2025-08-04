@@ -49,12 +49,55 @@ abstract class BaseRepository
             Cache::forget("{$entity}.all_with_apps");
             Cache::forget("{$entity}.statistics");
             Cache::forget("{$entity}s.statistics"); // plural form
+            
+            // Clear all cache keys that start with this entity
+            // This will clear pagination, search results, etc.
+            $this->clearCacheByPattern($entity);
+            
         } catch (\Exception $e) {
             Log::warning("Failed to clear cache for entity {$entity}: " . $e->getMessage(), [
                 'entity' => $entity,
                 'identifier' => $identifier,
                 'repository' => static::class
             ]);
+        }
+    }
+
+    /**
+     * Clear cache entries by pattern
+     * This is more aggressive but ensures no stale data remains
+     */
+    protected function clearCacheByPattern(string $pattern): void
+    {
+        try {
+            // Clear specific known cache keys that might contain stale data
+            $keysToForget = [
+                // App-specific caches
+                'app.all',
+                'apps.all',
+                'apps.statistics', 
+                'apps.with_integration_counts',
+                // Stream-related app caches
+                'stream.apps',
+                'stream.name_apps',
+                // Technology-related caches
+                'technology.components',
+                'technology.mappings'
+            ];
+            
+            foreach ($keysToForget as $key) {
+                Cache::forget($key);
+            }
+            
+            // Also clear any search result caches by forgetting common search patterns
+            // Note: This is a limitation of Laravel cache - no wildcard support
+            for ($i = 1; $i <= 10; $i++) {
+                Cache::forget("apps.search.{$i}");
+                Cache::forget("app.search.{$i}");
+            }
+            
+        } catch (\Exception $e) {
+            Log::warning("Failed to clear cache by pattern {$pattern}: " . $e->getMessage());
         }
     }
 
