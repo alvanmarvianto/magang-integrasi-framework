@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AppController as AdminAppController;
 use App\Http\Controllers\Admin\TechnologyController as AdminTechnologyController;
 use App\Http\Controllers\Admin\ConnectionTypeController;
 use App\Http\Controllers\Admin\AdminDiagramController;
+use App\Http\Controllers\Admin\ContractController;
 
 Route::get('/', [AppController::class, 'index'])->name('index');
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
@@ -79,5 +80,15 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::get('/{streamName}', [AdminDiagramController::class, 'show'])->name('show');
         Route::post('/{streamName}/layout', [AdminDiagramController::class, 'saveLayout'])->name('save');
         Route::get('/{streamName}/refresh', [AdminDiagramController::class, 'refreshLayout'])->name('refresh');
+    });
+
+    // Contract management
+    Route::prefix('contracts')->as('contracts.')->group(function () {
+        Route::get('/', [ContractController::class, 'index'])->name('index');
+        Route::get('/create', [ContractController::class, 'create'])->name('create');
+        Route::post('/', [ContractController::class, 'store'])->name('store');
+        Route::get('/{contract}/edit', [ContractController::class, 'edit'])->name('edit');
+        Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
+        Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
     });
 });

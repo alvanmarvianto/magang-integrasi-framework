@@ -86,10 +86,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         $contract = $this->model->create($data);
         
         // Clear related caches
-        $this->clearEntityCache('contracts');
-        if (isset($data['app_id'])) {
-            $this->clearEntityCache('contracts', "app.{$data['app_id']}");
-        }
+        $this->clearAllContractCaches(null, $data['app_id'] ?? null);
         
         return $contract;
     }
@@ -103,8 +100,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         
         if ($result) {
             // Clear related caches
-            $this->clearEntityCache('contracts', $contract->id);
-            $this->clearEntityCache('contracts', "app.{$contract->app_id}");
+            $this->clearAllContractCaches($contract->id, $contract->app_id);
         }
         
         return $result;
@@ -121,12 +117,68 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         $result = $contract->delete();
         
         if ($result) {
-            // Clear related caches
-            $this->clearEntityCache('contracts', $contractId);
-            $this->clearEntityCache('contracts', "app.{$appId}");
+            // Clear all contract-related caches systematically
+            $this->clearAllContractCaches($contractId, $appId);
         }
         
         return $result;
+    }
+
+    /**
+     * Clear all contract-related caches comprehensively
+     */
+    private function clearAllContractCaches(?int $contractId = null, ?int $appId = null): void
+    {
+        // Clear specific contract caches
+        if ($contractId) {
+            Cache::forget("contracts.{$contractId}");
+            Cache::forget("contracts.{$contractId}.with_relations");
+        }
+        
+        // Clear app-specific contract caches
+        if ($appId) {
+            Cache::forget("contracts.app.{$appId}");
+            Cache::forget("contracts.app.{$appId}.with_relations");
+            Cache::forget("contracts.app.{$appId}.with_apps");
+        }
+        
+        // Clear general contract caches
+        Cache::forget('contracts.all');
+        Cache::forget('contracts.all.with_relations');
+        Cache::forget('contracts.all_with_apps');
+        Cache::forget('contracts.statistics');
+        Cache::forget('contractss.statistics'); // plural form
+        
+        // Clear currency-specific caches
+        Cache::forget('contracts.currency.rp');
+        Cache::forget('contracts.currency.non_rp');
+        
+        // Clear app-related caches since contract counts may have changed
+        if ($appId) {
+            Cache::forget("app.{$appId}");
+            Cache::forget("app.{$appId}.with_relations");
+            Cache::forget("app.{$appId}.with_apps");
+        }
+        Cache::forget('app.all');
+        Cache::forget('apps.all');
+        Cache::forget('apps.statistics');
+        Cache::forget('apps.with_integration_counts');
+        
+        // Clear stream-related caches
+        Cache::forget('stream.apps');
+        Cache::forget('stream.name_apps');
+        
+        // Clear technology-related caches as they might be affected
+        Cache::forget('technology.components');
+        Cache::forget('technology.mappings');
+        
+        // Clear any search caches that might exist for this app
+        if ($appId) {
+            for ($i = 1; $i <= 10; $i++) {
+                Cache::forget("apps.search.{$i}");
+                Cache::forget("app.search.{$i}");
+            }
+        }
     }
 
     /**
@@ -148,9 +200,10 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
                 'rp_contracts' => $this->model->where('currency_type', 'rp')->count(),
                 'non_rp_contracts' => $this->model->where('currency_type', 'non_rp')->count(),
                 'total_value_rp' => $this->model->where('currency_type', 'rp')
-                    ->sum('contract_value_rp'),
+                    ->sum('contract_value_rp') ?: 0,
                 'total_value_non_rp' => $this->model->where('currency_type', 'non_rp')
-                    ->sum('contract_value_non_rp'),
+                    ->sum('contract_value_non_rp') ?: 0,
+                'apps_with_contracts' => $this->model->distinct('app_id')->count('app_id'),
             ];
         }, CacheConfig::STATISTICS_TTL);
     }

@@ -5,19 +5,23 @@ namespace App\Services;
 use App\DTOs\ContractDTO;
 use App\Models\Contract;
 use App\Repositories\Interfaces\ContractRepositoryInterface;
+use App\Repositories\Interfaces\ContractPeriodRepositoryInterface;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use Illuminate\Support\Collection;
 
 class ContractService
 {
     protected ContractRepositoryInterface $contractRepository;
+    protected ContractPeriodRepositoryInterface $contractPeriodRepository;
     protected AppRepositoryInterface $appRepository;
 
     public function __construct(
         ContractRepositoryInterface $contractRepository,
+        ContractPeriodRepositoryInterface $contractPeriodRepository,
         AppRepositoryInterface $appRepository
     ) {
         $this->contractRepository = $contractRepository;
+        $this->contractPeriodRepository = $contractPeriodRepository;
         $this->appRepository = $appRepository;
     }
 
@@ -55,7 +59,19 @@ class ContractService
     {
         $this->validateContractData($data);
         
+        // Extract contract periods from data
+        $contractPeriodsData = $data['contract_periods'] ?? [];
+        unset($data['contract_periods']);
+        
         $contract = $this->contractRepository->create($data);
+        
+        // Create contract periods if provided
+        if (!empty($contractPeriodsData)) {
+            foreach ($contractPeriodsData as $periodData) {
+                $periodData['contract_id'] = $contract->id;
+                $this->contractPeriodRepository->create($periodData);
+            }
+        }
         
         // Reload with relationships
         $contractWithRelations = $this->contractRepository->findByIdWithRelations($contract->id);
@@ -70,7 +86,26 @@ class ContractService
     {
         $this->validateContractData($data, $contract->id);
         
+        // Extract contract periods from data
+        $contractPeriodsData = $data['contract_periods'] ?? [];
+        unset($data['contract_periods']);
+        
         $this->contractRepository->update($contract, $data);
+        
+        // Update contract periods
+        if (isset($contractPeriodsData)) {
+            // Delete existing periods
+            $existingPeriods = $this->contractPeriodRepository->getByContractId($contract->id);
+            foreach ($existingPeriods as $period) {
+                $this->contractPeriodRepository->delete($period);
+            }
+            
+            // Create new periods
+            foreach ($contractPeriodsData as $periodData) {
+                $periodData['contract_id'] = $contract->id;
+                $this->contractPeriodRepository->create($periodData);
+            }
+        }
         
         // Reload the contract to get updated data with relationships
         $updatedContract = $this->contractRepository->findByIdWithRelations($contract->id);
@@ -83,6 +118,12 @@ class ContractService
      */
     public function deleteContract(Contract $contract): bool
     {
+        // Delete associated contract periods first
+        $existingPeriods = $this->contractPeriodRepository->getByContractId($contract->id);
+        foreach ($existingPeriods as $period) {
+            $this->contractPeriodRepository->delete($period);
+        }
+        
         return $this->contractRepository->delete($contract);
     }
 
@@ -124,13 +165,7 @@ class ContractService
         }
 
         return [
-            'contract' => ContractDTO::fromModel($contract),
-            'app_name' => $contract->app->app_name,
-            'app_id' => $contract->app_id,
-            'currency_types' => [
-                ['value' => 'rp', 'label' => 'Rupiah'],
-                ['value' => 'non_rp', 'label' => 'Non-Rupiah']
-            ],
+            'contract' => ContractDTO::fromModel($contract)->toArray(),
             'apps' => $this->getAppOptionsForForms()
         ];
     }
@@ -142,8 +177,8 @@ class ContractService
     {
         $apps = $this->appRepository->getAppsWithIntegrationCounts();
         return $apps->map(fn($app) => [
-            'value' => $app->app_id,
-            'label' => $app->app_name,
+            'app_id' => $app->app_id,
+            'app_name' => $app->app_name,
         ])->toArray();
     }
 

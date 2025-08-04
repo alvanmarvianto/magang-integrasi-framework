@@ -10,6 +10,8 @@ class ContractPeriod extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     protected $fillable = [
         'contract_id',
         'period_name',
@@ -22,8 +24,8 @@ class ContractPeriod extends Model
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
         'payment_value_rp' => 'decimal:2',
         'payment_value_non_rp' => 'decimal:2',
     ];

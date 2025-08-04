@@ -11,13 +11,11 @@ class ContractPeriodDTO
         public readonly int $contractId,
         public readonly string $periodName,
         public readonly string $budgetType,
-        public readonly string $startDate,
-        public readonly string $endDate,
+        public readonly ?string $startDate,
+        public readonly ?string $endDate,
         public readonly ?string $paymentValueRp,
         public readonly ?string $paymentValueNonRp,
         public readonly string $paymentStatus,
-        public readonly string $createdAt,
-        public readonly string $updatedAt,
         public readonly ?ContractDTO $contract = null,
     ) {}
 
@@ -28,13 +26,11 @@ class ContractPeriodDTO
             contractId: $contractPeriod->contract_id,
             periodName: $contractPeriod->period_name,
             budgetType: $contractPeriod->budget_type,
-            startDate: (string) $contractPeriod->start_date,
-            endDate: (string) $contractPeriod->end_date,
-            paymentValueRp: $contractPeriod->payment_value_rp?->toString(),
-            paymentValueNonRp: $contractPeriod->payment_value_non_rp?->toString(),
+            startDate: $contractPeriod->start_date ? $contractPeriod->start_date->toDateString() : null,
+            endDate: $contractPeriod->end_date ? $contractPeriod->end_date->toDateString() : null,
+            paymentValueRp: $contractPeriod->payment_value_rp ? (string) $contractPeriod->payment_value_rp : null,
+            paymentValueNonRp: $contractPeriod->payment_value_non_rp ? (string) $contractPeriod->payment_value_non_rp : null,
             paymentStatus: $contractPeriod->payment_status,
-            createdAt: $contractPeriod->created_at->toISOString(),
-            updatedAt: $contractPeriod->updated_at->toISOString(),
             contract: $contractPeriod->relationLoaded('contract') ? ContractDTO::fromModel($contractPeriod->contract) : null,
         );
     }
@@ -140,8 +136,6 @@ class ContractPeriodDTO
             'formatted_payment_value' => $this->getFormattedPaymentValue(),
             'payment_status' => $this->paymentStatus,
             'payment_status_label' => $this->getPaymentStatusLabel(),
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
         ];
     }
 }

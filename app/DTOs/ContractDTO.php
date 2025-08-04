@@ -31,10 +31,10 @@ class ContractDTO
             title: $contract->title,
             contractNumber: $contract->contract_number,
             currencyType: $contract->currency_type,
-            contractValueRp: $contract->contract_value_rp?->toString(),
-            contractValueNonRp: $contract->contract_value_non_rp?->toString(),
-            lumpsumValueRp: $contract->lumpsum_value_rp?->toString(),
-            unitValueRp: $contract->unit_value_rp?->toString(),
+            contractValueRp: $contract->contract_value_rp ? (string) $contract->contract_value_rp : null,
+            contractValueNonRp: $contract->contract_value_non_rp ? (string) $contract->contract_value_non_rp : null,
+            lumpsumValueRp: $contract->lumpsum_value_rp ? (string) $contract->lumpsum_value_rp : null,
+            unitValueRp: $contract->unit_value_rp ? (string) $contract->unit_value_rp : null,
             createdAt: $contract->created_at->toISOString(),
             updatedAt: $contract->updated_at->toISOString(),
             app: $contract->relationLoaded('app') ? AppDTO::fromModel($contract->app) : null,
@@ -103,6 +103,7 @@ class ContractDTO
         return [
             'id' => $this->id,
             'app_id' => $this->appId,
+            'app_name' => $this->app?->appName, // Flatten app_name for easier access in views
             'title' => $this->title,
             'contract_number' => $this->contractNumber,
             'currency_type' => $this->currencyType,
