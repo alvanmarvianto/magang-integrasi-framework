@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('contracts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('app_id')->constrained('apps')->onDelete('cascade');
+            $table->integer('app_id');
+            $table->foreign('app_id')->references('app_id')->on('apps')->onDelete('cascade');
             $table->string('title'); // Judul Kontrak/Nama Pekerjaan
             $table->string('contract_number'); // No. Kontrak
             $table->enum('currency_type', ['rp', 'non_rp']); // Currency type

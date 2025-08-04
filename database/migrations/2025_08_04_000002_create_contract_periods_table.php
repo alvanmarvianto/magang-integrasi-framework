@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('contract_id')->constrained('contracts')->onDelete('cascade');
             $table->string('period_name'); // Nama Periode Pelaksanaan Termin Pembayaran
             $table->enum('budget_type', ['AO', 'RI']); // Anggaran Untuk Realisasi (AO/RI)
-            $table->date('start_date'); // Periode Tahapan (Awal)
-            $table->date('end_date'); // Periode Tahapan (Akhir)
+            $table->date('start_date')->nullable(); // Periode Tahapan (Awal)
+            $table->date('end_date')->nullable(); // Periode Tahapan (Akhir)
             $table->decimal('payment_value_rp', 15, 2)->nullable(); // Nilai Termin Pembayaran Sesuai Kontrak (Rp)
             $table->decimal('payment_value_non_rp', 15, 2)->nullable(); // Nilai Termin Pembayaran Sesuai Kontrak (Non Rp)
             $table->enum('payment_status', [
@@ -32,7 +32,7 @@ return new class extends Migration
                 'reserved_hr', // 9. Dicadangkan (HR)
                 'contract_moved' // 10. Kontrak dipindahkan
             ]);
-            $table->timestamps();
+            // Timestamps disabled for contract periods
         });
     }
 
