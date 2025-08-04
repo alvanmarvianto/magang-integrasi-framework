@@ -98,5 +98,10 @@ class App extends Model
     {
         return $this->hasMany(Platform::class, 'app_id', 'app_id');
     }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class, 'app_id', 'app_id');
+    }
 }
 

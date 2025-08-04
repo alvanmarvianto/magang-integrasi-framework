@@ -211,6 +211,11 @@ class StreamService
                         'Teknologi', 
                         '/technology/' . $app->app_id,
                         $stream->stream_name
+                    ),
+                    HierarchyNodeDTO::createUrl(
+                        'Kontrak', 
+                        '/contract/' . $app->app_id,
+                        $stream->stream_name
                     )
                 ]);
                 $appChildren[] = $appNode;
