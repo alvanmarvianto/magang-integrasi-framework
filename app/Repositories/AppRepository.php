@@ -223,12 +223,10 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                     'stratification' => $appData->stratification,
                 ]);
 
-                if (!empty($appData->technologyComponents)) {
-                    $this->technologyRepository->bulkUpdateTechnologyComponents(
-                        $app->app_id,
-                        $appData->technologyComponents
-                    );
-                }
+                $this->technologyRepository->bulkUpdateTechnologyComponents(
+                    $app->app_id,
+                    $appData->technologyComponents
+                );
 
                 $this->clearAllAppCaches($app->app_id);
 
@@ -270,7 +268,7 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                     'stratification' => $appData->stratification,
                 ]);
 
-                if ($updated && !empty($appData->technologyComponents)) {
+                if ($updated) {
                     $this->technologyRepository->bulkUpdateTechnologyComponents(
                         $app->app_id,
                         $appData->technologyComponents

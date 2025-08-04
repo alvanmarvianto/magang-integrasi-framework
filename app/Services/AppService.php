@@ -259,11 +259,16 @@ class AppService
         ];
 
         foreach ($technologyMapping as $dtoKey => $dataKey) {
-            if (isset($validatedData[$dataKey]) && !empty($validatedData[$dataKey])) {
-                $technologyComponents[$dtoKey] = array_map(
-                    fn($component) => is_array($component) ? $component : ['name' => $component],
-                    $validatedData[$dataKey]
-                );
+            if (isset($validatedData[$dataKey])) {
+                if (!empty($validatedData[$dataKey])) {
+                    $technologyComponents[$dtoKey] = array_map(
+                        fn($component) => is_array($component) ? $component : ['name' => $component],
+                        $validatedData[$dataKey]
+                    );
+                } else {
+                    // Include empty arrays to signal deletion of all components of this type
+                    $technologyComponents[$dtoKey] = [];
+                }
             }
         }
 
