@@ -9,6 +9,7 @@
             placeholder="Cari aplikasi..." 
             class="search-input"
             @input="debouncedSearch"
+            @keyup.enter="handleSearch"
           />
         </div>
         <a :href="getRoute('admin.apps.create')" class="admin-action-button">
@@ -124,7 +125,7 @@ const props = defineProps<Props>();
 
 // Use composables
 const { getRoute } = useRoutes();
-const { searchQuery, sortBy, sortDesc, debouncedSearch, navigateToPage } = useAdminTable({
+const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
   defaultSortBy: 'app_name'
 });
 

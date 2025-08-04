@@ -9,6 +9,7 @@
             placeholder="Cari integrasi..." 
             class="search-input"
             @input="debouncedSearch"
+            @keyup.enter="handleSearch"
           />
         </div>
         <a :href="getRoute('admin.integrations.create')" class="admin-action-button">
@@ -122,7 +123,7 @@ interface Props {
 const props = defineProps<Props>();
 
 // Use the admin table composable
-const { searchQuery, sortBy, sortDesc, debouncedSearch, navigateToPage } = useAdminTable({
+const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
   defaultSortBy: 'source_app_name'
 });
 
