@@ -8,3 +8,11 @@
 <script setup lang="ts">
 defineProps<{ label: string; id?: string }>();
 </script>
+
+<style scoped>
+.admin-form-field {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+</style>

@@ -36,7 +36,13 @@ import {
     faRefresh,
     faSave,
     faSpinner,
-    faExternalLinkAlt
+    faExternalLinkAlt,
+    faFileContract,
+    faCalendarAlt,
+    faDollarSign,
+    faSearch,
+    faFilter,
+    faEye
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -76,7 +82,13 @@ library.add(
     faRefresh,
     faSave,
     faSpinner,
-    faExternalLinkAlt
+    faExternalLinkAlt,
+    faFileContract,
+    faCalendarAlt,
+    faDollarSign,
+    faSearch,
+    faFilter,
+    faEye
 );
 
 export { FontAwesomeIcon }; 

@@ -25,6 +25,12 @@
         <p class="admin-menu-description">Kelola hubungan dan integrasi antar aplikasi secara detail</p>
       </a>
 
+      <a :href="getRoute('admin.contracts.index')" class="admin-menu-card">
+        <font-awesome-icon icon="fa-solid fa-file-contract" class="admin-menu-icon" />
+        <h2 class="admin-menu-title">Manajemen Kontrak</h2>
+        <p class="admin-menu-description">Kelola kontrak aplikasi dan periode pembayaran</p>
+      </a>
+
       <a :href="getRoute('admin.diagrams.show', { streamName: 'sp' })" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-project-diagram" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Diagram</h2>
