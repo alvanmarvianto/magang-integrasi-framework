@@ -19,6 +19,7 @@ use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\ContractRepositoryInterface;
 use App\Repositories\Interfaces\ContractPeriodRepositoryInterface;
 use App\Services\StreamLayoutService;
+use App\Services\UserContractService;
 use Illuminate\Support\ServiceProvider;
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -49,6 +50,7 @@ class RepositoryServiceProvider extends ServiceProvider
 
         // Register singleton services
         $this->app->singleton(StreamLayoutService::class);
+        $this->app->singleton(UserContractService::class);
     }
 
     /**

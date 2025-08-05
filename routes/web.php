@@ -5,13 +5,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\DiagramController;
 use App\Http\Controllers\TechnologyController;
+use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
 use App\Http\Controllers\Admin\AppController as AdminAppController;
 use App\Http\Controllers\Admin\TechnologyController as AdminTechnologyController;
 use App\Http\Controllers\Admin\ConnectionTypeController;
 use App\Http\Controllers\Admin\AdminDiagramController;
-use App\Http\Controllers\Admin\ContractController;
+use App\Http\Controllers\Admin\ContractController as AdminContractController;
 
 Route::get('/', [AppController::class, 'index'])->name('index');
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
@@ -31,6 +32,12 @@ Route::prefix('technology')->as('technology.')->group(function () {
     Route::get('/framework/{framework_name}', [TechnologyController::class, 'getAppByFramework'])->name('framework');
     Route::get('/platform/{platform_name}', [TechnologyController::class, 'getAppByPlatform'])->name('platform');
     Route::get('/{app_id}', [TechnologyController::class, 'show'])->name('app');
+});
+
+// User contract routes
+Route::prefix('contract')->as('contract.')->group(function () {
+    Route::get('/{app_id}', [ContractController::class, 'redirectToFirstContract'])->name('app');
+    Route::get('/{app_id}/{contract_id}', [ContractController::class, 'show'])->name('show');
 });
 
 // Admin routes
@@ -84,11 +91,11 @@ Route::prefix('admin')->as('admin.')->group(function () {
 
     // Contract management
     Route::prefix('contracts')->as('contracts.')->group(function () {
-        Route::get('/', [ContractController::class, 'index'])->name('index');
-        Route::get('/create', [ContractController::class, 'create'])->name('create');
-        Route::post('/', [ContractController::class, 'store'])->name('store');
-        Route::get('/{contract}/edit', [ContractController::class, 'edit'])->name('edit');
-        Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
-        Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
+        Route::get('/', [AdminContractController::class, 'index'])->name('index');
+        Route::get('/create', [AdminContractController::class, 'create'])->name('create');
+        Route::post('/', [AdminContractController::class, 'store'])->name('store');
+        Route::get('/{contract}/edit', [AdminContractController::class, 'edit'])->name('edit');
+        Route::put('/{contract}', [AdminContractController::class, 'update'])->name('update');
+        Route::delete('/{contract}', [AdminContractController::class, 'destroy'])->name('destroy');
     });
 });
