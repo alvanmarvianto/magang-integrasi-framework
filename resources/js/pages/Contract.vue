@@ -129,11 +129,9 @@
                   <div class="period-details">
                     <div class="period-dates">
                       <div v-if="period.start_date" class="date-item">
-                        <font-awesome-icon icon="fa-solid fa-play" />
                         <span>Mulai: {{ formatDate(period.start_date) }}</span>
                       </div>
                       <div v-if="period.end_date" class="date-item">
-                        <font-awesome-icon icon="fa-solid fa-stop" />
                         <span>Selesai: {{ formatDate(period.end_date) }}</span>
                       </div>
                     </div>

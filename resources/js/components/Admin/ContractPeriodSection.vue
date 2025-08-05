@@ -71,27 +71,7 @@
           </div>
 
           <!-- Row 3: Payment Status, Payment Value -->
-          <div class="period-form-field">
-            <label :for="`payment_status_${index}`" class="period-form-label">Status Pembayaran</label>
-            <select
-              :id="`payment_status_${index}`"
-              v-model="period.payment_status"
-              class="period-form-select"
-              required
-            >
-              <option value="">Pilih Status</option>
-              <option value="paid">Sudah bayar</option>
-              <option value="ba_process">Proses BA</option>
-              <option value="mka_process">Proses di MKA</option>
-              <option value="settlement_process">Proses Settlement</option>
-              <option value="addendum_process">Proses Addendum</option>
-              <option value="not_due">Belum Jatuh Tempo/belum ada kebutuhan</option>
-              <option value="has_issue">Terdapat Isu</option>
-              <option value="unpaid">Tidak bayar</option>
-              <option value="reserved_hr">Dicadangkan (HR)</option>
-              <option value="contract_moved">Kontrak dipindahkan</option>
-            </select>
-          </div>
+          
 
           <div class="period-form-field" v-if="contractCurrencyType === 'rp'">
             <label :for="`payment_value_rp_${index}`" class="period-form-label">Nilai Termin (RP)</label>
@@ -103,6 +83,28 @@
               placeholder="0.00"
               class="period-form-input"
             />
+          </div>
+
+          <div class="period-form-field">
+            <label :for="`payment_status_${index}`" class="period-form-label">Status Pembayaran</label>
+            <select
+              :id="`payment_status_${index}`"
+              v-model="period.payment_status"
+              class="period-form-select"
+              required
+            >
+              <option value="">Pilih Status</option>
+              <option value="paid">1. Sudah bayar</option>
+              <option value="ba_process">2. Proses BA</option>
+              <option value="mka_process">3. Proses di MKA</option>
+              <option value="settlement_process">4. Proses Settlement</option>
+              <option value="addendum_process">5. Proses Addendum</option>
+              <option value="not_due">6. Belum Jatuh Tempo/belum ada kebutuhan</option>
+              <option value="has_issue">7. Terdapat Isu</option>
+              <option value="unpaid">8. Tidak bayar</option>
+              <option value="reserved_hr">9. Dicadangkan (HR)</option>
+              <option value="contract_moved">10. Kontrak dipindahkan</option>
+            </select>
           </div>
 
           <div class="period-form-field" v-if="contractCurrencyType === 'non_rp'">

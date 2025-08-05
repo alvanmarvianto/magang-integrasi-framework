@@ -10,7 +10,7 @@ interface NodeData {
   url?: string;
   stream?: string;
   children?: NodeData[];
-  _children?: NodeeData[];
+  _children?: NodeData[];
   parent?: NodeData;
   x0?: number;
   y0?: number;
@@ -184,7 +184,9 @@ export function useD3ForceAppIntegration(integrationData: any) {
     });
 
     setTimeout(() => {
-      simulation.stop();
+      if (simulation) {
+        simulation.stop();
+      }
     }, 3000);
   }
 
