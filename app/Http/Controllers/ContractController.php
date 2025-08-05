@@ -26,7 +26,21 @@ class ContractController extends Controller
             $contractData = $this->contractService->getContractForUser($appId, $contractId);
 
             if (!$contractData) {
-                abort(404, 'Contract not found or does not belong to this app');
+                // Contract not found, but let's check if the app exists
+                $appInfo = $this->contractService->getAppInfo($appId);
+                
+                if (!$appInfo) {
+                    abort(404, 'Application not found');
+                }
+                
+                // Get all contracts for this app to show in sidebar
+                $allContracts = $this->contractService->getContractsByAppId($appId);
+                
+                return Inertia::render('Contract', [
+                    'contract' => null,
+                    'app' => $appInfo->toArray(),
+                    'allContracts' => $allContracts->map(fn($c) => $c->toArray())->toArray(),
+                ]);
             }
 
             return Inertia::render('Contract', [
@@ -35,16 +49,65 @@ class ContractController extends Controller
                 'allContracts' => $contractData['allContracts']->map(fn($c) => $c->toArray())->toArray(),
             ]);
         } catch (\Exception $e) {
-            abort(500, 'Failed to retrieve contract: ' . $e->getMessage());
+            // If there's an exception, try to gracefully handle it
+            try {
+                $appInfo = $this->contractService->getAppInfo($appId);
+                
+                if (!$appInfo) {
+                    // App doesn't exist, render contract page with app not found error
+                    return Inertia::render('Contract', [
+                        'contract' => null,
+                        'app' => null,
+                        'allContracts' => [],
+                        'error' => 'Application not found',
+                    ]);
+                }
+                
+                // Get all contracts for this app if possible
+                $allContracts = $this->contractService->getContractsByAppId($appId);
+                
+                return Inertia::render('Contract', [
+                    'contract' => null,
+                    'app' => $appInfo->toArray(),
+                    'allContracts' => $allContracts->map(fn($c) => $c->toArray())->toArray(),
+                    'error' => 'Failed to retrieve contract: ' . $e->getMessage(),
+                ]);
+            } catch (\Exception $fallbackException) {
+                // Complete fallback - render with app not found error
+                return Inertia::render('Contract', [
+                    'contract' => null,
+                    'app' => null,
+                    'allContracts' => [],
+                    'error' => 'Application not found',
+                ]);
+            }
         }
     }
 
     /**
      * Redirect to the first available contract for an app
      */
-    public function redirectToFirstContract(int $appId): RedirectResponse
+    public function redirectToFirstContract(int $appId): RedirectResponse|Response
     {
         try {
+            // Check if app has contracts
+            $hasContracts = $this->contractService->appHasContracts($appId);
+            
+            if (!$hasContracts) {
+                // If no contracts, render the contract page with empty data
+                $appInfo = $this->contractService->getAppInfo($appId);
+                
+                if (!$appInfo) {
+                    abort(404, 'Application not found');
+                }
+                
+                return Inertia::render('Contract', [
+                    'contract' => null,
+                    'app' => $appInfo->toArray(),
+                    'allContracts' => [],
+                ]);
+            }
+
             $firstContract = $this->contractService->getFirstContractForApp($appId);
 
             if (!$firstContract) {
@@ -56,7 +119,36 @@ class ContractController extends Controller
                 'contract_id' => $firstContract->id
             ]);
         } catch (\Exception $e) {
-            abort(500, 'Failed to retrieve contracts: ' . $e->getMessage());
+            // If there's an exception, try to gracefully handle it
+            try {
+                $appInfo = $this->contractService->getAppInfo($appId);
+                
+                if (!$appInfo) {
+                    // App doesn't exist, render contract page with app not found error
+                    return Inertia::render('Contract', [
+                        'contract' => null,
+                        'app' => null,
+                        'allContracts' => [],
+                        'error' => 'Application not found',
+                    ]);
+                }
+                
+                // App exists but there was another error
+                return Inertia::render('Contract', [
+                    'contract' => null,
+                    'app' => $appInfo->toArray(),
+                    'allContracts' => [],
+                    'error' => 'Failed to retrieve contracts: ' . $e->getMessage(),
+                ]);
+            } catch (\Exception $fallbackException) {
+                // Complete fallback - render with app not found error
+                return Inertia::render('Contract', [
+                    'contract' => null,
+                    'app' => null,
+                    'allContracts' => [],
+                    'error' => 'Application not found',
+                ]);
+            }
         }
     }
 }

@@ -22,13 +22,22 @@
       </div>
       <div id="loader" v-if="loading"></div>
       <div id="body">
-        <div v-if="!contract" class="contract-not-found">
-          <div class="not-found-content">
-            <font-awesome-icon icon="fa-solid fa-file-contract" class="not-found-icon" />
-            <h2>Kontrak tidak ditemukan</h2>
-            <p>Pilih kontrak dari sidebar untuk melihat detail.</p>
-          </div>
-        </div>
+        <ErrorState 
+          v-if="error || !app"
+          :title="!app || (error && error.includes('Application not found')) ? 'Aplikasi tidak ditemukan' : 'Terjadi kesalahan'"
+          :app="app"
+        />
+
+        <ErrorState 
+          v-else-if="!contract"
+          title="Kontrak tidak ditemukan"
+          :show-back-button="false"
+        />
+
+        <ErrorState 
+          v-else-if="!hasAnyContractData"
+          :show-back-button="false"
+        />
 
         <div v-else class="contract-content">
           <!-- Contract Header -->
@@ -162,6 +171,7 @@ import { useRoutes } from '../composables/useRoutes';
 import Sidebar from '../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 import SidebarContractPeriod from '../components/Sidebar/SidebarContractPeriod.vue';
+import ErrorState from '../components/ErrorState.vue';
 
 interface App {
   app_id: number;
@@ -197,6 +207,7 @@ interface Props {
   contract?: Contract;
   app?: App;
   allContracts: Contract[];
+  error?: string;
 }
 
 const props = defineProps<Props>();
@@ -222,6 +233,20 @@ const navigationLinks = [
     onClick: () => props.app ? visitRoute('technology.app', { app_id: props.app.app_id }) : visitRoute('technology.index'),
   },
 ];
+
+const hasAnyContractData = computed(() => {
+  if (!props.contract) return false;
+  
+  return Boolean(
+    props.contract.title ||
+    props.contract.contract_number ||
+    props.contract.contract_value_rp ||
+    props.contract.contract_value_non_rp ||
+    props.contract.lumpsum_value_rp ||
+    props.contract.unit_value_rp ||
+    (props.contract.contract_periods && props.contract.contract_periods.length > 0)
+  );
+});
 
 const backToAppUrl = computed(() => {
   return props.app ? `/technology/${props.app.app_id}` : '/';
@@ -331,25 +356,6 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
 }
 
 /* Contract specific styles */
-.contract-not-found {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 80vh;
-  padding: var(--spacing-8);
-}
-
-.not-found-content {
-  text-align: center;
-  color: var(--text-muted);
-}
-
-.not-found-icon {
-  font-size: 4rem;
-  margin-bottom: var(--spacing-4);
-  opacity: 0.5;
-}
-
 .contract-content {
   padding: 1rem;
   height: 96%;

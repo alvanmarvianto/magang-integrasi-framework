@@ -1,98 +1,118 @@
 <template>
   <div id="container">
-    <Sidebar 
-      :title="`Diagram - ${streamName.toUpperCase()} Stream`" 
-      icon="fa-solid fa-bezier-curve"
-      :show-close-button="true"
-      @close="closeSidebar"
-    >
-      <SidebarNavigation :links="navigationLinks" />
+    <!-- Error State -->
+    <ErrorState
+      v-if="props.error"
+      title="Gagal memuat diagram"
+      :show-back-button="true"
+      back-button-text="Kembali ke Halaman Utama"
+      back-route="index"
+    />
 
-      <SidebarControlsSection
-        title="Controls"
-        :controls="controls"
-      />
+    <!-- No Data State -->
+    <ErrorState
+      v-else-if="!props.nodes || props.nodes.length === 0"
+      :show-back-button="true"
+      back-button-text="Kembali ke Halaman Utama"
+      back-route="index"
+    />
 
-      <SidebarLegend
-        title="Tipe Node"
-        :items="nodeTypeLegend"
-      />
+    <!-- Normal Content -->
+    <template v-else>
+      <Sidebar 
+        :title="`Diagram - ${streamName.toUpperCase()} Stream`" 
+        icon="fa-solid fa-bezier-curve"
+        :show-close-button="true"
+        @close="closeSidebar"
+      >
+        <SidebarNavigation :links="navigationLinks" />
 
-      <SidebarLegend
-        title="Tipe Koneksi"
-        :items="connectionTypeLegend"
-      />
-    </Sidebar>
+        <SidebarControlsSection
+          title="Controls"
+          :controls="controls"
+        />
 
-    <main id="main-content">
-      <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
-        @click.stop="toggleSidebar">
-        <i class="fas fa-bars"></i>
-      </div>
-      
-      <!-- Vue Flow Container -->
-      <div id="body" class="vue-flow-wrapper">
-        <VueFlow
-          ref="vueFlowRef"
-          :nodes="nodes"
-          :edges="edges"
-          :fit-view-on-init="false"
-          :nodes-draggable="true"
-          :pan-on-scroll="false"
-          :pan-on-scroll-mode="PanOnScrollMode.Free"
-          :zoom-on-scroll="false"
-          :zoom-on-pinch="true"
-          :zoom-on-double-click="true"
-          :max-zoom="1.5"
-          :min-zoom="0.5"
-          :default-viewport="{ zoom: 1, x: 0, y: 0 }"
-          :pan-on-drag="[0, 2]"
-          class="vue-flow-container"
-          @node-click="onNodeClick"
-          @edge-click="onEdgeClick"
-          @pane-click="onPaneClick"
-          @node-drag-stop="onNodeDragStop"
-          @wheel="onWheel"
-          @contextmenu="onContextMenu"
-        >
-          <!-- Custom Node Types -->
-          <template #node-stream="nodeProps">
-            <StreamNest v-bind="nodeProps" :admin-mode="false" />
-          </template>
-          <template #node-app="nodeProps">
-            <AppNode v-bind="nodeProps" :admin-mode="false" />
-          </template>
+        <SidebarLegend
+          title="Tipe Node"
+          :items="nodeTypeLegend"
+        />
 
-          <!-- Controls -->
-          <Controls
-            :show-zoom="true"
-            :show-fit-view="true"
-            :show-interactive="true"
-            position="bottom-right"
-          />
-          <Background :pattern="BackgroundVariant.Dots" />
-        </VueFlow>
+        <SidebarLegend
+          title="Tipe Koneksi"
+          :items="connectionTypeLegend"
+        />
+      </Sidebar>
 
-        <!-- Loading Overlay -->
-        <div
-          v-if="!isLayouted"
-          class="loading-overlay"
-        >
-          <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p>Loading Diagram...</p>
+      <main id="main-content">
+        <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
+          @click.stop="toggleSidebar">
+          <i class="fas fa-bars"></i>
+        </div>
+        
+        <!-- Vue Flow Container -->
+        <div id="body" class="vue-flow-wrapper">
+          <VueFlow
+            ref="vueFlowRef"
+            :nodes="nodes"
+            :edges="edges"
+            :fit-view-on-init="false"
+            :nodes-draggable="true"
+            :pan-on-scroll="false"
+            :pan-on-scroll-mode="PanOnScrollMode.Free"
+            :zoom-on-scroll="false"
+            :zoom-on-pinch="true"
+            :zoom-on-double-click="true"
+            :max-zoom="1.5"
+            :min-zoom="0.5"
+            :default-viewport="{ zoom: 1, x: 0, y: 0 }"
+            :pan-on-drag="[0, 2]"
+            class="vue-flow-container"
+            @node-click="onNodeClick"
+            @edge-click="onEdgeClick"
+            @pane-click="onPaneClick"
+            @node-drag-stop="onNodeDragStop"
+            @wheel="onWheel"
+            @contextmenu="onContextMenu"
+          >
+            <!-- Custom Node Types -->
+            <template #node-stream="nodeProps">
+              <StreamNest v-bind="nodeProps" :admin-mode="false" />
+            </template>
+            <template #node-app="nodeProps">
+              <AppNode v-bind="nodeProps" :admin-mode="false" />
+            </template>
+
+            <!-- Controls -->
+            <Controls
+              :show-zoom="true"
+              :show-fit-view="true"
+              :show-interactive="true"
+              position="bottom-right"
+            />
+            <Background :pattern="BackgroundVariant.Dots" />
+          </VueFlow>
+
+          <!-- Loading Overlay -->
+          <div
+            v-if="!isLayouted"
+            class="loading-overlay"
+          >
+            <div class="loading-content">
+              <div class="loading-spinner"></div>
+              <p>Loading Diagram...</p>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
-    <!-- Edge Details Sidebar -->
-    <DetailsSidebar
-      :visible="showEdgeDetails"
-      :edgeData="selectedEdgeData"
-      :isAdmin="false"
-      @close="closeEdgeDetails"
-    />
+      <!-- Edge Details Sidebar -->
+      <DetailsSidebar
+        :visible="showEdgeDetails"
+        :edgeData="selectedEdgeData"
+        :isAdmin="false"
+        @close="closeEdgeDetails"
+      />
+    </template>
   </div>
 </template>
 
@@ -111,6 +131,7 @@ import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
 import SidebarControlsSection from '@/components/Sidebar/SidebarControlsSection.vue';
 import SidebarLegend from '@/components/Sidebar/SidebarLegend.vue';
 import DetailsSidebar from '@/components/Sidebar/DetailsSidebar.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import { 
   validateAndCleanNodes,
   initializeNodesWithLayout,
@@ -140,6 +161,7 @@ interface Props {
   } | null
   streams: string[];
   allowedStreams: string[];
+  error?: string | null;
 }
 
 const props = defineProps<Props>();

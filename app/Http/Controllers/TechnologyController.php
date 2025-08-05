@@ -60,7 +60,14 @@ class TechnologyController extends Controller
                 'streamName' => $appTechnologyData->streamName,
             ]);
         } catch (\Exception $e) {
-            abort(404, 'Application not found');
+            return Inertia::render('Technology/App', [
+                'app' => null,
+                'appDescription' => '',
+                'technology' => [],
+                'appName' => 'Aplikasi tidak ditemukan',
+                'streamName' => '',
+                'error' => 'Application not found',
+            ]);
         }
     }
 

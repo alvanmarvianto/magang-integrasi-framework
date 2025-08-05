@@ -37,9 +37,22 @@ class AppController extends Controller
             ]);
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'not allowed')) {
-                abort(403, $e->getMessage());
+                return Inertia::render('Integration/App', [
+                    'integrationData' => [],
+                    'parentAppId' => $appId,
+                    'appName' => 'Akses ditolak',
+                    'streamName' => '',
+                    'error' => $e->getMessage(),
+                ]);
             }
-            abort(404, 'Application not found');
+            
+            return Inertia::render('Integration/App', [
+                'integrationData' => [],
+                'parentAppId' => $appId,
+                'appName' => 'Aplikasi tidak ditemukan',
+                'streamName' => '',
+                'error' => 'Application not found',
+            ]);
         }
     }
 

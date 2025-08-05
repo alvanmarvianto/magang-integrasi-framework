@@ -313,8 +313,8 @@ class ContractService
             return null;
         }
 
-        // Get the first contract (or you could implement custom sorting)
-        $firstContract = $contracts->sortBy('created_at')->first();
+        // Get the first contract (sorted by ID for consistency)
+        $firstContract = $contracts->sortBy('id')->first();
         
         return ContractDTO::fromModel($firstContract);
     }

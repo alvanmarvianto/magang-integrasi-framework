@@ -13,17 +13,24 @@
         <FontAwesomeIcon icon="fa-solid fa-bars" />
       </div>
       <div id="technology-container">
-        <div class="tech-header">
-          <h1>{{ appName }}</h1>
-          <p v-if="streamName" class="stream-info">{{ appDescription }}</p>
-        </div>
+        <ErrorState 
+          v-if="error || !app"
+          title="Aplikasi tidak ditemukan"
+          :app="app"
+        />
+        
+        <template v-else>
+          <div class="tech-header">
+            <h1>{{ appName }}</h1>
+            <p v-if="streamName" class="stream-info">{{ appDescription }}</p>
+          </div>
 
-        <div v-if="!hasAnyTechnologyData" class="no-data-center">
-          <FontAwesomeIcon icon="fa-solid fa-info-circle" class="fa-2x" />
-          <p>Tidak ada data tersedia</p>
-        </div>
+          <ErrorState 
+            v-if="!hasAnyTechnologyData"
+            :show-back-button="false"
+          />
 
-        <div v-else class="tech-main-layout">
+          <div v-else class="tech-main-layout">
           <!-- Left Side - Tech Stack Labels -->
           <div class="tech-stack-labels">
             <div v-if="technology.vendor?.length" class="stack-label vendor-label">
@@ -72,6 +79,7 @@
             <PlatformSection :technology="technology" />
           </div>
         </div>
+        </template>
       </div>
     </main>
   </div>
@@ -94,6 +102,7 @@ import LanguageSection from '../../components/TechnologyApp/LanguageSection.vue'
 import DatabaseSection from '../../components/TechnologyApp/DatabaseSection.vue';
 import OSSection from '../../components/TechnologyApp/OSSection.vue';
 import VendorSection from '../../components/TechnologyApp/VendorSection.vue';
+import ErrorState from '../../components/ErrorState.vue';
 
 const props = defineProps<{
   app: any;
@@ -101,6 +110,7 @@ const props = defineProps<{
   appName: string;
   appDescription: string;
   streamName: string;
+  error?: string;
 }>()
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();

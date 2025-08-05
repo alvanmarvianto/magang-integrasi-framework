@@ -1,54 +1,78 @@
 <template>
   <div class="admin-vue-flow-container">
-    <AdminNavbar :title="`Admin - ${streamName.toUpperCase()} Stream Layout`" :showBackButton="true">
-      <template #controls>
-        <!-- Layout changed indicator -->
-        <div v-if="layoutChanged" class="status-indicator unsaved">
-          <div class="indicator-dot"></div>
-          Perubahan belum tersimpan
-        </div>
-        
-        <!-- Saved indicator -->
-        <div v-else class="status-indicator saved">
-          <div class="indicator-dot saved-dot"></div>
-          Tersimpan
-        </div>
-        
-        <select v-model="selectedStream" @change="switchStream" class="stream-selector">
-          <option v-for="stream in allowedStreams" :key="stream" :value="stream">
-            {{ stream.toUpperCase() }}
-          </option>
-        </select>
-        <button @click="saveLayout" :disabled="saving" class="save-btn">
-          {{ saving ? 'Saving...' : 'Save Layout' }}
-        </button>
-        <button 
-          @click="refreshLayout" 
-          :disabled="refreshing" 
-          class="refresh-btn"
-          :class="{ 'has-unsaved-changes': layoutChanged }"
-          :title="layoutChanged ? 'Peringatan: Ada perubahan yang belum disimpan!' : 'Refresh layout dan hapus data yang tidak valid'"
-        >
-          {{ refreshing ? 'Refreshing...' : 'Refresh Layout' }}
-        </button>
-        <button @click="resetLayout" class="reset-btn">Reset Layout</button>
-      </template>
-    </AdminNavbar>
+    <!-- Error State -->
+    <ErrorState
+      v-if="props.error"
+      type="error"
+      title="Gagal Memuat Diagram Admin"
+      :message="props.error"
+      :show-back-button="true"
+      back-button-text="Kembali ke Dashboard Admin"
+      back-route="admin.dashboard"
+    />
 
-    <!-- Vue Flow -->
-    <div class="vue-flow-wrapper">
-      <VueFlow
-        ref="vueFlowRef"
-        :key="vueFlowKey"
-        :nodes="nodes"
-        :edges="edges"
-        :class="{ 'vue-flow': true, 'admin-mode': true }"
-        @node-drag-stop="onNodeDragStop"
-        @nodes-change="onNodesChange"
-        @edges-change="onEdgesChange"
-        @edge-update="onEdgeUpdate"
-        @edge-click="onEdgeClick"
-        @node-click="onNodeClick"
+    <!-- No Data State -->
+    <ErrorState
+      v-else-if="!props.nodes || props.nodes.length === 0"
+      type="no-data"
+      title="Tidak Ada Data Diagram"
+      message="Diagram untuk stream ini belum tersedia atau belum dikonfigurasi."
+      :show-back-button="true"
+      back-button-text="Kembali ke Dashboard Admin"
+      back-route="admin.dashboard"
+    />
+
+    <!-- Normal Content -->
+    <template v-else>
+      <AdminNavbar :title="`Admin - ${streamName.toUpperCase()} Stream Layout`" :showBackButton="true">
+        <template #controls>
+          <!-- Layout changed indicator -->
+          <div v-if="layoutChanged" class="status-indicator unsaved">
+            <div class="indicator-dot"></div>
+            Perubahan belum tersimpan
+          </div>
+          
+          <!-- Saved indicator -->
+          <div v-else class="status-indicator saved">
+            <div class="indicator-dot saved-dot"></div>
+            Tersimpan
+          </div>
+          
+          <select v-model="selectedStream" @change="switchStream" class="stream-selector">
+            <option v-for="stream in allowedStreams" :key="stream" :value="stream">
+              {{ stream.toUpperCase() }}
+            </option>
+          </select>
+          <button @click="saveLayout" :disabled="saving" class="save-btn">
+            {{ saving ? 'Saving...' : 'Save Layout' }}
+          </button>
+          <button 
+            @click="refreshLayout" 
+            :disabled="refreshing" 
+            class="refresh-btn"
+            :class="{ 'has-unsaved-changes': layoutChanged }"
+            :title="layoutChanged ? 'Peringatan: Ada perubahan yang belum disimpan!' : 'Refresh layout dan hapus data yang tidak valid'"
+          >
+            {{ refreshing ? 'Refreshing...' : 'Refresh Layout' }}
+          </button>
+          <button @click="resetLayout" class="reset-btn">Reset Layout</button>
+        </template>
+      </AdminNavbar>
+
+      <!-- Vue Flow -->
+      <div class="vue-flow-wrapper">
+        <VueFlow
+          ref="vueFlowRef"
+          :key="vueFlowKey"
+          :nodes="nodes"
+          :edges="edges"
+          :class="{ 'vue-flow': true, 'admin-mode': true }"
+          @node-drag-stop="onNodeDragStop"
+          @nodes-change="onNodesChange"
+          @edges-change="onEdgesChange"
+          @edge-update="onEdgeUpdate"
+          @edge-click="onEdgeClick"
+          @node-click="onNodeClick"
         @pane-click="onPaneClick"
         @wheel="onWheel"
         @contextmenu="onContextMenu"
@@ -104,6 +128,7 @@
     <div v-if="statusMessage" class="status-message" :class="statusType">
       {{ statusMessage }}
     </div>
+    </template>
   </div>
 </template>
 
@@ -119,6 +144,7 @@ import AppNode from '@/components/VueFlow/AppNode.vue'
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
 import EdgeDetailsSidebar from '@/components/Sidebar/EdgeDetailsSidebar.vue'
 import DetailsSidebar from '@/components/Sidebar/DetailsSidebar.vue'
+import ErrorState from '@/components/ErrorState.vue'
 import { useStatusMessage } from '@/composables/useStatusMessage'
 import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
 import { 
@@ -153,6 +179,7 @@ interface Props {
     nodes: Node[]
     edges: Edge[]
   }
+  error?: string | null
 }
 
 const props = defineProps<Props>()

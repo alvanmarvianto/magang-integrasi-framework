@@ -23,8 +23,22 @@
       <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }" @click.stop="toggleSidebar">
         <FontAwesomeIcon icon="fa-solid fa-bars" />
       </div>
-      <div id="body"></div>
-      <p id="error-message" style="display: none"></p>
+      
+      <ErrorState 
+        v-if="error"
+        :title="error.includes('Application not found') ? 'Aplikasi tidak ditemukan' : 'Terjadi kesalahan'"
+        :app="{ app_id: parentAppId, app_name: appName }"
+      />
+      
+      <ErrorState 
+        v-else-if="!integrationData || (Array.isArray(integrationData) && integrationData.length === 0)"
+        :show-back-button="false"
+      />
+      
+      <template v-else>
+        <div id="body"></div>
+        <p id="error-message" style="display: none"></p>
+      </template>
     </main>
   </div>
 </template>
@@ -38,17 +52,23 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '@/components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
 import SidebarLegend from '@/components/Sidebar/SidebarLegend.vue';
+import ErrorState from '@/components/ErrorState.vue';
 
 const props = defineProps<{
   integrationData: any;
   appName: string;
   streamName: string;
   parentAppId: number;
+  error?: string;
 }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { visitRoute } = useRoutes();
-useD3ForceAppIntegration(props.integrationData);
+
+// Only initialize D3 if there's actual integration data and no error
+if (!props.error && props.integrationData && (!Array.isArray(props.integrationData) || props.integrationData.length > 0)) {
+  useD3ForceAppIntegration(props.integrationData);
+}
 
 const navigationLinks = [
   {
