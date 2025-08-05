@@ -6,12 +6,12 @@ use App\Http\Controllers\AppController;
 use App\Http\Controllers\DiagramController;
 use App\Http\Controllers\TechnologyController;
 use App\Http\Controllers\ContractController;
-use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\Controller as AdminController;
 use App\Http\Controllers\Admin\IntegrationController as AdminIntegrationController;
 use App\Http\Controllers\Admin\AppController as AdminAppController;
 use App\Http\Controllers\Admin\TechnologyController as AdminTechnologyController;
 use App\Http\Controllers\Admin\ConnectionTypeController;
-use App\Http\Controllers\Admin\AdminDiagramController;
+use App\Http\Controllers\Admin\DiagramController as AdminDiagramController;
 use App\Http\Controllers\Admin\ContractController as AdminContractController;
 
 Route::get('/', [AppController::class, 'index'])->name('index');

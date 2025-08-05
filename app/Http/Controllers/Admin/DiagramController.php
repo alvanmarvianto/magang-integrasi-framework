@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
  * This controller has been refactored to use DTOs throughout for consistency
  * with the user diagram controller and the overall application architecture.
  */
-class AdminDiagramController extends Controller
+class DiagramController extends Controller
 {
     protected DiagramService $diagramService;
     protected DiagramCleanupService $cleanupService;

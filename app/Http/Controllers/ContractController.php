@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\UserContractService;
+use App\Services\ContractService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -10,11 +10,11 @@ use Inertia\Response;
 
 class ContractController extends Controller
 {
-    protected UserContractService $userContractService;
+    protected ContractService $contractService;
 
-    public function __construct(UserContractService $userContractService)
+    public function __construct(ContractService $contractService)
     {
-        $this->userContractService = $userContractService;
+        $this->contractService = $contractService;
     }
 
     /**
@@ -23,7 +23,7 @@ class ContractController extends Controller
     public function show(int $appId, int $contractId): Response
     {
         try {
-            $contractData = $this->userContractService->getContractForUser($appId, $contractId);
+            $contractData = $this->contractService->getContractForUser($appId, $contractId);
 
             if (!$contractData) {
                 abort(404, 'Contract not found or does not belong to this app');
@@ -45,7 +45,7 @@ class ContractController extends Controller
     public function redirectToFirstContract(int $appId): RedirectResponse
     {
         try {
-            $firstContract = $this->userContractService->getFirstContractForApp($appId);
+            $firstContract = $this->contractService->getFirstContractForApp($appId);
 
             if (!$firstContract) {
                 abort(404, 'No contracts found for this app');
