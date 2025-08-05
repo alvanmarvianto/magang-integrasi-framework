@@ -33,6 +33,12 @@ class UserContractService
             return null;
         }
 
+        // Sort contract periods by ID (ascending order)
+        if ($contract->relationLoaded('contractPeriods') && $contract->contractPeriods->isNotEmpty()) {
+            $sortedPeriods = $contract->contractPeriods->sortBy('id');
+            $contract->setRelation('contractPeriods', $sortedPeriods);
+        }
+
         // Get the app details
         $app = $this->appRepository->findWithRelations($appId);
         

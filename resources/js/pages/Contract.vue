@@ -1,7 +1,7 @@
 <template>
   <div id="container">
     <Sidebar 
-      :title="app?.app_name || 'Kontrak Aplikasi'" 
+      :title="'Kontrak ' + (app?.app_name || 'Kontrak Aplikasi')" 
       icon="fa-solid fa-file-contract"
       :show-close-button="true"
       @close="closeSidebar"
@@ -34,17 +34,8 @@
           <!-- Contract Header -->
           <div class="contract-header">
             <div class="contract-title-section">
-              <h1 class="contract-title">{{ contract.title }}</h1>
-              <p class="contract-number">{{ contract.contract_number }}</p>
-            </div>
-            
-            <div class="contract-badges">
-              <span :class="[
-                'currency-badge',
-                contract.currency_type === 'rp' ? 'badge-rp' : 'badge-non-rp'
-              ]">
-                {{ contract.currency_type_label }}
-              </span>
+              <h1>{{ contract.title }}</h1>
+              <p class="contract-info">{{ contract.contract_number }}</p>
             </div>
           </div>
 
@@ -368,11 +359,15 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
 
 .contract-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  justify-content: center;
+  align-items: center;
   margin-bottom: var(--spacing-8);
   padding-bottom: var(--spacing-4);
   border-bottom: 1px solid var(--border-color);
+}
+
+.contract-title-section {
+  text-align: center;
 }
 
 .contract-title-section h1 {
@@ -382,32 +377,12 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   margin: 0 0 var(--spacing-2) 0;
 }
 
-.contract-number {
-  font-size: 1rem;
-  color: var(--text-muted);
+.contract-info {
   margin: 0;
-}
-
-.contract-badges {
-  display: flex;
-  gap: var(--spacing-2);
-}
-
-.currency-badge {
-  padding: var(--spacing-2) var(--spacing-4);
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.badge-rp {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.badge-non-rp {
-  background: #dbeafe;
-  color: #1e40af;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
 }
 
 .contract-details {
