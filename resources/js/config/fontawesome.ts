@@ -34,8 +34,7 @@ import {
     faCalendarAlt,
     faDollarSign,
     faCoins,
-    faPlay,
-    faStop
+    faCopy,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -73,8 +72,7 @@ library.add(
     faCalendarAlt,
     faDollarSign,
     faCoins,
-    faPlay,
-    faStop
+    faCopy,
 );
 
 export { FontAwesomeIcon }; 

@@ -7,6 +7,7 @@ use App\Models\Contract;
 use App\Services\ContractService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -137,6 +138,42 @@ class ContractController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('admin.contracts.index')
                 ->with('error', 'Failed to delete contract: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Copy a contract to another app
+     */
+    public function copy(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'source_contract_id' => 'required|integer|exists:contracts,id',
+            'target_app_id' => 'required|integer|exists:apps,app_id',
+        ]);
+
+        try {
+            $copiedContract = $this->contractService->copyContract(
+                $request->integer('source_contract_id'),
+                $request->integer('target_app_id')
+            );
+
+            return redirect()->route('admin.contracts.index')
+                ->with('success', 'Contract copied successfully to the target app');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to copy contract: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get available apps for contract copying
+     */
+    public function getApps(): JsonResponse
+    {
+        try {
+            $apps = $this->contractService->getAppOptionsForForms();
+            return response()->json($apps);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch apps'], 500);
         }
     }
 }

@@ -252,6 +252,77 @@ class ContractService
     }
 
     /**
+     * Copy an existing contract to a new app
+     */
+    public function copyContract(int $sourceContractId, int $targetAppId): ContractDTO
+    {
+        // Find the source contract with all relationships
+        $sourceContract = $this->contractRepository->findByIdWithRelations($sourceContractId);
+        if (!$sourceContract) {
+            throw new \InvalidArgumentException('Source contract not found');
+        }
+
+        // Validate target app exists
+        $targetApp = $this->appRepository->findWithRelations($targetAppId);
+        if (!$targetApp) {
+            throw new \InvalidArgumentException('Target app not found');
+        }
+
+        // Prepare contract data for duplication
+        $contractData = [
+            'app_id' => $targetAppId,
+            'title' => $sourceContract->title, // Keep original title without modification
+            'contract_number' => $sourceContract->contract_number, // Keep original contract number
+            'currency_type' => $sourceContract->currency_type,
+            'contract_value_rp' => $sourceContract->contract_value_rp,
+            'contract_value_non_rp' => $sourceContract->contract_value_non_rp,
+            'lumpsum_value_rp' => $sourceContract->lumpsum_value_rp,
+            'unit_value_rp' => $sourceContract->unit_value_rp,
+        ];
+
+        // Create the new contract
+        $newContract = $this->contractRepository->create($contractData);
+
+        // Copy contract periods if they exist
+        if ($sourceContract->relationLoaded('contractPeriods') && $sourceContract->contractPeriods->isNotEmpty()) {
+            foreach ($sourceContract->contractPeriods as $sourcePeriod) {
+                $periodData = [
+                    'contract_id' => $newContract->id,
+                    'period_name' => $sourcePeriod->period_name,
+                    'budget_type' => $sourcePeriod->budget_type,
+                    'start_date' => $sourcePeriod->start_date,
+                    'end_date' => $sourcePeriod->end_date,
+                    'payment_value_rp' => $sourcePeriod->payment_value_rp,
+                    'payment_value_non_rp' => $sourcePeriod->payment_value_non_rp,
+                    'payment_status' => $sourcePeriod->payment_status,
+                ];
+                
+                $this->contractPeriodRepository->create($periodData);
+            }
+        }
+
+        // Reload with relationships
+        $newContractWithRelations = $this->contractRepository->findByIdWithRelations($newContract->id);
+        
+        return ContractDTO::fromModel($newContractWithRelations);
+    }
+
+    /**
+     * Get contracts available for copying (excluding contracts from the specified app)
+     */
+    public function getContractsForCopying(int $excludeAppId): Collection
+    {
+        $allContracts = $this->contractRepository->getAllWithRelations();
+        
+        // Filter out contracts from the specified app
+        $availableContracts = $allContracts->filter(function ($contract) use ($excludeAppId) {
+            return $contract->app_id !== $excludeAppId;
+        });
+        
+        return $availableContracts->map(fn($contract) => ContractDTO::fromModel($contract));
+    }
+
+    /**
      * Check if contract exists by ID
      */
     public function contractExistsById(int $id): bool
