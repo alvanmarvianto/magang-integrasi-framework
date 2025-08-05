@@ -25,18 +25,22 @@ class ContractController extends Controller
     public function index(Request $request): Response
     {
         try {
-            $contracts = $this->contractService->getAllContracts();
+            $paginationData = $this->contractService->getPaginatedContracts(
+                search: $request->get('search'),
+                perPage: $request->get('per_page', 10),
+                sortBy: $request->get('sort_by', 'app_name'),
+                sortDesc: $request->boolean('sort_desc', false)
+            );
+
             $statistics = $this->contractService->getContractStatistics();
 
             return Inertia::render('Admin/Contracts', [
-                'contracts' => [
-                    'data' => $contracts->map(fn($contract) => $contract->toArray())
-                ],
+                'contracts' => $paginationData['contracts'],
                 'statistics' => $statistics
             ]);
         } catch (\Exception $e) {
             return Inertia::render('Admin/Contracts', [
-                'contracts' => ['data' => []],
+                'contracts' => ['data' => [], 'meta' => ['links' => []]],
                 'statistics' => [],
                 'error' => 'Failed to retrieve contracts: ' . $e->getMessage()
             ]);

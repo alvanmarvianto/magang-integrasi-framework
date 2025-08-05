@@ -4,6 +4,7 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\Contract;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 interface ContractRepositoryInterface
 {
@@ -66,6 +67,16 @@ interface ContractRepositoryInterface
      * Get contracts by currency type
      */
     public function getByCurrencyType(string $currencyType): Collection;
+
+    /**
+     * Get paginated contracts with optional search and sorting
+     */
+    public function getPaginatedContracts(
+        ?string $search = null,
+        int $perPage = 10,
+        string $sortBy = 'app_name',
+        bool $sortDesc = false
+    ): LengthAwarePaginator;
 
     /**
      * Search contracts by title or contract number

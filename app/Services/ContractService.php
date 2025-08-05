@@ -27,6 +27,74 @@ class ContractService
     }
 
     /**
+     * Get paginated contracts with optional search and sorting
+     */
+    public function getPaginatedContracts(
+        ?string $search = null,
+        int $perPage = 10,
+        string $sortBy = 'app_name',
+        bool $sortDesc = false
+    ): array {
+        $paginatedContracts = $this->contractRepository->getPaginatedContracts($search, $perPage, $sortBy, $sortDesc);
+        
+        // Convert the paginated contract models to DTOs
+        $contractDTOs = $paginatedContracts->map(function ($contract) {
+            return ContractDTO::fromModel($contract);
+        });
+        
+        // Create pagination data structure that matches Laravel's default pagination
+        $paginationData = [
+            'data' => $contractDTOs->map(fn($dto) => $dto->toArray())->all(),
+            'meta' => [
+                'current_page' => $paginatedContracts->currentPage(),
+                'last_page' => $paginatedContracts->lastPage(),
+                'per_page' => $paginatedContracts->perPage(),
+                'total' => $paginatedContracts->total(),
+                'from' => $paginatedContracts->firstItem(),
+                'to' => $paginatedContracts->lastItem(),
+                'links' => $this->buildPaginationLinks($paginatedContracts),
+            ],
+        ];
+        
+        return [
+            'contracts' => $paginationData,
+        ];
+    }
+
+    /**
+     * Build pagination links for the frontend
+     */
+    private function buildPaginationLinks($paginator): array
+    {
+        $links = [];
+        
+        // Previous link
+        $links[] = [
+            'url' => $paginator->previousPageUrl(),
+            'label' => '&laquo; Previous',
+            'active' => false
+        ];
+        
+        // Page number links
+        foreach ($paginator->getUrlRange(1, $paginator->lastPage()) as $page => $url) {
+            $links[] = [
+                'url' => $url,
+                'label' => (string) $page,
+                'active' => $page === $paginator->currentPage()
+            ];
+        }
+        
+        // Next link
+        $links[] = [
+            'url' => $paginator->nextPageUrl(),
+            'label' => 'Next &raquo;',
+            'active' => false
+        ];
+        
+        return $links;
+    }
+
+    /**
      * Get all contracts as DTOs
      */
     public function getAllContracts(): Collection

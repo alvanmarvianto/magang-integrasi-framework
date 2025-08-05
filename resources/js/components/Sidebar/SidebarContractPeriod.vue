@@ -210,10 +210,16 @@ function formatContractValue(contract: Contract): string {
     color: inherit;
     margin: 0 0 0.25rem 0;
     line-height: 1.3;
-}
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: calc(1.3em * 2); /* 2 lines * line-height */}
 
 .contract-number {
-    font-size: 0.75rem;
+    font-size: 0.75re;
     color: var(--text-muted, #666);
     margin: 0;
     opacity: 0.8;

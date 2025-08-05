@@ -6,7 +6,7 @@
       :show-close-button="true"
       @close="closeSidebar"
     >
-      <SidebarNavigation :links="navigationLinks"  title="Back Navigasi"/>
+      <SidebarNavigation :links="navigationLinks"  title="Navigasi"/>
       
       <SidebarContractPeriod
         :title="'Kontrak Aplikasi'"
@@ -118,7 +118,7 @@
                   </div>
                   
                   <div class="period-details">
-                    <div v-if="period.start_date || period.end_date" class="period-dates">
+                    <div class="period-dates">
                       <div v-if="period.start_date" class="date-item">
                         <font-awesome-icon icon="fa-solid fa-play" />
                         <span>Mulai: {{ formatDate(period.start_date) }}</span>
@@ -455,6 +455,9 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   padding: var(--spacing-4);
+  height: 175px;
+  display: flex;
+  flex-direction: column;
 }
 
 .period-header {
@@ -462,6 +465,7 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-3);
+  flex-shrink: 0;
 }
 
 .period-name {
@@ -491,13 +495,15 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
 .period-details {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  flex: 1;
+  justify-content: space-between;
 }
 
 .period-dates {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
+  flex-grow: 1;
 }
 
 .date-item {
@@ -512,6 +518,8 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .payment-status, .payment-value {

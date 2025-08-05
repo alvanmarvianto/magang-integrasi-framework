@@ -6,6 +6,9 @@ use App\Models\Contract;
 use App\Repositories\Interfaces\ContractRepositoryInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
+use App\Repositories\Exceptions\RepositoryException;
 
 class ContractRepository extends BaseRepository implements ContractRepositoryInterface
 {
@@ -24,6 +27,68 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         return $this->handleCacheOperation('contracts.all', function () {
             return $this->model->all();
         });
+    }
+
+    /**
+     * Get paginated contracts with optional search and sorting
+     */
+    public function getPaginatedContracts(
+        ?string $search = null,
+        int $perPage = 10,
+        string $sortBy = 'app_name',
+        bool $sortDesc = false
+    ): LengthAwarePaginator {
+        // Validate parameters
+        $this->validatePaginationParams($perPage);
+        
+        if ($search !== null) {
+            $this->validateNotEmpty($search, 'search');
+        }
+
+        try {
+            $query = $this->model->with(['app']);
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('contract_number', 'like', "%{$search}%")
+                      ->orWhereHas('app', function ($appQuery) use ($search) {
+                          $appQuery->where('app_name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            $this->applySorting($query, $sortBy, $sortDesc ? 'desc' : 'asc');
+
+            return $query->paginate($perPage);
+        } catch (\Exception $e) {
+            Log::error('Failed to get paginated contracts', [
+                'search' => $search,
+                'perPage' => $perPage,
+                'sortBy' => $sortBy,
+                'sortDesc' => $sortDesc,
+                'exception' => $e->getMessage()
+            ]);
+            
+            throw RepositoryException::createFailed('contract pagination', $e->getMessage());
+        }
+    }
+
+    /**
+     * Apply custom sorting logic for contracts
+     */
+    protected function applySortingLogic($query, string $sortBy, string $direction): void
+    {
+        switch ($sortBy) {
+            case 'app_name':
+                $query->leftJoin('apps', 'contracts.app_id', '=', 'apps.app_id')
+                      ->orderBy('apps.app_name', $direction)
+                      ->select('contracts.*');
+                break;
+            default:
+                $query->orderBy($sortBy, $direction);
+                break;
+        }
     }
 
     /**
@@ -235,7 +300,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
      */
     protected function getAllowedSortFields(): array
     {
-        return ['id', 'title', 'contract_number', 'currency_type'];
+        return ['id', 'title', 'contract_number', 'currency_type', 'app_name'];
     }
 
     /**
@@ -243,7 +308,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
      */
     protected function getDefaultSortField(): string
     {
-        return 'id';
+        return 'app_name';
     }
 
     /**

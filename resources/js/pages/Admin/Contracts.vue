@@ -81,14 +81,15 @@
         @page="navigateToPage"
       >
         <template #column:app_name="{ item }">
-          <span class="font-medium text-blue-600">{{ item.app_name }}</span>
+          {{ item.app_name }}
+        </template>
+        
+        <template #column:title="{ item }">
+          <div class="contract-title">{{ item.title }}</div>
         </template>
         
         <template #column:currency_type="{ item }">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                :class="item.currency_type === 'rp' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'">
-            {{ item.currency_type?.toUpperCase() }}
-          </span>
+          {{ item.currency_type?.toUpperCase() }}
         </template>
         
         <template #column:actions="{ item }">
@@ -132,8 +133,6 @@ interface Contract {
   contract_value_non_rp: string;
   lumpsum_value_rp: string;
   unit_value_rp: string;
-  created_at: string;
-  updated_at: string;
 }
 
 interface Statistics {
@@ -165,7 +164,7 @@ const props = defineProps<Props>();
 // Use composables
 const { getRoute } = useRoutes();
 const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
-  defaultSortBy: 'created_at'
+  defaultSortBy: 'app_name'
 });
 
 const columns = [
@@ -270,13 +269,14 @@ function deleteContract(contractId: number) {
   color: #ea580c;
 }
 
-.bg-green-100.text-green-800 {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.bg-blue-100.text-blue-800 {
-  background-color: #dbeafe;
-  color: #1e40af;
+.contract-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2 lines * 1.4 line-height */
 }
 </style>
