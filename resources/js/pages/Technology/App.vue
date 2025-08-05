@@ -115,7 +115,12 @@ const navigationLinks = [
   {
     icon: 'fa-solid fa-project-diagram',
     text: 'Integrasi App',
-    onClick: () => visitRoute('appIntegration', { app_id: props.app.data.app_id }),
+    onClick: () => visitRoute('appIntegration', { app_id: props.app.app_id }),
+  },
+  {
+    icon: 'fa-solid fa-file-contract',
+    text: 'Halaman Kontrak',
+    onClick: () => visitRoute('contract.app', { app_id: props.app.app_id }),
   },
 ];
 

@@ -1,7 +1,7 @@
 <template>
   <div id="container">
     <Sidebar 
-      :title="`Integrasi Aplikasi ${appName}`" 
+      :title="`Integrasi Aplikasi`" 
       icon="fa-solid fa-project-diagram"
       :show-close-button="true"
       @close="closeSidebar"
@@ -60,6 +60,11 @@ const navigationLinks = [
     icon: 'fa-solid fa-microchip',
     text: 'Halaman Teknologi',
     onClick: () => visitRoute('technology.app', { app_id: props.parentAppId }),
+  },
+  {
+    icon: 'fa-solid fa-file-contract',
+    text: 'Halaman Kontrak',
+    onClick: () => visitRoute('contract.app', { app_id: props.parentAppId }),
   },
 ];
 
