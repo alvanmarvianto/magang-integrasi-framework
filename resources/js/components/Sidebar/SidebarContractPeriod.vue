@@ -66,22 +66,18 @@ interface ContractPeriod {
 }
 
 interface Contract {
-    id: number;
-    app_id: number;
-    title: string;
-    contract_number: string;
-    currency_type: 'rp' | 'non_rp';
-    currency_type_label: string;
-    contract_value_rp?: string;
-    contract_value_non_rp?: string;
-    lumpsum_value_rp?: string;
-    unit_value_rp?: string;
-    contract_periods?: ContractPeriod[];
-    created_at: string;
-    updated_at: string;
-}
-
-interface App {
+  id: number;
+  app_id: number;
+  title: string;
+  contract_number: string;
+  currency_type: 'rp' | 'non_rp';
+  currency_type_label: string;
+  contract_value_rp?: string;
+  contract_value_non_rp?: string;
+  lumpsum_value_rp?: string;
+  unit_value_rp?: string;
+  contract_periods?: ContractPeriod[];
+}interface App {
     app_id: number;
     app_name: string;
 }

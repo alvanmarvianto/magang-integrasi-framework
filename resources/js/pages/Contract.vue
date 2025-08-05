@@ -155,24 +155,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Contract Metadata -->
-            <div class="metadata-section">
-              <h3 class="section-title">
-                <font-awesome-icon icon="fa-solid fa-clock" />
-                Informasi Kontrak
-              </h3>
-              <div class="metadata-grid">
-                <div class="metadata-item">
-                  <span class="metadata-label">Dibuat:</span>
-                  <span class="metadata-value">{{ formatDateTime(contract.created_at) }}</span>
-                </div>
-                <div class="metadata-item">
-                  <span class="metadata-label">Diperbarui:</span>
-                  <span class="metadata-value">{{ formatDateTime(contract.updated_at) }}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -218,8 +200,6 @@ interface Contract {
   lumpsum_value_rp?: string;
   unit_value_rp?: string;
   contract_periods?: ContractPeriod[];
-  created_at: string;
-  updated_at: string;
 }
 
 interface Props {
@@ -292,18 +272,6 @@ function formatDate(dateString: string): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  });
-}
-
-function formatDateTime(dateString: string): string {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
   });
 }
 
@@ -603,31 +571,6 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   font-weight: 600;
   color: var(--success-color);
   font-family: 'Courier New', monospace;
-}
-
-.metadata-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-4);
-}
-
-.metadata-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-}
-
-.metadata-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.metadata-value {
-  font-size: 0.875rem;
-  color: var(--text-color);
 }
 
 /* Responsive */

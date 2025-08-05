@@ -17,8 +17,6 @@ class ContractDTO
         public readonly ?string $contractValueNonRp,
         public readonly ?string $lumpsumValueRp,
         public readonly ?string $unitValueRp,
-        public readonly string $createdAt,
-        public readonly string $updatedAt,
         public readonly ?AppDTO $app = null,
         public readonly ?Collection $contractPeriods = null,
     ) {}
@@ -35,8 +33,6 @@ class ContractDTO
             contractValueNonRp: $contract->contract_value_non_rp ? (string) $contract->contract_value_non_rp : null,
             lumpsumValueRp: $contract->lumpsum_value_rp ? (string) $contract->lumpsum_value_rp : null,
             unitValueRp: $contract->unit_value_rp ? (string) $contract->unit_value_rp : null,
-            createdAt: $contract->created_at->toISOString(),
-            updatedAt: $contract->updated_at->toISOString(),
             app: $contract->relationLoaded('app') ? AppDTO::fromModel($contract->app) : null,
             contractPeriods: $contract->relationLoaded('contractPeriods') 
                 ? $contract->contractPeriods->map(fn($period) => ContractPeriodDTO::fromModel($period))
@@ -114,8 +110,6 @@ class ContractDTO
             'formatted_contract_value' => $this->getFormattedContractValue(),
             'lumpsum_value_rp' => $this->lumpsumValueRp,
             'unit_value_rp' => $this->unitValueRp,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
             'app' => $this->app?->toArray(),
             'contract_periods' => $this->contractPeriods?->map(fn($period) => $period->toArray())->toArray(),
         ];

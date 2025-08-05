@@ -11,6 +11,8 @@ class Contract extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     protected $fillable = [
         'app_id',
         'title',

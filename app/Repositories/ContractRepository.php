@@ -235,7 +235,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
      */
     protected function getAllowedSortFields(): array
     {
-        return ['id', 'title', 'contract_number', 'currency_type', 'created_at', 'updated_at'];
+        return ['id', 'title', 'contract_number', 'currency_type'];
     }
 
     /**
@@ -243,7 +243,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
      */
     protected function getDefaultSortField(): string
     {
-        return 'created_at';
+        return 'id';
     }
 
     /**
