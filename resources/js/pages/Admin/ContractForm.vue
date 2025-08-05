@@ -124,6 +124,7 @@
           :contract-currency-type="form.currency_type"
           @add="addContractPeriod"
           @remove="removeContractPeriod"
+          @addMultiple="addMultipleContractPeriods"
         />
       </AdminFormSection>
 
@@ -291,6 +292,10 @@ function addContractPeriod() {
 
 function removeContractPeriod(index: number) {
   contractPeriods.value.splice(index, 1);
+}
+
+function addMultipleContractPeriods(periods: ContractPeriod[]) {
+  contractPeriods.value.push(...periods);
 }
 
 function submit() {

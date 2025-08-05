@@ -6,7 +6,7 @@
       :show-close-button="true"
       @close="closeSidebar"
     >
-      <SidebarNavigation :links="navigationLinks"  title="Navigasi"/>
+      <SidebarNavigation :links="navigationLinks"/>
       
       <SidebarContractPeriod
         :title="'Kontrak Aplikasi'"
