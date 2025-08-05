@@ -193,7 +193,7 @@ class ContractPeriodRepository extends BaseRepository implements ContractPeriodR
      */
     protected function getDefaultSortField(): string
     {
-        return 'start_date';
+        return 'id';
     }
 
     /**

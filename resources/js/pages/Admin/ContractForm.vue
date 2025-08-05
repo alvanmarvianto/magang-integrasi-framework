@@ -239,28 +239,7 @@ onMounted(() => {
         payment_status: period.payment_status || ''
       }));
       
-      // Sort periods by start_date, then by end_date
-      periods.sort((a, b) => {
-        // Handle empty dates - put them at the top
-        if (!a.start_date && !b.start_date) {
-          if (!a.end_date && !b.end_date) return 0;
-          if (!a.end_date) return -1;
-          if (!b.end_date) return 1;
-          return a.end_date.localeCompare(b.end_date);
-        }
-        if (!a.start_date) return -1;
-        if (!b.start_date) return 1;
-        
-        const startComparison = a.start_date.localeCompare(b.start_date);
-        if (startComparison !== 0) return startComparison;
-        
-        // If start dates are equal, sort by end date
-        if (!a.end_date && !b.end_date) return 0;
-        if (!a.end_date) return -1;
-        if (!b.end_date) return 1;
-        return a.end_date.localeCompare(b.end_date);
-      });
-      
+      // Keep the original order from backend (sorted by ID)
       contractPeriods.value = periods;
     }
   }
