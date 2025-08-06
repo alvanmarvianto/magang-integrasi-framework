@@ -31,6 +31,10 @@ class IntegrationController extends Controller
             sortDesc: $request->boolean('sort_desc', false)
         );
 
+        // Add statistics to the response
+        $statistics = $this->integrationService->getIntegrationStatistics();
+        $paginationData['statistics'] = $statistics;
+
         return Inertia::render('Admin/Integrations', $paginationData);
     }
 

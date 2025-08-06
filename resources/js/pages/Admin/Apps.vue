@@ -19,22 +19,26 @@
       </template>
     </AdminNavbar>
 
-    <div v-if="!props.apps?.data" class="p-4 text-center">
-      Loading...
-    </div>
+    <!-- Statistics Cards -->
+    <AdminStatsGrid 
+      v-if="props.statistics" 
+      :statistics="props.statistics" 
+      type="apps" 
+    />
 
-    <div v-else-if="props.apps.data.length === 0" class="p-4 text-center">
-      No applications found.
-    </div>
-
-    <div v-else>
+    <AdminLoadingState 
+      :loading="!props.apps?.data"
+      :empty="props.apps?.data?.length === 0"
+      emptyText="Aplikasi tidak ditemukan."
+      emptyIcon="fa-solid fa-desktop"
+    >
       <AdminTable
         :columns="columns"
-        :items="props.apps.data"
+        :items="props.apps?.data || []"
         v-model:sortBy="sortBy"
         v-model:sortDesc="sortDesc"
         :searchQuery="searchQuery"
-        :pagination="props.apps.meta"
+        :pagination="props.apps?.meta"
         @page="navigateToPage"
       >
         <template #column:app_name="{ item }">
@@ -46,25 +50,24 @@
         </template>
         
         <template #column:actions="{ item }">
-          <div class="flex justify-center gap-2">
-            <a 
-              :href="`/admin/apps/${item.app_id}/edit`" 
-              class="action-button edit-button"
-              title="Edit Aplikasi"
-            >
-              <font-awesome-icon icon="fa-solid fa-pencil" />
-            </a>
-            <button 
-              @click="deleteApp(item.app_id)" 
-              class="action-button delete-button"
-              title="Hapus Aplikasi"
-            >
-              <font-awesome-icon icon="fa-solid fa-trash" />
-            </button>
-          </div>
+          <AdminActionButtons
+            :item="item"
+            editRoute="/admin/apps/:id/edit"
+            editField="app_id"
+            @delete="handleDeleteApp"
+          />
         </template>
       </AdminTable>
-    </div>
+    </AdminLoadingState>
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmDeleteModal
+      :show="deleteState.show"
+      title="Delete Application"
+      :message="deleteState.options.confirmMessage || 'Are you sure you want to delete this application?'"
+      @confirm="confirmDelete"
+      @cancel="hideDeleteConfirmation"
+    />
   </div>
 </template>
 
@@ -73,7 +76,12 @@ import { router } from '@inertiajs/vue3';
 import { useRoutes } from '@/composables/useRoutes';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
+import AdminActionButtons from '@/components/Admin/AdminActionButtons.vue';
+import AdminLoadingState from '@/components/Admin/AdminLoadingState.vue';
+import AdminStatsGrid from '@/components/Admin/AdminStatsGrid.vue';
+import ConfirmDeleteModal from '@/components/Admin/ConfirmDeleteModal.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 interface Stream {
   data: {
@@ -105,6 +113,15 @@ interface App {
   platforms: Array<{ name: string; version: string | null; }>;
 }
 
+interface Statistics {
+  total_apps: number;
+  apps_by_type: Record<string, number>;
+  apps_by_stratification: Record<string, number>;
+  apps_by_stream: Record<string, number>;
+  apps_with_description: number;
+  apps_without_description: number;
+}
+
 interface PaginationLink {
   url: string | null;
   label: string;
@@ -119,13 +136,26 @@ interface Props {
     };
   };
   streams?: Stream[];
+  statistics?: Statistics;
+  error?: string;
 }
 
 const props = defineProps<Props>();
 
 // Use composables
 const { getRoute } = useRoutes();
-const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
+const { 
+  searchQuery, 
+  sortBy, 
+  sortDesc, 
+  debouncedSearch, 
+  handleSearch, 
+  navigateToPage,
+  deleteState,
+  showDeleteConfirmation,
+  hideDeleteConfirmation,
+  confirmDelete
+} = useAdminTable({
   defaultSortBy: 'app_name'
 });
 
@@ -135,10 +165,11 @@ const columns = [
   { key: 'actions', label: 'Aksi', centered: true }
 ];
 
-function deleteApp(appId: number) {
-  if (confirm('Apakah anda yakin ingin menghapus aplikasi ini?')) {
-    router.delete(`/admin/apps/${appId}`);
-  }
+function handleDeleteApp(app: App) {
+  showDeleteConfirmation(app, {
+    url: `/admin/apps/${app.app_id}`,
+    confirmMessage: `Are you sure you want to delete the application "${app.app_name}"?`
+  });
 }
 </script>
 

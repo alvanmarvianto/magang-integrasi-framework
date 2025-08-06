@@ -32,6 +32,10 @@ class AppController extends Controller
             sortDesc: $request->boolean('sort_desc', false)
         );
 
+        // Add statistics to the response
+        $statistics = $this->appService->getAppStatistics();
+        $paginationData['statistics'] = $statistics;
+
         return Inertia::render('Admin/Apps', $paginationData);
     }
 

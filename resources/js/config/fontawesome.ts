@@ -35,6 +35,12 @@ import {
     faDollarSign,
     faCoins,
     faCopy,
+    faHouse,
+    faHandshake,
+    faShareNodes,
+    faArrowsRotate,
+    faLink,
+    faServer,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -73,6 +79,12 @@ library.add(
     faDollarSign,
     faCoins,
     faCopy,
+    faHouse,
+    faHandshake,
+    faShareNodes,
+    faArrowsRotate,
+    faLink,
+    faServer,
 );
 
 export { FontAwesomeIcon }; 

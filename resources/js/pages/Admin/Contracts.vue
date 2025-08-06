@@ -19,8 +19,12 @@
       </template>
     </AdminNavbar>
 
-    <!-- Statistics Cards (commented out for now) -->
-    <!-- <AdminStatsGrid v-if="statistics" :statistics="statistics" /> -->
+    <!-- Statistics Cards -->
+    <AdminStatsGrid 
+      v-if="props.statistics" 
+      :statistics="props.statistics" 
+      type="contracts" 
+    />
 
     <AdminLoadingState 
       :loading="!props.contracts?.data"
@@ -80,6 +84,7 @@ import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
 import AdminActionButtons from '@/components/Admin/AdminActionButtons.vue';
 import AdminLoadingState from '@/components/Admin/AdminLoadingState.vue';
+import AdminStatsGrid from '@/components/Admin/AdminStatsGrid.vue';
 import ConfirmDeleteModal from '@/components/Admin/ConfirmDeleteModal.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';

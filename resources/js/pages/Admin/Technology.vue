@@ -15,33 +15,43 @@
           </button>
         </div>
 
-        <AdminTable
-          :columns="tableColumns"
-          :items="getTableItems(category.name)"
-        >
-          <template #column:name="{ item }">
-            {{ item.name }}
-          </template>
-          
-          <template #column:actions="{ item }">
-            <div class="flex justify-center gap-2">
-              <button 
-                @click="editItem(category.name, item.name)"
-                class="action-button edit-button"
-                title="Edit Item"
+        <div class="tech-table-container">
+          <AdminTable
+            :columns="tableColumns"
+            :items="getTableItems(category.name)"
+            :showPagination="false"
+            :compact="true"
+          >
+            <template #column:name="{ item }">
+              {{ item.name }}
+            </template>
+            
+            <template #column:actions="{ item }">
+              <AdminActionButtons
+                :item="item"
+                :showEdit="false"
+                :showDelete="false"
               >
-                <font-awesome-icon icon="fa-solid fa-pencil" />
-              </button>
-              <button 
-                @click="deleteItem(category.name, item.name)"
-                class="action-button delete-button"
-                title="Hapus Item"
-              >
-                <font-awesome-icon icon="fa-solid fa-trash" />
-              </button>
-            </div>
-          </template>
-        </AdminTable>
+                <template #actions="{ item: actionItem }">
+                  <button 
+                    @click="editItem(category.name, actionItem.name)"
+                    class="action-button edit-button"
+                    title="Edit Item"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-pencil" />
+                  </button>
+                  <button 
+                    @click="deleteItem(category.name, actionItem.name)"
+                    class="action-button delete-button"
+                    title="Hapus Item"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  </button>
+                </template>
+              </AdminActionButtons>
+            </template>
+          </AdminTable>
+        </div>
       </div>
     </div>
 
@@ -119,6 +129,8 @@ import { router, usePage } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
+import AdminActionButtons from '@/components/Admin/AdminActionButtons.vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 interface TechnologyData {
   vendors: string[];
@@ -368,8 +380,24 @@ watch(() => page.props.flash, (newFlash) => {
 .tech-table-container {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  overflow-x: hidden;
+}
+
+.tech-table-container :deep(.admin-table-container) {
+  background-color: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.tech-table-container :deep(.admin-table) {
+  min-width: unset;
+}
+
+.tech-table-container :deep(.admin-table th:last-child),
+.tech-table-container :deep(.admin-table td:last-child) {
+  text-align: center;
+  width: 120px;
+  min-width: 120px;
 }
 
 /* Modal Styles */
@@ -509,7 +537,7 @@ watch(() => page.props.flash, (newFlash) => {
 /* Grid Styles */
 .tech-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
 }
@@ -537,22 +565,28 @@ watch(() => page.props.flash, (newFlash) => {
   color: var(--text-color);
 }
 
+/* Grid Styles */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
 @media (max-width: 768px) {
-  #technology-container {
-    padding: 1rem;
-  }
-
-  .tech-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .tech-cards-container {
+  .tech-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 
   .tech-card {
     padding: 1rem;
+  }
+
+  .tech-table-container :deep(.admin-table th:last-child),
+  .tech-table-container :deep(.admin-table td:last-child) {
+    width: 100px;
+    min-width: 100px;
   }
 }
 </style> 

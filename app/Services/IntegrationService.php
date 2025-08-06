@@ -196,6 +196,7 @@ class IntegrationService
                     ConnectionTypeDTO::fromModel($type)->toArray(),
                     ['usage_count' => $type->app_integrations_count]
                 ))
+                ->toArray()
         ];
     }
 
@@ -204,19 +205,7 @@ class IntegrationService
      */
     public function getIntegrationStatistics(): array
     {
-        // Get all integrations for statistics
-        $allIntegrations = AppIntegration::with('connectionType')->get();
-        
-        return [
-            'total_integrations' => $allIntegrations->count(),
-            'bidirectional_integrations' => $allIntegrations->where('direction', 'both_ways')->count(),
-            'unidirectional_integrations' => $allIntegrations->where('direction', 'one_way')->count(),
-            'integrations_by_connection_type' => $allIntegrations
-                ->groupBy('connectionType.type_name')
-                ->map(fn($group) => $group->count())
-                ->toArray(),
-            'most_connected_apps' => $this->getMostConnectedApps(),
-        ];
+        return $this->integrationRepository->getIntegrationStatistics();
     }
 
     /**

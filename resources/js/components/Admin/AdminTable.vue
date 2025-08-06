@@ -1,6 +1,6 @@
 <template>
-  <div class="admin-table-container">
-    <table class="admin-table">
+  <div class="admin-table-container" :class="{ 'compact': compact }">
+    <table class="admin-table" :class="{ 'compact': compact }">
       <thead>
         <tr>
           <th 
@@ -77,12 +77,14 @@ interface Props {
   pagination?: {
     links: PaginationLink[];
   };
+  compact?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   sortBy: undefined,
   sortDesc: false,
   searchQuery: '',
+  compact: false,
 });
 
 const emit = defineEmits<{
@@ -188,5 +190,30 @@ function handlePageClick(url: string) {
   background-color: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
+}
+
+/* Compact mode styles for card layouts */
+.admin-table-container.compact {
+  box-shadow: none;
+  border-radius: 0;
+  border: none;
+}
+
+.admin-table.compact {
+  min-width: unset;
+  width: 100%;
+}
+
+.admin-table.compact th,
+.admin-table.compact td {
+  padding: 0.75rem 1rem;
+}
+
+.admin-table.compact th {
+  font-size: 0.75rem;
+}
+
+.admin-table.compact td {
+  font-size: 0.875rem;
 }
 </style>

@@ -20,12 +20,15 @@
 
 /* Admin Layout */
 .admin-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none; /* Remove max-width restriction for full width usage */
+  margin: 0;
   padding: 1.5rem;
-  min-height: calc(100vh - 3rem); /* Account for padding */
+  min-height: 100%; /* Use full available height */
   display: flex;
   flex-direction: column;
+  width: 100%; /* Ensure full width usage */
+  flex: 1; /* Allow container to grow within parent */
+  overflow: auto; /* Allow scrolling when needed */
 }
 
 .admin-header {
@@ -222,13 +225,16 @@
   background-color: white;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  overflow-x: auto; /* Enable horizontal scroll on smaller screens */
+  width: 100%; /* Ensure full width */
+  flex: 1; /* Allow table to grow */
 }
 
 .admin-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  min-width: 800px; /* Minimum width to prevent too much compression */
 }
 
 .admin-table th {
@@ -241,6 +247,7 @@
   color: var(--text-muted);
   background-color: var(--bg-alt);
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap; /* Prevent header text wrapping */
 }
 
 .admin-table td {
@@ -255,6 +262,19 @@
 
 .admin-table tr:hover td {
   background-color: var(--bg-hover);
+}
+
+/* Responsive table adjustments */
+@media (min-width: 1024px) {
+  .admin-table {
+    min-width: 1000px; /* Larger minimum width on larger screens */
+  }
+}
+
+@media (min-width: 1440px) {
+  .admin-table {
+    min-width: 1200px; /* Even larger on very large screens */
+  }
 }
 
 /* Search Styles */
@@ -276,3 +296,16 @@
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px var(--primary-color-light);
 } 
+
+/* Admin Loading State adjustments */
+.admin-loading-state {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-loading-state > * {
+  width: 100%;
+  flex: 1;
+}

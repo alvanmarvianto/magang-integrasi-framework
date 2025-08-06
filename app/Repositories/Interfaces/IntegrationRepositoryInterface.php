@@ -73,4 +73,9 @@ interface IntegrationRepositoryInterface
      * Get apps integrated with apps in specific stream
      */
     public function getExternalAppsConnectedToStream(array $streamAppIds): Collection;
+
+    /**
+     * Get integration statistics
+     */
+    public function getIntegrationStatistics(): array;
 }

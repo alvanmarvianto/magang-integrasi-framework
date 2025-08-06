@@ -19,22 +19,26 @@
       </template>
     </AdminNavbar>
 
-    <div v-if="!props.integrations?.data" class="p-4 text-center">
-      Loading...
-    </div>
+    <!-- Statistics Cards -->
+    <AdminStatsGrid 
+      v-if="props.statistics" 
+      :statistics="props.statistics" 
+      type="integrations" 
+    />
 
-    <div v-else-if="props.integrations.data.length === 0" class="p-4 text-center">
-      Tidak ada integrasi.
-    </div>
-
-    <div v-else class="admin-table-container">
+    <AdminLoadingState 
+      :loading="!props.integrations?.data"
+      :empty="props.integrations?.data?.length === 0"
+      emptyText="Integrasi tidak ditemukan."
+      emptyIcon="fa-solid fa-share-nodes"
+    >
       <AdminTable
         :columns="columns"
-        :items="props.integrations.data"
+        :items="props.integrations?.data || []"
         v-model:sortBy="sortBy"
         v-model:sortDesc="sortDesc"
         :searchQuery="searchQuery"
-        :pagination="props.integrations.meta"
+        :pagination="props.integrations?.meta"
         @page="navigateToPage"
       >
         <template #column:source_app_name="{ item }">
@@ -50,38 +54,40 @@
         </template>
         
         <template #column:actions="{ item }">
-          <div class="flex justify-center gap-2">
-            <a 
-              :href="`/admin/integrations/${item.integration_id}/edit`"
-              class="action-button edit-button"
-              title="Edit"
-            >
-              <font-awesome-icon icon="fa-solid fa-pencil" />
-            </a>
-            <button
-              class="action-button delete-button"
-              @click="confirmDelete(item)"
-              title="Delete"
-            >
-              <font-awesome-icon icon="fa-solid fa-trash" />
-            </button>
-          </div>
+          <AdminActionButtons
+            :item="item"
+            editRoute="/admin/integrations/:id/edit"
+            editField="integration_id"
+            @delete="handleDeleteIntegration"
+          />
         </template>
       </AdminTable>
-    </div>
+    </AdminLoadingState>
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmDeleteModal
+      :show="deleteState.show"
+      title="Delete Integration"
+      :message="deleteState.options.confirmMessage || 'Are you sure you want to delete this integration?'"
+      @confirm="confirmDelete"
+      @cancel="hideDeleteConfirmation"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useRoutes } from '@/composables/useRoutes';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
+import AdminActionButtons from '@/components/Admin/AdminActionButtons.vue';
+import AdminLoadingState from '@/components/Admin/AdminLoadingState.vue';
+import ConfirmDeleteModal from '@/components/Admin/ConfirmDeleteModal.vue';
+import AdminStatsGrid from '@/components/Admin/AdminStatsGrid.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
-import { useNotification } from '@/composables/useNotification';
 
 const { getRoute } = useRoutes();
-const { showSuccess, showError, showConfirm } = useNotification();
 
 interface Integration {
   integration_id: number;
@@ -118,12 +124,33 @@ interface Props {
       total: number;
     };
   };
+  statistics?: {
+    total_integrations: number;
+    integrations_by_connection_type: Record<string, number>;
+    unique_apps_with_integrations: number;
+    unique_connection_types: number;
+    most_integrated_apps: Array<{
+      app_name: string;
+      integration_count: number;
+    }>;
+  };
 }
 
 const props = defineProps<Props>();
 
-// Use the admin table composable
-const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
+// Use the admin table composable with delete functionality
+const {
+  searchQuery,
+  sortBy,
+  sortDesc,
+  debouncedSearch,
+  handleSearch,
+  navigateToPage,
+  deleteState,
+  showDeleteConfirmation,
+  hideDeleteConfirmation,
+  confirmDelete
+} = useAdminTable({
   defaultSortBy: 'source_app_name'
 });
 
@@ -134,23 +161,14 @@ const columns = [
   { key: 'actions', label: 'Actions', centered: true }
 ];
 
-function confirmDelete(integration: Integration) {
-  showConfirm(`Apakah anda yakin ingin menghapus koneksi antara ${integration.source_app.app_name} dan ${integration.target_app.app_name}?`)
-    .then((confirmed) => {
-      if (confirmed) {
-        router.delete(`/admin/integrations/${integration.integration_id}`, {
-          onSuccess: () => {
-            showSuccess('Integrasi berhasil dihapus');
-          },
-          onError: (errors) => {
-            const errorMessage = typeof errors === 'object' && errors !== null 
-              ? Object.values(errors).flat().join(', ')
-              : 'Gagal menghapus integrasi';
-            showError(errorMessage);
-          },
-        });
-      }
-    });
+function handleDeleteIntegration(integration: Integration) {
+  showDeleteConfirmation(
+    integration,
+    {
+      url: `/admin/integrations/${integration.integration_id}`,
+      confirmMessage: `Apakah anda yakin ingin menghapus koneksi antara ${integration.source_app.app_name} dan ${integration.target_app.app_name}?`
+    }
+  );
 }
 </script>
 

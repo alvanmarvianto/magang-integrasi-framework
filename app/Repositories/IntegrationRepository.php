@@ -7,6 +7,7 @@ use App\Models\AppIntegration;
 use App\DTOs\IntegrationDTO;
 use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\IntegrationRepositoryInterface;
+use App\Repositories\CacheConfig;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -313,5 +314,52 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $targetAppId, $sourceAppId));
         Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $sourceAppId));
         Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $targetAppId));
+    }
+
+    /**
+     * Get integration statistics
+     */
+    public function getIntegrationStatistics(): array
+    {
+        $cacheKey = 'integrations.statistics';
+        
+        return Cache::remember($cacheKey, CacheConfig::getTTL('statistics'), function () {
+            $integrations = AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])->get();
+            
+            return [
+                'total_integrations' => $integrations->count(),
+                'integrations_by_connection_type' => $integrations
+                    ->groupBy('connectionType.type_name')
+                    ->map(fn($group) => $group->count())
+                    ->toArray(),
+                'unique_apps_with_integrations' => $integrations
+                    ->pluck('sourceApp.app_id')
+                    ->merge($integrations->pluck('targetApp.app_id'))
+                    ->unique()
+                    ->count(),
+                'unique_connection_types' => $integrations
+                    ->pluck('connectionType.type_name')
+                    ->unique()
+                    ->count(),
+                'most_integrated_apps' => $integrations
+                    ->flatMap(function ($integration) {
+                        return [
+                            ['app_id' => $integration->sourceApp->app_id, 'app_name' => $integration->sourceApp->app_name],
+                            ['app_id' => $integration->targetApp->app_id, 'app_name' => $integration->targetApp->app_name]
+                        ];
+                    })
+                    ->groupBy('app_id')
+                    ->map(function ($group) {
+                        return [
+                            'app_name' => $group->first()['app_name'],
+                            'integration_count' => $group->count()
+                        ];
+                    })
+                    ->sortByDesc('integration_count')
+                    ->take(5)
+                    ->values()
+                    ->toArray(),
+            ];
+        });
     }
 }
