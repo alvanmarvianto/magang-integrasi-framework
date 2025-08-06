@@ -48,7 +48,7 @@
 
       <!-- Admin Actions for Edge -->
       <div class="detail-section" v-if="isAdmin">
-        <h3>Back Office</h3>
+        <h3>Admin</h3>
         <div class="buttons-content">
           <button 
             @click="editIntegration" 
@@ -109,7 +109,7 @@
 
       <!-- Admin Actions for Node -->
       <div class="detail-section" v-if="isAdmin">
-        <h3>Back Office</h3>
+        <h3>Admin</h3>
         <div class="buttons-content">
           <button 
             @click="editApp" 

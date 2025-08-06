@@ -221,8 +221,12 @@ class StreamService
                 $appChildren[] = $appNode;
             }
 
+            $displayName = strlen($stream->stream_name) > 3 
+                ? ucfirst(strtolower($stream->stream_name))
+                : strtoupper($stream->stream_name);
+            
             $streamNode = HierarchyNodeDTO::createFolder(
-                'Stream - ' . strtoupper($stream->stream_name),
+                'Stream ' . $displayName,
                 $appChildren
             );
             $streamChildren[] = $streamNode;

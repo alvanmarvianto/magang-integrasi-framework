@@ -1,7 +1,7 @@
 <template>
   <div class="admin-container">
     <AdminNavbar 
-      title="Back Office" 
+      title="Admin" 
       :showBackButton="true"
       :backUrl="getRoute('index')"
     />

@@ -26,7 +26,7 @@
       />
 
       <SidebarNavigation
-        title="Back Office"
+        title="Admin"
         :links="adminLinks"
         variant="group"
       />
@@ -58,20 +58,20 @@ const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = use
 const { visitRoute, getRoute } = useRoutes();
 
 const streamLinks = [
-  { text: 'SP Stream', onClick: () => visitRoute('integrations.stream', { stream: 'sp' }) },
-  { text: 'MI Stream', onClick: () => visitRoute('integrations.stream', { stream: 'mi' }) },
-  { text: 'SSK Stream', onClick: () => visitRoute('integrations.stream', { stream: 'ssk' }) },
-  { text: 'Moneter Stream', onClick: () => visitRoute('integrations.stream', { stream: 'moneter' }) },
-  { text: 'Market Stream', onClick: () => visitRoute('integrations.stream', { stream: 'market' }) },
-  { text: 'Middleware Stream', onClick: () => visitRoute('integrations.stream', { stream: 'middleware' }) },
+  { text: 'Stream SP', onClick: () => visitRoute('integrations.stream', { stream: 'sp' }) },
+  { text: 'Stream MI', onClick: () => visitRoute('integrations.stream', { stream: 'mi' }) },
+  { text: 'Stream SSK', onClick: () => visitRoute('integrations.stream', { stream: 'ssk' }) },
+  { text: 'Stream Moneter', onClick: () => visitRoute('integrations.stream', { stream: 'moneter' }) },
+  { text: 'Stream Market', onClick: () => visitRoute('integrations.stream', { stream: 'market' }) },
+  { text: 'Stream Middleware', onClick: () => visitRoute('integrations.stream', { stream: 'middleware' }) },
 ];
 
 const technologyLinks = [
-  { text: 'Daftar Teknologi', href: getRoute('technology.index'), variant: 'default' as const },
+  { text: 'Spesifikasi Teknologi', href: getRoute('technology.index'), variant: 'default' as const },
 ];
 
 const adminLinks = [
-  { text: 'Halaman Back Office', href: getRoute('admin.index'), variant: 'admin' as const },
+  { text: 'Halaman Admin', href: getRoute('admin.index'), variant: 'admin' as const },
 ];
 </script>
 

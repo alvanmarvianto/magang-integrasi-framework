@@ -124,7 +124,7 @@ const navigationLinks = [
   },
   {
     icon: 'fa-solid fa-project-diagram',
-    text: 'Integrasi App',
+    text: 'Halaman Integrasi',
     onClick: () => visitRoute('appIntegration', { app_id: props.app.app_id }),
   },
   {

@@ -223,7 +223,7 @@
           <textarea
             v-model="queryData.paymentValues"
             class="query-form-textarea"
-            placeholder="10.000,12&#10;132.000,12&#10;10.012.300,12"
+            placeholder="10000,12&#10;132.000,12&#10;10.012.300,12"
             rows="6"
           ></textarea>
           <small class="query-form-help">Gunakan koma untuk desimal dan titik untuk pemisah ribuan (opsional)</small>
@@ -234,7 +234,7 @@
           <textarea
             v-model="queryData.paymentStatuses"
             class="query-form-textarea"
-            placeholder="1&#10;1. Sudah bayar&#10;10. Kontrak dipindahkan&#10;3. Proses di MKA&#10;6. Belum Jatuh Tempo/belum ada kebutuhan"
+            placeholder="1&#10;10. Kontrak dipindahkan&#10;3. Proses di MKA"
             rows="6"
           ></textarea>
           <small class="query-form-help">
