@@ -52,64 +52,28 @@
           <div class="contract-details">
             <div class="detail-grid">
               <!-- Basic Information -->
-              <div class="detail-section">
-                <h3 class="section-title">
-                  <font-awesome-icon icon="fa-solid fa-info-circle" />
-                  Informasi Dasar
-                </h3>
-                <div class="detail-items">
-                  <div class="detail-item">
-                    <span class="detail-label">Aplikasi:</span>
-                    <div class="detail-value">
-                      <div v-if="contract.apps && contract.apps.length > 0" class="apps-list">
-                        <span v-for="(contractApp, index) in contract.apps" :key="contractApp.app_id" class="app-item">
-                          {{ contractApp.app_name }}<span v-if="index < contract.apps.length - 1">, </span>
-                        </span>
-                      </div>
-                      <span v-else-if="app">{{ app.app_name }}</span>
-                      <span v-else class="text-muted">Tidak ada aplikasi terkait</span>
-                    </div>
+              <DetailSection title="Informasi Dasar" icon="fa-solid fa-info-circle">
+                <DetailItem label="Aplikasi">
+                  <div v-if="contract.apps && contract.apps.length > 0" class="apps-list">
+                    <span v-for="(contractApp, index) in contract.apps" :key="contractApp.app_id" class="app-item">
+                      {{ contractApp.app_name }}<span v-if="index < contract.apps.length - 1">, </span>
+                    </span>
                   </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Nomor Kontrak:</span>
-                    <span class="detail-value">{{ contract.contract_number }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Tipe Mata Uang:</span>
-                    <span class="detail-value">{{ contract.currency_type_label }}</span>
-                  </div>
-                </div>
-              </div>
+                  <span v-else-if="app">{{ app.app_name }}</span>
+                  <span v-else class="text-muted">Tidak ada aplikasi terkait</span>
+                </DetailItem>
+                <DetailItem label="Nomor Kontrak" :value="contract.contract_number" />
+                <DetailItem label="Tipe Mata Uang" :value="contract.currency_type_label" />
+              </DetailSection>
 
               <!-- Financial Information -->
-              <div class="detail-section">
-                <h3 class="section-title">
-                  <font-awesome-icon icon="fa-solid fa-dollar-sign" />
-                  Informasi Keuangan
-                </h3>
-                <div class="detail-items">
-                  <div v-if="contract.currency_type === 'rp'" class="financial-group">
-                    <div v-if="contract.contract_value_rp" class="detail-item">
-                      <span class="detail-label">Nilai Kontrak (RP):</span>
-                      <span class="detail-value financial-value">{{ formatCurrency(contract.contract_value_rp) }}</span>
-                    </div>
-                    <div v-if="contract.lumpsum_value_rp" class="detail-item">
-                      <span class="detail-label">Nilai Lumpsum (RP):</span>
-                      <span class="detail-value financial-value">{{ formatCurrency(contract.lumpsum_value_rp) }}</span>
-                    </div>
-                    <div v-if="contract.unit_value_rp" class="detail-item">
-                      <span class="detail-label">Nilai Satuan (RP):</span>
-                      <span class="detail-value financial-value">{{ formatCurrency(contract.unit_value_rp) }}</span>
-                    </div>
-                  </div>
-                  <div v-else class="financial-group">
-                    <div v-if="contract.contract_value_non_rp" class="detail-item">
-                      <span class="detail-label">Nilai Kontrak (Non-RP):</span>
-                      <span class="detail-value financial-value">{{ formatCurrency(contract.contract_value_non_rp, false) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <DetailSection title="Informasi Keuangan" icon="fa-solid fa-dollar-sign">
+                <template v-for="field in financialFields" :key="field.label">
+                  <DetailItem :label="field.label">
+                    <FinancialValue :value="field.value" :is-rupiah="field.isRupiah" />
+                  </DetailItem>
+                </template>
+              </DetailSection>
             </div>
 
             <!-- Contract Periods -->
@@ -119,46 +83,12 @@
                 Periode Kontrak
               </h3>
               <div class="periods-grid">
-                <div
+                <PeriodCard
                   v-for="(period, index) in contract.contract_periods"
                   :key="index"
-                  class="period-card"
-                >
-                  <div class="period-header">
-                    <h4 class="period-name">{{ period.period_name }}</h4>
-                    <span :class="[
-                      'budget-badge',
-                      period.budget_type === 'AO' ? 'budget-ao' : 'budget-ri'
-                    ]">
-                      {{ period.budget_type }}
-                    </span>
-                  </div>
-                  
-                  <div class="period-details">
-                    <div class="period-dates">
-                      <div v-if="period.start_date" class="date-item">
-                        <span>Mulai: {{ formatDate(period.start_date) }}</span>
-                      </div>
-                      <div v-if="period.end_date" class="date-item">
-                        <span>Selesai: {{ formatDate(period.end_date) }}</span>
-                      </div>
-                    </div>
-                    
-                    <div class="period-payment">
-                      <div class="payment-status">
-                        <span class="payment-label">Status:</span>
-                        <span :class="['payment-badge', getPaymentStatusClass(period.payment_status)]">
-                          {{ getPaymentStatusLabel(period.payment_status) }}
-                        </span>
-                      </div>
-                      
-                      <div v-if="getPeriodPaymentValue(period)" class="payment-value">
-                        <span class="payment-label">Nilai Termin:</span>
-                        <span class="payment-amount">{{ getPeriodPaymentValue(period) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  :period="period"
+                  :currency-type="contract.currency_type"
+                />
               </div>
             </div>
           </div>
@@ -178,6 +108,11 @@ import Sidebar from '../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 import SidebarContractPeriod from '../components/Sidebar/SidebarContractPeriod.vue';
 import ErrorState from '../components/ErrorState.vue';
+import DetailSection from '../components/Contract/DetailSection.vue';
+import DetailItem from '../components/Contract/DetailItem.vue';
+import FinancialValue from '../components/Contract/FinancialValue.vue';
+import PeriodCard from '../components/Contract/PeriodCard.vue';
+import { getAppDisplayText, getFinancialFields } from '../utils/contractHelpers';
 
 interface App {
   app_id: number;
@@ -286,89 +221,13 @@ const hasAnyContractData = computed(() => {
   );
 });
 
+const financialFields = computed(() => {
+  return getFinancialFields(props.contract);
+});
+
 const backToAppUrl = computed(() => {
   return props.app ? `/technology/${props.app.app_id}` : '/';
 });
-
-function formatContractValue(contract: Contract): string {
-  if (contract.currency_type === 'rp' && contract.contract_value_rp) {
-    return formatCurrency(contract.contract_value_rp);
-  } else if (contract.currency_type === 'non_rp' && contract.contract_value_non_rp) {
-    return formatCurrency(contract.contract_value_non_rp, false);
-  }
-  return 'N/A';
-}
-
-function formatCurrency(value: string | number, isRupiah: boolean = true): string {
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(numValue)) return 'N/A';
-  
-  if (isRupiah) {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(numValue);
-  }
-  
-  return new Intl.NumberFormat('en-US', {
-    style: 'decimal',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(numValue);
-}
-
-function formatDate(dateString: string): string {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
-
-function getPaymentStatusLabel(status: string): string {
-  const statusLabels: Record<string, string> = {
-    'paid': 'Sudah bayar',
-    'ba_process': 'Proses BA',
-    'mka_process': 'Proses di MKA',
-    'settlement_process': 'Proses Settlement',
-    'addendum_process': 'Proses Addendum',
-    'not_due': 'Belum Jatuh Tempo',
-    'has_issue': 'Terdapat Isu',
-    'unpaid': 'Tidak bayar',
-    'reserved_hr': 'Dicadangkan (HR)',
-    'contract_moved': 'Kontrak dipindahkan'
-  };
-  return statusLabels[status] || status;
-}
-
-function getPaymentStatusClass(status: string): string {
-  const statusClasses: Record<string, string> = {
-    'paid': 'status-paid',
-    'ba_process': 'status-process',
-    'mka_process': 'status-process',
-    'settlement_process': 'status-process',
-    'addendum_process': 'status-process',
-    'not_due': 'status-pending',
-    'has_issue': 'status-issue',
-    'unpaid': 'status-unpaid',
-    'reserved_hr': 'status-reserved',
-    'contract_moved': 'status-moved'
-  };
-  return statusClasses[status] || 'status-default';
-}
-
-function getPeriodPaymentValue(period: ContractPeriod): string {
-  if (props.contract?.currency_type === 'rp' && period.payment_value_rp) {
-    return formatCurrency(period.payment_value_rp);
-  } else if (props.contract?.currency_type === 'non_rp' && period.payment_value_non_rp) {
-    return formatCurrency(period.payment_value_non_rp, false);
-  }
-  return '';
-}
 </script>
 
 <style scoped>
@@ -441,7 +300,7 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   gap: var(--spacing-8);
 }
 
-.detail-section, .periods-section, .metadata-section {
+.periods-section {
   background: white;
   border-radius: var(--radius-md);
   padding: var(--spacing-6);
@@ -456,36 +315,6 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   font-weight: 600;
   color: var(--text-color);
   margin: 0 0 var(--spacing-4) 0;
-}
-
-.detail-items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-}
-
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-2) 0;
-}
-
-.detail-label {
-  font-weight: 500;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.detail-value {
-  font-weight: 600;
-  color: var(--text-color);
-  font-size: 0.875rem;
-}
-
-.financial-value {
-  color: var(--success-color);
-  font-family: 'Courier New', monospace;
 }
 
 .apps-list {
@@ -508,112 +337,6 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--spacing-4);
-}
-
-.period-card {
-  background: var(--bg-alt);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: var(--spacing-4);
-  height: 175px;
-  display: flex;
-  flex-direction: column;
-}
-
-.period-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-3);
-  flex-shrink: 0;
-}
-
-.period-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0;
-}
-
-.budget-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-sm);
-}
-
-.budget-ao {
-  background: #fed7d7;
-  color: #c53030;
-}
-
-.budget-ri {
-  background: #bee3f8;
-  color: #2b6cb0;
-}
-
-.period-details {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  justify-content: space-between;
-}
-
-.period-dates {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-  flex-grow: 1;
-}
-
-.date-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  font-size: 0.875rem;
-  color: var(--text-color-light);
-}
-
-.period-payment {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  margin-top: auto;
-  flex-shrink: 0;
-}
-
-.payment-status, .payment-value {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.payment-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.payment-badge {
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.125rem var(--spacing-2);
-  border-radius: var(--radius-sm);
-}
-
-.status-paid { background: #dcfce7; color: #166534; }
-.status-process { background: #fef3c7; color: #92400e; }
-.status-pending { background: #e0e7ff; color: #3730a3; }
-.status-issue { background: #fecaca; color: #dc2626; }
-.status-unpaid { background: var(--bg-alt); color: var(--text-color-light); }
-.status-reserved { background: #e879f9; color: #86198f; }
-.status-moved { background: #d1fae5; color: #059669; }
-
-.payment-amount {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--success-color);
-  font-family: 'Courier New', monospace;
 }
 
 /* Responsive */

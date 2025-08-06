@@ -19,65 +19,22 @@
       </template>
     </AdminNavbar>
 
-    <!-- Statistics Cards -->
-    <!-- <div v-if="statistics" class="admin-stats-grid mb-6">
-      <div class="admin-stat-card">
-        <div class="stat-icon bg-blue-100 text-blue-600">
-          <font-awesome-icon icon="file-contract" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Total Contracts</div>
-          <div class="stat-value">{{ statistics.total_contracts || 0 }}</div>
-        </div>
-      </div>
-      
-      <div class="admin-stat-card">
-        <div class="stat-icon bg-green-100 text-green-600">
-          <font-awesome-icon icon="dollar-sign" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Total Value (RP)</div>
-          <div class="stat-value">{{ formatCurrency(statistics.total_value_rp || 0) }}</div>
-        </div>
-      </div>
-      
-      <div class="admin-stat-card">
-        <div class="stat-icon bg-purple-100 text-purple-600">
-          <font-awesome-icon icon="dollar-sign" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Total Value (Non-RP)</div>
-          <div class="stat-value">{{ formatCurrency(statistics.total_value_non_rp || 0) }}</div>
-        </div>
-      </div>
-      
-      <div class="admin-stat-card">
-        <div class="stat-icon bg-orange-100 text-orange-600">
-          <font-awesome-icon icon="building" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Apps with Contracts</div>
-          <div class="stat-value">{{ statistics.apps_with_contracts || 0 }}</div>
-        </div>
-      </div>
-    </div> -->
+    <!-- Statistics Cards (commented out for now) -->
+    <!-- <AdminStatsGrid v-if="statistics" :statistics="statistics" /> -->
 
-    <div v-if="!props.contracts?.data" class="p-4 text-center">
-      Loading...
-    </div>
-
-    <div v-else-if="props.contracts.data.length === 0" class="p-4 text-center">
-      Kontrak tidak ditemukan.
-    </div>
-
-    <div v-else>
+    <AdminLoadingState 
+      :loading="!props.contracts?.data"
+      :empty="props.contracts?.data?.length === 0"
+      emptyText="Kontrak tidak ditemukan."
+      emptyIcon="fa-solid fa-file-contract"
+    >
       <AdminTable
         :columns="columns"
-        :items="props.contracts.data"
+        :items="props.contracts?.data || []"
         v-model:sortBy="sortBy"
         v-model:sortDesc="sortDesc"
         :searchQuery="searchQuery"
-        :pagination="props.contracts.meta"
+        :pagination="props.contracts?.meta"
         @page="navigateToPage"
       >
         <template #column:app_names="{ item }">
@@ -95,25 +52,23 @@
         </template>
         
         <template #column:actions="{ item }">
-          <div class="flex justify-center gap-2">
-            <a 
-              :href="`/admin/contracts/${item.id}/edit`" 
-              class="action-button edit-button"
-              title="Edit Contract"
-            >
-              <font-awesome-icon icon="fa-solid fa-pencil" />
-            </a>
-            <button 
-              @click="deleteContract(item.id)" 
-              class="action-button delete-button"
-              title="Delete Contract"
-            >
-              <font-awesome-icon icon="fa-solid fa-trash" />
-            </button>
-          </div>
+          <AdminActionButtons
+            :item="item"
+            editRoute="/admin/contracts/:id/edit"
+            @delete="handleDeleteContract"
+          />
         </template>
       </AdminTable>
-    </div>
+    </AdminLoadingState>
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmDeleteModal
+      :show="deleteState.show"
+      title="Delete Contract"
+      :message="deleteState.options.confirmMessage || 'Are you sure you want to delete this contract?'"
+      @confirm="confirmDelete"
+      @cancel="hideDeleteConfirmation"
+    />
   </div>
 </template>
 
@@ -123,6 +78,9 @@ import { ref, computed } from 'vue';
 import { useRoutes } from '@/composables/useRoutes';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
+import AdminActionButtons from '@/components/Admin/AdminActionButtons.vue';
+import AdminLoadingState from '@/components/Admin/AdminLoadingState.vue';
+import ConfirmDeleteModal from '@/components/Admin/ConfirmDeleteModal.vue';
 import { useAdminTable } from '@/composables/useAdminTable';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
@@ -174,7 +132,18 @@ const props = defineProps<Props>();
 
 // Use composables
 const { getRoute } = useRoutes();
-const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
+const { 
+  searchQuery, 
+  sortBy, 
+  sortDesc, 
+  debouncedSearch, 
+  handleSearch, 
+  navigateToPage,
+  deleteState,
+  showDeleteConfirmation,
+  hideDeleteConfirmation,
+  confirmDelete
+} = useAdminTable({
   defaultSortBy: 'title'
 });
 
@@ -186,104 +155,16 @@ const columns = [
   { key: 'actions', label: 'Actions', centered: true }
 ];
 
-// Fetch available apps when component mounts (removed since copy functionality is removed)
-// onMounted(async () => {
-//   // No longer needed
-// });
-
-function deleteContract(contractId: number) {
-  if (confirm('Are you sure you want to delete this contract?')) {
-    router.delete(`/admin/contracts/${contractId}`, {
-      onSuccess: () => {
-        // Refresh the page data after successful deletion
-        router.reload();
-      },
-      onError: (errors) => {
-        console.error('Failed to delete contract:', errors);
-        alert('Failed to delete contract. Please try again.');
-      }
-    });
-  }
+function handleDeleteContract(contract: Contract) {
+  showDeleteConfirmation(contract, {
+    url: `/admin/contracts/${contract.id}`,
+    confirmMessage: `Are you sure you want to delete the contract "${contract.title}"?`
+  });
 }
 </script>
 
 <style scoped>
 @import '@/../css/admin.css';
-
-.admin-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.admin-stat-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.stat-icon {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 0.25rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.bg-blue-100 {
-  background-color: #dbeafe;
-}
-
-.text-blue-600 {
-  color: #2563eb;
-}
-
-.bg-green-100 {
-  background-color: #dcfce7;
-}
-
-.text-green-600 {
-  color: #16a34a;
-}
-
-.bg-purple-100 {
-  background-color: #f3e8ff;
-}
-
-.text-purple-600 {
-  color: #9333ea;
-}
-
-.bg-orange-100 {
-  background-color: #fed7aa;
-}
-
-.text-orange-600 {
-  color: #ea580c;
-}
 
 .contract-title {
   display: -webkit-box;
@@ -296,230 +177,8 @@ function deleteContract(contractId: number) {
   max-height: 2.8em; /* 2 lines * 1.4 line-height */
 }
 
-.admin-action-button.secondary {
-  background-color: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.admin-action-button.secondary:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.copy-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-color);
-}
-
-.form-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.form-select[multiple] {
-  min-height: 120px;
-}
-
-.form-help {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-  font-style: italic;
-}
-
 .app-names {
   font-size: 0.875rem;
   line-height: 1.4;
-}
-
-.form-select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-select:disabled {
-  background-color: #f9fafb;
-  color: #6b7280;
-  cursor: not-allowed;
-}
-
-.copy-preview {
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.preview-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #0369a1;
-  margin-bottom: 0.75rem;
-}
-
-.preview-content p {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.875rem;
-  color: #374151;
-}
-
-.preview-note {
-  color: #6b7280;
-  font-style: italic;
-  margin-top: 0.75rem !important;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-cancel {
-  background-color: #f9fafb;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.btn-cancel:hover:not(:disabled) {
-  background-color: #f3f4f6;
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-color-dark, #1e40af);
-}
-
-@media (max-width: 640px) {
-  .modal-overlay {
-    padding: 0.5rem;
-  }
-  
-  .modal-content {
-    max-height: 95vh;
-  }
-  
-  .modal-header,
-  .modal-body,
-  .modal-footer {
-    padding: 1rem;
-  }
-  
-  .modal-footer {
-    flex-direction: column;
-  }
-  
-  .btn {
-    justify-content: center;
-  }
 }
 </style>

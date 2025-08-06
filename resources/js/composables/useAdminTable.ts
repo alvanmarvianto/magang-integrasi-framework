@@ -15,6 +15,13 @@ interface UseAdminTableOptions {
   searchDelay?: number;
 }
 
+interface DeleteOptions {
+  url?: string;
+  confirmMessage?: string;
+  onSuccess?: () => void;
+  onError?: (errors: any) => void;
+}
+
 export function useAdminTable(options: UseAdminTableOptions = {}) {
   const { defaultSortBy = 'name', searchDelay = 300 } = options;
 
@@ -66,6 +73,59 @@ export function useAdminTable(options: UseAdminTableOptions = {}) {
   // Create debounced search function
   const debouncedSearch = debounce(handleSearch, searchDelay);
 
+  // Delete confirmation state
+  const deleteState = ref({
+    show: false,
+    item: null as any,
+    options: {} as DeleteOptions
+  });
+
+  function showDeleteConfirmation(item: any, options: DeleteOptions = {}) {
+    deleteState.value = {
+      show: true,
+      item,
+      options: {
+        confirmMessage: 'Are you sure you want to delete this item?',
+        ...options
+      }
+    };
+  }
+
+  function hideDeleteConfirmation() {
+    deleteState.value = {
+      show: false,
+      item: null,
+      options: {}
+    };
+  }
+
+  function confirmDelete() {
+    const { item, options } = deleteState.value;
+    if (!item) return;
+
+    const deleteUrl = options.url || window.location.pathname + '/' + item.id;
+    
+    router.delete(deleteUrl, {
+      onSuccess: () => {
+        hideDeleteConfirmation();
+        if (options.onSuccess) {
+          options.onSuccess();
+        } else {
+          router.reload();
+        }
+      },
+      onError: (errors) => {
+        hideDeleteConfirmation();
+        if (options.onError) {
+          options.onError(errors);
+        } else {
+          console.error('Failed to delete item:', errors);
+          alert('Failed to delete item. Please try again.');
+        }
+      }
+    });
+  }
+
   // Watch for sort changes and trigger server request
   watch([sortBy, sortDesc], () => {
     updateData(false); // Don't reset page when sorting
@@ -78,6 +138,10 @@ export function useAdminTable(options: UseAdminTableOptions = {}) {
     handleSearch,
     debouncedSearch,
     navigateToPage,
-    updateData
+    updateData,
+    deleteState,
+    showDeleteConfirmation,
+    hideDeleteConfirmation,
+    confirmDelete
   };
 }
