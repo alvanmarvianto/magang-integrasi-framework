@@ -35,8 +35,7 @@ class Contract extends Model
      */
     public function apps(): BelongsToMany
     {
-        return $this->belongsToMany(App::class, 'app_contract', 'contract_id', 'app_id')
-                    ->withTimestamps();
+        return $this->belongsToMany(App::class, 'app_contract', 'contract_id', 'app_id');
     }
 
     /**

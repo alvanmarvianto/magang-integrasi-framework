@@ -407,11 +407,6 @@ class ContractService
             throw new \InvalidArgumentException('Contract number must not exceed 255 characters');
         }
 
-        // Validate title length
-        if (strlen($data['title']) > 255) {
-            throw new \InvalidArgumentException('Contract title must not exceed 255 characters');
-        }
-
         // Validate decimal values if provided
         $decimalFields = ['contract_value_rp', 'contract_value_non_rp', 'lumpsum_value_rp', 'unit_value_rp'];
         foreach ($decimalFields as $field) {

@@ -16,7 +16,6 @@ return new class extends Migration
             $table->integer('app_id');
             $table->foreignId('contract_id')->constrained('contracts')->onDelete('cascade');
             $table->foreign('app_id')->references('app_id')->on('apps')->onDelete('cascade');
-            $table->timestamps();
             
             // Ensure unique combination of app and contract
             $table->unique(['app_id', 'contract_id']);
