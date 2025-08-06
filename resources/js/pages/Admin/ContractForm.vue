@@ -5,19 +5,56 @@
     <AdminForm @submit="submit">
       <AdminFormSection title="Informasi Dasar">
         <div class="admin-form-grid">
-          <AdminFormField label="Aplikasi" id="app_id">
-            <select
-              id="app_id"
-              v-model="form.app_id"
-              class="admin-form-select"
-              required
-            >
-              <option value="">Pilih Aplikasi</option>
-              <option v-for="app in sortedApps" :key="app.app_id" :value="app.app_id">
-                {{ app.app_name }}
-              </option>
-            </select>
-          </AdminFormField>
+          <div class="admin-form-field-full">
+            <div class="app-selection-section">
+              <div class="app-section-header">
+                <label class="admin-form-label">Aplikasi</label>
+                <button
+                  type="button"
+                  @click="addAppSelection"
+                  class="app-section-add"
+                >
+                  <font-awesome-icon icon="fa-solid fa-plus" /> Add App
+                </button>
+              </div>
+
+              <div v-if="selectedApps.length === 0" class="app-section-empty">
+                Pilih aplikasi untuk kontrak ini
+              </div>
+
+              <div v-else class="app-section-items">
+                <div
+                  v-for="(appItem, index) in selectedApps"
+                  :key="index"
+                  class="app-section-item"
+                >
+                  <select
+                    v-model="appItem.app_id"
+                    class="app-section-select"
+                    required
+                  >
+                    <option value="">Pilih Aplikasi</option>
+                    <option 
+                      v-for="app in sortedApps" 
+                      :key="app.app_id" 
+                      :value="app.app_id"
+                      :disabled="isAppAlreadySelected(app.app_id, index)"
+                    >
+                      {{ app.app_name }}
+                    </option>
+                  </select>
+
+                  <button
+                    type="button"
+                    @click="removeAppSelection(index)"
+                    class="app-section-remove"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <AdminFormField label="Judul Kontrak" id="title">
             <input
@@ -147,6 +184,7 @@ import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
 import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import ContractPeriodSection from '@/components/Admin/ContractPeriodSection.vue';
 import { useNotification } from '@/composables/useNotification';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const { showSuccess, showError } = useNotification();
 
@@ -155,9 +193,12 @@ interface App {
   app_name: string;
 }
 
+interface AppSelection {
+  app_id: number | string;
+}
+
 interface Contract {
   id: number;
-  app_id: number;
   title: string;
   contract_number: string;
   currency_type: 'rp' | 'non_rp';
@@ -165,6 +206,7 @@ interface Contract {
   contract_value_non_rp: string;
   lumpsum_value_rp: string;
   unit_value_rp: string;
+  apps?: App[];
   contract_periods?: ContractPeriod[];
 }
 
@@ -198,7 +240,7 @@ const sortedApps = computed(() => {
 });
 
 const form = ref({
-  app_id: '',
+  app_ids: [] as number[],
   title: '',
   contract_number: '',
   currency_type: '',
@@ -208,6 +250,7 @@ const form = ref({
   unit_value_rp: ''
 });
 
+const selectedApps = ref<AppSelection[]>([]);
 const contractPeriods = ref<ContractPeriod[]>([]);
 
 onMounted(() => {
@@ -216,7 +259,7 @@ onMounted(() => {
   
   if (props.contract) {
     form.value = {
-      app_id: props.contract.app_id?.toString() || '',
+      app_ids: props.contract.apps?.map(app => app.app_id) || [],
       title: props.contract.title || '',
       contract_number: props.contract.contract_number || '',
       currency_type: props.contract.currency_type || '',
@@ -225,6 +268,13 @@ onMounted(() => {
       lumpsum_value_rp: props.contract.lumpsum_value_rp || '',
       unit_value_rp: props.contract.unit_value_rp || ''
     };
+    
+    // Initialize selectedApps from existing contract
+    if (props.contract.apps && props.contract.apps.length > 0) {
+      selectedApps.value = props.contract.apps.map(app => ({
+        app_id: app.app_id
+      }));
+    }
     
     // Load existing contract periods if available
     if (props.contract.contract_periods && Array.isArray(props.contract.contract_periods)) {
@@ -244,6 +294,35 @@ onMounted(() => {
     }
   }
 });
+
+// App Selection Management
+function addAppSelection() {
+  selectedApps.value.push({
+    app_id: ''
+  });
+}
+
+function removeAppSelection(index: number) {
+  selectedApps.value.splice(index, 1);
+  updateFormAppIds();
+}
+
+function isAppAlreadySelected(appId: number, currentIndex: number): boolean {
+  return selectedApps.value.some((item, index) => 
+    index !== currentIndex && item.app_id === appId
+  );
+}
+
+function updateFormAppIds() {
+  form.value.app_ids = selectedApps.value
+    .map(item => Number(item.app_id))
+    .filter(id => !isNaN(id) && id > 0);
+}
+
+// Watch selectedApps changes to update form.app_ids
+watch(selectedApps, () => {
+  updateFormAppIds();
+}, { deep: true });
 
 // Watch currency type changes to clear inappropriate fields
 watch(() => form.value.currency_type, (newType) => {
@@ -281,7 +360,7 @@ function submit() {
   // Convert form data to proper types
   const submitData = {
     ...form.value,
-    app_id: parseInt(form.value.app_id),
+    app_ids: form.value.app_ids,
     contract_value_rp: form.value.contract_value_rp ? parseFloat(form.value.contract_value_rp) : null,
     contract_value_non_rp: form.value.contract_value_non_rp ? parseFloat(form.value.contract_value_non_rp) : null,
     lumpsum_value_rp: form.value.lumpsum_value_rp ? parseFloat(form.value.lumpsum_value_rp) : null,
@@ -317,4 +396,134 @@ function submit() {
 
 <style scoped>
 @import '../../../css/admin.css';
+
+.admin-form-select[multiple] {
+  min-height: 120px;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.admin-form-field-full {
+  grid-column: 1 / -1;
+}
+
+/* App Selection Styles - Similar to TechnologySection */
+.app-selection-section {
+  background-color: white;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #d1d5db);
+}
+
+.app-section-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--primary-color, #3b82f6);
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.app-section-add:hover {
+  background-color: var(--primary-color, #3b82f6);
+  color: white;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.app-section-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  padding: 0.5rem;
+  margin: -0.5rem;
+}
+
+.app-section-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.app-section-item:hover {
+  background-color: #f1f5f9;
+}
+
+.app-section-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.app-section-select:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.app-section-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: #dc2626;
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.app-section-remove:hover {
+  background-color: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
 </style>

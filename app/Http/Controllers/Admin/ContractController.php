@@ -29,7 +29,7 @@ class ContractController extends Controller
             $paginationData = $this->contractService->getPaginatedContracts(
                 search: $request->get('search'),
                 perPage: $request->get('per_page', 10),
-                sortBy: $request->get('sort_by', 'app_name'),
+                sortBy: $request->get('sort_by', 'title'),
                 sortDesc: $request->boolean('sort_desc', false)
             );
 
@@ -142,23 +142,24 @@ class ContractController extends Controller
     }
 
     /**
-     * Copy a contract to another app
+     * Copy a contract to multiple apps
      */
     public function copy(Request $request): RedirectResponse
     {
         $request->validate([
             'source_contract_id' => 'required|integer|exists:contracts,id',
-            'target_app_id' => 'required|integer|exists:apps,app_id',
+            'target_app_ids' => 'required|array|min:1',
+            'target_app_ids.*' => 'required|integer|exists:apps,app_id',
         ]);
 
         try {
             $copiedContract = $this->contractService->copyContract(
                 $request->integer('source_contract_id'),
-                $request->integer('target_app_id')
+                $request->input('target_app_ids')
             );
 
             return redirect()->route('admin.contracts.index')
-                ->with('success', 'Contract copied successfully to the target app');
+                ->with('success', 'Contract copied successfully to the selected apps');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to copy contract: ' . $e->getMessage());
         }

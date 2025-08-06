@@ -32,7 +32,7 @@ class ContractService
     public function getPaginatedContracts(
         ?string $search = null,
         int $perPage = 10,
-        string $sortBy = 'app_name',
+        string $sortBy = 'title',
         bool $sortDesc = false
     ): array {
         $paginatedContracts = $this->contractRepository->getPaginatedContracts($search, $perPage, $sortBy, $sortDesc);
@@ -128,11 +128,18 @@ class ContractService
     {
         $this->validateContractData($data);
         
-        // Extract contract periods from data
+        // Extract contract periods and app IDs from data
         $contractPeriodsData = $data['contract_periods'] ?? [];
-        unset($data['contract_periods']);
+        $appIds = $data['app_ids'] ?? [];
+        
+        unset($data['contract_periods'], $data['app_ids']);
         
         $contract = $this->contractRepository->create($data);
+        
+        // Attach apps to contract
+        if (!empty($appIds)) {
+            $contract->apps()->attach($appIds);
+        }
         
         // Create contract periods if provided
         if (!empty($contractPeriodsData)) {
@@ -155,11 +162,18 @@ class ContractService
     {
         $this->validateContractData($data, $contract->id);
         
-        // Extract contract periods from data
+        // Extract contract periods and app IDs from data
         $contractPeriodsData = $data['contract_periods'] ?? [];
-        unset($data['contract_periods']);
+        $appIds = $data['app_ids'] ?? [];
+        
+        unset($data['contract_periods'], $data['app_ids']);
         
         $this->contractRepository->update($contract, $data);
+        
+        // Update app associations
+        if (isset($appIds)) {
+            $contract->apps()->sync($appIds);
+        }
         
         // Update contract periods
         if (isset($contractPeriodsData)) {
@@ -192,6 +206,9 @@ class ContractService
         foreach ($existingPeriods as $period) {
             $this->contractPeriodRepository->delete($period);
         }
+        
+        // Detach all apps
+        $contract->apps()->detach();
         
         return $this->contractRepository->delete($contract);
     }
@@ -427,17 +444,21 @@ class ContractService
     private function validateContractData(array $data, ?int $excludeId = null): void
     {
         // Required fields validation
-        $requiredFields = ['app_id', 'title', 'contract_number', 'currency_type'];
+        $requiredFields = ['title', 'contract_number', 'currency_type'];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
                 throw new \InvalidArgumentException("Field {$field} is required");
             }
         }
 
-        // Validate app exists
-        $app = $this->appRepository->findWithRelations($data['app_id']);
-        if (!$app) {
-            throw new \InvalidArgumentException('Selected app does not exist');
+        // Validate app_ids if provided
+        if (isset($data['app_ids']) && !empty($data['app_ids'])) {
+            foreach ($data['app_ids'] as $appId) {
+                $app = $this->appRepository->findWithRelations($appId);
+                if (!$app) {
+                    throw new \InvalidArgumentException("App with ID {$appId} does not exist");
+                }
+            }
         }
 
         // Validate currency type

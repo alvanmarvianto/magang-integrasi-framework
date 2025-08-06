@@ -99,9 +99,10 @@ class App extends Model
         return $this->hasMany(Platform::class, 'app_id', 'app_id');
     }
 
-    public function contracts(): HasMany
+    public function contracts(): BelongsToMany
     {
-        return $this->hasMany(Contract::class, 'app_id', 'app_id');
+        return $this->belongsToMany(Contract::class, 'app_contract', 'app_id', 'contract_id')
+                    ->withTimestamps();
     }
 }
 

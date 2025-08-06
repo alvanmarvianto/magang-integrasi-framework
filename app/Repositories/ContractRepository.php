@@ -35,7 +35,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     public function getPaginatedContracts(
         ?string $search = null,
         int $perPage = 10,
-        string $sortBy = 'app_name',
+        string $sortBy = 'title',
         bool $sortDesc = false
     ): LengthAwarePaginator {
         // Validate parameters
@@ -46,13 +46,13 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         }
 
         try {
-            $query = $this->model->with(['app']);
+            $query = $this->model->with(['apps']);
 
             if ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
                       ->orWhere('contract_number', 'like', "%{$search}%")
-                      ->orWhereHas('app', function ($appQuery) use ($search) {
+                      ->orWhereHas('apps', function ($appQuery) use ($search) {
                           $appQuery->where('app_name', 'like', "%{$search}%");
                       });
                 });
@@ -80,10 +80,13 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     protected function applySortingLogic($query, string $sortBy, string $direction): void
     {
         switch ($sortBy) {
+            case 'first_app_name':
             case 'app_name':
-                $query->leftJoin('apps', 'contracts.app_id', '=', 'apps.app_id')
+                $query->leftJoin('app_contract', 'contracts.id', '=', 'app_contract.contract_id')
+                      ->leftJoin('apps', 'app_contract.app_id', '=', 'apps.app_id')
                       ->orderBy('apps.app_name', $direction)
-                      ->select('contracts.*');
+                      ->select('contracts.*')
+                      ->distinct();
                 break;
             default:
                 $query->orderBy($sortBy, $direction);
@@ -97,7 +100,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     public function getAllWithRelations(): Collection
     {
         return $this->handleCacheOperation('contracts.all.with_relations', function () {
-            return $this->model->with(['app', 'contractPeriods'])->get();
+            return $this->model->with(['apps', 'contractPeriods'])->get();
         });
     }
 
@@ -107,7 +110,9 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     public function getByAppId(int $appId): Collection
     {
         return $this->handleCacheOperation("contracts.app.{$appId}", function () use ($appId) {
-            return $this->model->where('app_id', $appId)->get();
+            return $this->model->whereHas('apps', function($query) use ($appId) {
+                $query->where('app_id', $appId);
+            })->get();
         });
     }
 
@@ -117,8 +122,10 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     public function getByAppIdWithRelations(int $appId): Collection
     {
         return $this->handleCacheOperation("contracts.app.{$appId}.with_relations", function () use ($appId) {
-            return $this->model->with(['app', 'contractPeriods'])
-                ->where('app_id', $appId)
+            return $this->model->with(['apps', 'contractPeriods'])
+                ->whereHas('apps', function($query) use ($appId) {
+                    $query->where('app_id', $appId);
+                })
                 ->get();
         });
     }
@@ -139,7 +146,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     public function findByIdWithRelations(int $id): ?Contract
     {
         return $this->handleCacheOperation("contracts.{$id}.with_relations", function () use ($id) {
-            return $this->model->with(['app', 'contractPeriods'])->find($id);
+            return $this->model->with(['apps', 'contractPeriods'])->find($id);
         });
     }
 
@@ -268,7 +275,9 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
                     ->sum('contract_value_rp') ?: 0,
                 'total_value_non_rp' => $this->model->where('currency_type', 'non_rp')
                     ->sum('contract_value_non_rp') ?: 0,
-                'apps_with_contracts' => $this->model->distinct('app_id')->count('app_id'),
+                'apps_with_contracts' => \DB::table('app_contract')
+                    ->distinct('app_id')
+                    ->count('app_id'),
             ];
         }, CacheConfig::STATISTICS_TTL);
     }

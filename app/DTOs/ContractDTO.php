@@ -9,7 +9,6 @@ class ContractDTO
 {
     public function __construct(
         public readonly int $id,
-        public readonly int $appId,
         public readonly string $title,
         public readonly string $contractNumber,
         public readonly string $currencyType,
@@ -17,7 +16,7 @@ class ContractDTO
         public readonly ?string $contractValueNonRp,
         public readonly ?string $lumpsumValueRp,
         public readonly ?string $unitValueRp,
-        public readonly ?AppDTO $app = null,
+        public readonly ?Collection $apps = null,
         public readonly ?Collection $contractPeriods = null,
     ) {}
 
@@ -25,7 +24,6 @@ class ContractDTO
     {
         return new self(
             id: $contract->id,
-            appId: $contract->app_id,
             title: $contract->title,
             contractNumber: $contract->contract_number,
             currencyType: $contract->currency_type,
@@ -33,7 +31,9 @@ class ContractDTO
             contractValueNonRp: $contract->contract_value_non_rp ? (string) $contract->contract_value_non_rp : null,
             lumpsumValueRp: $contract->lumpsum_value_rp ? (string) $contract->lumpsum_value_rp : null,
             unitValueRp: $contract->unit_value_rp ? (string) $contract->unit_value_rp : null,
-            app: $contract->relationLoaded('app') ? AppDTO::fromModel($contract->app) : null,
+            apps: $contract->relationLoaded('apps') 
+                ? $contract->apps->map(fn($app) => AppDTO::fromModel($app))
+                : null,
             contractPeriods: $contract->relationLoaded('contractPeriods') 
                 ? $contract->contractPeriods->map(fn($period) => ContractPeriodDTO::fromModel($period))
                 : null,
@@ -92,14 +92,32 @@ class ContractDTO
     }
 
     /**
+     * Get all app names as a string
+     */
+    public function getAppNamesString(): string
+    {
+        if (!$this->apps || $this->apps->isEmpty()) {
+            return 'No Apps';
+        }
+
+        return $this->apps->pluck('appName')->join(', ');
+    }
+
+    /**
+     * Get first app name (for compatibility)
+     */
+    public function getFirstAppName(): ?string
+    {
+        return $this->apps?->first()?->appName;
+    }
+
+    /**
      * Convert to array
      */
     public function toArray(): array
     {
         return [
             'id' => $this->id,
-            'app_id' => $this->appId,
-            'app_name' => $this->app?->appName, // Flatten app_name for easier access in views
             'title' => $this->title,
             'contract_number' => $this->contractNumber,
             'currency_type' => $this->currencyType,
@@ -110,7 +128,9 @@ class ContractDTO
             'formatted_contract_value' => $this->getFormattedContractValue(),
             'lumpsum_value_rp' => $this->lumpsumValueRp,
             'unit_value_rp' => $this->unitValueRp,
-            'app' => $this->app?->toArray(),
+            'apps' => $this->apps?->map(fn($app) => $app->toArray())->toArray() ?? [],
+            'app_names' => $this->getAppNamesString(),
+            'first_app_name' => $this->getFirstAppName(),
             'contract_periods' => $this->contractPeriods?->map(fn($period) => $period->toArray())->toArray(),
         ];
     }

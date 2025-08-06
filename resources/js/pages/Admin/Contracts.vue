@@ -84,8 +84,10 @@
         :pagination="props.contracts.meta"
         @page="navigateToPage"
       >
-        <template #column:app_name="{ item }">
-          {{ item.app_name }}
+        <template #column:app_names="{ item }">
+          <div class="app-names">
+            {{ item.app_names || 'No Apps' }}
+          </div>
         </template>
         
         <template #column:title="{ item }">
@@ -146,20 +148,21 @@
                   :key="contract.id" 
                   :value="contract.id"
                 >
-                  {{ contract.title }} - {{ contract.app_name }} ({{ contract.contract_number }})
+                  {{ contract.title }} - {{ contract.first_app_name }} ({{ contract.contract_number }})
                 </option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="targetApp" class="form-label">Salin ke Aplikasi:</label>
+              <label for="targetApps" class="form-label">Salin ke Aplikasi (pilih beberapa):</label>
               <select 
-                id="targetApp" 
-                v-model="selectedTargetApp"
+                id="targetApps" 
+                v-model="selectedTargetApps"
                 class="form-select"
                 :disabled="isCopying"
+                multiple
+                size="6"
               >
-                <option value="">Pilih aplikasi...</option>
                 <option 
                   v-for="app in sortedAvailableApps" 
                   :key="app.app_id" 
@@ -168,19 +171,22 @@
                   {{ app.app_name }}
                 </option>
               </select>
+              <div class="form-help">
+                Tahan Ctrl (Windows) atau Cmd (Mac) untuk memilih beberapa aplikasi
+              </div>
             </div>
 
-            <div v-if="selectedSourceContract && selectedTargetApp" class="copy-preview">
+            <div v-if="selectedSourceContract && selectedTargetApps.length > 0" class="copy-preview">
               <div class="preview-header">
                 <font-awesome-icon icon="fa-solid fa-info-circle" />
                 Copy Preview
               </div>
               <div class="preview-content">
-                <p><strong>From:</strong> {{ getContractById(selectedSourceContract)?.app_name }}</p>
-                <p><strong>To:</strong> {{ getAppById(selectedTargetApp)?.app_name }}</p>
-                <p><strong>Contract:</strong> {{ getContractById(selectedSourceContract)?.title }}</p>
+                <p><strong>Dari:</strong> {{ getContractById(selectedSourceContract)?.first_app_name || 'Unknown' }}</p>
+                <p><strong>Ke:</strong> {{ getSelectedAppNames() }}</p>
+                <p><strong>Kontrak:</strong> {{ getContractById(selectedSourceContract)?.title }}</p>
                 <p class="preview-note">
-                  Kontrak baru akan dibuat dengan judul dan nomor kontrak yang sama.
+                  Kontrak baru akan dibuat dengan judul dan nomor kontrak yang sama, terkait dengan {{ selectedTargetApps.length }} aplikasi.
                 </p>
               </div>
             </div>
@@ -225,8 +231,6 @@ interface App {
 
 interface Contract {
   id: number;
-  app_id: number;
-  app_name: string;
   title: string;
   contract_number: string;
   currency_type: 'rp' | 'non_rp';
@@ -234,6 +238,9 @@ interface Contract {
   contract_value_non_rp: string;
   lumpsum_value_rp: string;
   unit_value_rp: string;
+  apps: App[];
+  app_names: string;
+  first_app_name: string;
 }
 
 interface Statistics {
@@ -265,18 +272,18 @@ const props = defineProps<Props>();
 // Use composables
 const { getRoute } = useRoutes();
 const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
-  defaultSortBy: 'app_name'
+  defaultSortBy: 'title'
 });
 
 // Copy functionality
 const showCopyModal = ref(false);
 const selectedSourceContract = ref<number | string>('');
-const selectedTargetApp = ref<number | string>('');
+const selectedTargetApps = ref<number[]>([]);
 const isCopying = ref(false);
 const availableApps = ref<App[]>([]);
 
 const columns = [
-  { key: 'app_name', label: 'Application', sortable: true },
+  { key: 'app_names', label: 'Applications', sortable: false },
   { key: 'title', label: 'Contract Title', sortable: true },
   { key: 'contract_number', label: 'Contract Number', sortable: true },
   { key: 'currency_type', label: 'Currency', sortable: true },
@@ -284,7 +291,7 @@ const columns = [
 ];
 
 const canCopy = computed(() => {
-  return selectedSourceContract.value && selectedTargetApp.value && !isCopying.value;
+  return selectedSourceContract.value && selectedTargetApps.value.length > 0 && !isCopying.value;
 });
 
 // Computed properties for sorted dropdowns
@@ -319,10 +326,18 @@ function getAppById(id: number | string): App | undefined {
   return availableApps.value.find(app => app.app_id === Number(id));
 }
 
+function getSelectedAppNames(): string {
+  const selectedApps = selectedTargetApps.value.map(id => 
+    availableApps.value.find(app => app.app_id === id)?.app_name
+  ).filter(Boolean);
+  
+  return selectedApps.join(', ') || 'No apps selected';
+}
+
 function closeCopyModal() {
   showCopyModal.value = false;
   selectedSourceContract.value = '';
-  selectedTargetApp.value = '';
+  selectedTargetApps.value = [];
 }
 
 function copyContract() {
@@ -332,7 +347,7 @@ function copyContract() {
 
   router.post('/admin/contracts/copy', {
     source_contract_id: Number(selectedSourceContract.value),
-    target_app_id: Number(selectedTargetApp.value),
+    target_app_ids: selectedTargetApps.value,
   }, {
     onSuccess: () => {
       isCopying.value = false;
@@ -552,6 +567,22 @@ function deleteContract(contractId: number) {
   font-size: 0.875rem;
   background-color: white;
   transition: all 0.2s ease;
+}
+
+.form-select[multiple] {
+  min-height: 120px;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.app-names {
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .form-select:focus {

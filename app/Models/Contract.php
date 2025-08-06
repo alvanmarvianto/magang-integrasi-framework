@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contract extends Model
@@ -14,7 +14,6 @@ class Contract extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'app_id',
         'title',
         'contract_number',
         'currency_type',
@@ -32,11 +31,12 @@ class Contract extends Model
     ];
 
     /**
-     * Get the app that owns the contract.
+     * Get the apps that are associated with the contract.
      */
-    public function app(): BelongsTo
+    public function apps(): BelongsToMany
     {
-        return $this->belongsTo(App::class, 'app_id', 'app_id');
+        return $this->belongsToMany(App::class, 'app_contract', 'contract_id', 'app_id')
+                    ->withTimestamps();
     }
 
     /**
