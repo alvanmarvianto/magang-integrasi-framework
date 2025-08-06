@@ -44,7 +44,10 @@
         <div class="period-form-grid">
           <!-- Row 1: Period Name, Budget Type -->
           <div class="period-form-field">
-            <label :for="`period_name_${index}`" class="period-form-label">Nama Periode</label>
+            <label :for="`period_name_${index}`" class="period-form-label">
+              Nama Periode
+              <span class="required-asterisk">*</span>
+            </label>
             <input
               :id="`period_name_${index}`"
               v-model="period.period_name"
@@ -56,7 +59,10 @@
           </div>
 
           <div class="period-form-field">
-            <label :for="`budget_type_${index}`" class="period-form-label">Tipe Anggaran</label>
+            <label :for="`budget_type_${index}`" class="period-form-label">
+              Tipe Anggaran
+              <span class="required-asterisk">*</span>
+            </label>
             <select
               :id="`budget_type_${index}`"
               v-model="period.budget_type"
@@ -106,7 +112,10 @@
           </div>
 
           <div class="period-form-field">
-            <label :for="`payment_status_${index}`" class="period-form-label">Status Pembayaran</label>
+            <label :for="`payment_status_${index}`" class="period-form-label">
+              Status Pembayaran
+              <span class="required-asterisk">*</span>
+            </label>
             <select
               :id="`payment_status_${index}`"
               v-model="period.payment_status"
@@ -623,6 +632,12 @@ function clearQueryData() {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-color);
+}
+
+.required-asterisk {
+  color: #dc2626;
+  margin-left: 0.25rem;
+  font-weight: 600;
 }
 
 .period-form-input,

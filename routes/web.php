@@ -97,9 +97,5 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::get('/{contract}/edit', [AdminContractController::class, 'edit'])->name('edit');
         Route::put('/{contract}', [AdminContractController::class, 'update'])->name('update');
         Route::delete('/{contract}', [AdminContractController::class, 'destroy'])->name('destroy');
-        
-        // Copy contract functionality
-        Route::post('/copy', [AdminContractController::class, 'copy'])->name('copy');
-        Route::get('/apps', [AdminContractController::class, 'getApps'])->name('apps');
     });
 });

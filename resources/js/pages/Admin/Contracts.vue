@@ -16,10 +16,6 @@
           <font-awesome-icon icon="fa-solid fa-plus" />
           Tambah Kontrak Baru
         </a>
-        <button @click="showCopyModal = true" class="admin-action-button secondary">
-          <font-awesome-icon icon="fa-solid fa-copy" />
-          Copy Contract
-        </button>
       </template>
     </AdminNavbar>
 
@@ -118,105 +114,12 @@
         </template>
       </AdminTable>
     </div>
-
-    <!-- Copy Contract Modal -->
-    <div v-if="showCopyModal" class="modal-overlay" @click="closeCopyModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3 class="modal-title">
-            <font-awesome-icon icon="fa-solid fa-copy" />
-            Copy Contract
-          </h3>
-          <button @click="closeCopyModal" class="modal-close">
-            <font-awesome-icon icon="fa-solid fa-times" />
-          </button>
-        </div>
-
-        <div class="modal-body">
-          <div class="copy-form">
-            <div class="form-group">
-              <label for="sourceContract" class="form-label">Pilih kontrak untuk disalin:</label>
-              <select 
-                id="sourceContract" 
-                v-model="selectedSourceContract"
-                class="form-select"
-                :disabled="isCopying"
-              >
-                <option value="">Pilih kontrak...</option>
-                <option 
-                  v-for="contract in sortedContracts" 
-                  :key="contract.id" 
-                  :value="contract.id"
-                >
-                  {{ contract.title }} - {{ contract.first_app_name }} ({{ contract.contract_number }})
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="targetApps" class="form-label">Salin ke Aplikasi (pilih beberapa):</label>
-              <select 
-                id="targetApps" 
-                v-model="selectedTargetApps"
-                class="form-select"
-                :disabled="isCopying"
-                multiple
-                size="6"
-              >
-                <option 
-                  v-for="app in sortedAvailableApps" 
-                  :key="app.app_id" 
-                  :value="app.app_id"
-                >
-                  {{ app.app_name }}
-                </option>
-              </select>
-              <div class="form-help">
-                Tahan Ctrl (Windows) atau Cmd (Mac) untuk memilih beberapa aplikasi
-              </div>
-            </div>
-
-            <div v-if="selectedSourceContract && selectedTargetApps.length > 0" class="copy-preview">
-              <div class="preview-header">
-                <font-awesome-icon icon="fa-solid fa-info-circle" />
-                Copy Preview
-              </div>
-              <div class="preview-content">
-                <p><strong>Dari:</strong> {{ getContractById(selectedSourceContract)?.first_app_name || 'Unknown' }}</p>
-                <p><strong>Ke:</strong> {{ getSelectedAppNames() }}</p>
-                <p><strong>Kontrak:</strong> {{ getContractById(selectedSourceContract)?.title }}</p>
-                <p class="preview-note">
-                  Kontrak baru akan dibuat dengan judul dan nomor kontrak yang sama, terkait dengan {{ selectedTargetApps.length }} aplikasi.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button @click="closeCopyModal" class="btn btn-cancel" :disabled="isCopying">
-            Cancel
-          </button>
-          <button 
-            @click="copyContract" 
-            class="btn btn-primary"
-            :disabled="!canCopy || isCopying"
-          >
-            <font-awesome-icon 
-              :icon="isCopying ? 'fa-solid fa-spinner' : 'fa-solid fa-copy'" 
-              :class="{ 'fa-spin': isCopying }"
-            />
-            {{ isCopying ? 'Copying...' : 'Copy Contract' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoutes } from '@/composables/useRoutes';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
@@ -275,13 +178,6 @@ const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateTo
   defaultSortBy: 'title'
 });
 
-// Copy functionality
-const showCopyModal = ref(false);
-const selectedSourceContract = ref<number | string>('');
-const selectedTargetApps = ref<number[]>([]);
-const isCopying = ref(false);
-const availableApps = ref<App[]>([]);
-
 const columns = [
   { key: 'app_names', label: 'Applications', sortable: false },
   { key: 'title', label: 'Contract Title', sortable: true },
@@ -290,78 +186,10 @@ const columns = [
   { key: 'actions', label: 'Actions', centered: true }
 ];
 
-const canCopy = computed(() => {
-  return selectedSourceContract.value && selectedTargetApps.value.length > 0 && !isCopying.value;
-});
-
-// Computed properties for sorted dropdowns
-const sortedContracts = computed(() => {
-  if (!props.contracts?.data) return [];
-  return [...props.contracts.data].sort((a, b) => a.title.localeCompare(b.title));
-});
-
-const sortedAvailableApps = computed(() => {
-  return [...availableApps.value].sort((a, b) => a.app_name.localeCompare(b.app_name));
-});
-
-// Fetch available apps when component mounts
-onMounted(async () => {
-  try {
-    // Make a request to get available apps
-    const response = await fetch('/admin/contracts/apps');
-    if (response.ok) {
-      const data = await response.json();
-      availableApps.value = data;
-    }
-  } catch (error) {
-    console.error('Failed to fetch apps:', error);
-  }
-});
-
-function getContractById(id: number | string): Contract | undefined {
-  return props.contracts?.data?.find(contract => contract.id === Number(id));
-}
-
-function getAppById(id: number | string): App | undefined {
-  return availableApps.value.find(app => app.app_id === Number(id));
-}
-
-function getSelectedAppNames(): string {
-  const selectedApps = selectedTargetApps.value.map(id => 
-    availableApps.value.find(app => app.app_id === id)?.app_name
-  ).filter(Boolean);
-  
-  return selectedApps.join(', ') || 'No apps selected';
-}
-
-function closeCopyModal() {
-  showCopyModal.value = false;
-  selectedSourceContract.value = '';
-  selectedTargetApps.value = [];
-}
-
-function copyContract() {
-  if (!canCopy.value) return;
-
-  isCopying.value = true;
-
-  router.post('/admin/contracts/copy', {
-    source_contract_id: Number(selectedSourceContract.value),
-    target_app_ids: selectedTargetApps.value,
-  }, {
-    onSuccess: () => {
-      isCopying.value = false;
-      closeCopyModal();
-      // Refresh the page data
-      router.reload();
-    },
-    onError: (errors) => {
-      isCopying.value = false;
-      console.error('Failed to copy contract:', errors);
-      alert('Failed to copy contract. Please try again.');
-    }
-  });
-}
+// Fetch available apps when component mounts (removed since copy functionality is removed)
+// onMounted(async () => {
+//   // No longer needed
+// });
 
 function deleteContract(contractId: number) {
   if (confirm('Are you sure you want to delete this contract?')) {

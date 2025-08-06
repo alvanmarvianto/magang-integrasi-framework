@@ -8,7 +8,9 @@
           <div class="admin-form-field-full">
             <div class="app-selection-section">
               <div class="app-section-header">
-                <label class="admin-form-label">Aplikasi</label>
+                <label class="admin-form-label">
+                  Aplikasi
+                </label>
                 <button
                   type="button"
                   @click="addAppSelection"
@@ -56,7 +58,7 @@
             </div>
           </div>
 
-          <AdminFormField label="Judul Kontrak" id="title">
+          <AdminFormField label="Judul Kontrak" id="title" :required="true">
             <input
               id="title"
               v-model="form.title"
@@ -66,7 +68,7 @@
             />
           </AdminFormField>
 
-          <AdminFormField label="Nomor Kontrak" id="contract_number">
+          <AdminFormField label="Nomor Kontrak" id="contract_number" :required="true">
             <input
               id="contract_number"
               v-model="form.contract_number"
@@ -76,7 +78,7 @@
             />
           </AdminFormField>
 
-          <AdminFormField label="Tipe Mata Uang" id="currency_type">
+          <AdminFormField label="Tipe Mata Uang" id="currency_type" :required="true">
             <select
               id="currency_type"
               v-model="form.currency_type"
@@ -525,5 +527,11 @@ function submit() {
   background-color: #dc2626;
   color: white;
   border-color: #dc2626;
+}
+
+.required-asterisk {
+  color: #dc2626;
+  margin-left: 0.25rem;
+  font-weight: 600;
 }
 </style>
