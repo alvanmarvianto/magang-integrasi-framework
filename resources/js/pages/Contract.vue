@@ -1,7 +1,7 @@
 <template>
   <div id="container">
     <Sidebar 
-      :title="'Kontrak ' + (app?.app_name || 'Kontrak Aplikasi')" 
+      :title="sidebarTitle" 
       icon="fa-solid fa-file-contract"
       :show-close-button="true"
       @close="closeSidebar"
@@ -60,7 +60,15 @@
                 <div class="detail-items">
                   <div class="detail-item">
                     <span class="detail-label">Aplikasi:</span>
-                    <span class="detail-value">{{ app?.app_name }}</span>
+                    <div class="detail-value">
+                      <div v-if="contract.apps && contract.apps.length > 0" class="apps-list">
+                        <span v-for="(contractApp, index) in contract.apps" :key="contractApp.app_id" class="app-item">
+                          {{ contractApp.app_name }}<span v-if="index < contract.apps.length - 1">, </span>
+                        </span>
+                      </div>
+                      <span v-else-if="app">{{ app.app_name }}</span>
+                      <span v-else class="text-muted">Tidak ada aplikasi terkait</span>
+                    </div>
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">Nomor Kontrak:</span>
@@ -189,7 +197,6 @@ interface ContractPeriod {
 
 interface Contract {
   id: number;
-  app_id: number;
   title: string;
   contract_number: string;
   currency_type: 'rp' | 'non_rp';
@@ -198,6 +205,7 @@ interface Contract {
   contract_value_non_rp?: string;
   lumpsum_value_rp?: string;
   unit_value_rp?: string;
+  apps?: App[]; // Changed from app_id to apps array
   contract_periods?: ContractPeriod[];
 }
 
@@ -223,14 +231,46 @@ const navigationLinks = [
   {
     icon: 'fa-solid fa-project-diagram',
     text: 'Halaman Integrasi',
-    onClick: () => props.app ? visitRoute('appIntegration', { app_id: props.app.app_id }) : null,
+    onClick: () => {
+      // If we have a single app context, go to that app's integration
+      if (props.app) {
+        visitRoute('appIntegration', { app_id: props.app.app_id });
+      } else if (props.contract?.apps && props.contract.apps.length === 1) {
+        // If contract has only one app, use that
+        visitRoute('appIntegration', { app_id: props.contract.apps[0].app_id });
+      } else {
+        // Otherwise go to general integration page or disable
+        visitRoute('index');
+      }
+    },
   },
   {
     icon: 'fa-solid fa-microchip',
     text: 'Halaman Teknologi',
-    onClick: () => props.app ? visitRoute('technology.app', { app_id: props.app.app_id }) : visitRoute('technology.index'),
+    onClick: () => {
+      if (props.app) {
+        visitRoute('technology.app', { app_id: props.app.app_id });
+      } else if (props.contract?.apps && props.contract.apps.length === 1) {
+        visitRoute('technology.app', { app_id: props.contract.apps[0].app_id });
+      } else {
+        visitRoute('technology.index');
+      }
+    },
   },
 ];
+
+// Computed property for sidebar title
+const sidebarTitle = computed(() => {
+  if (props.app) {
+    return `Kontrak ${props.app.app_name}`;
+  } else if (props.contract?.apps && props.contract.apps.length === 1) {
+    return `Kontrak ${props.contract.apps[0].app_name}`;
+  } else if (props.contract?.apps && props.contract.apps.length > 1) {
+    return `Kontrak Multi-Aplikasi`;
+  } else {
+    return 'Kontrak Aplikasi';
+  }
+});
 
 const hasAnyContractData = computed(() => {
   if (!props.contract) return false;
@@ -446,6 +486,22 @@ function getPeriodPaymentValue(period: ContractPeriod): string {
 .financial-value {
   color: var(--success-color);
   font-family: 'Courier New', monospace;
+}
+
+.apps-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.app-item {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .periods-grid {

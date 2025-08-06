@@ -281,10 +281,17 @@ class ContractService
      */
     public function getContractForUser(int $appId, int $contractId): ?array
     {
-        // Find the specific contract
+        // Find the specific contract with apps relationship
         $contract = $this->contractRepository->findByIdWithRelations($contractId);
         
-        if (!$contract || $contract->app_id !== $appId) {
+        if (!$contract) {
+            return null;
+        }
+
+        // Check if this contract is associated with the requested app
+        $isAssociatedWithApp = $contract->apps->contains('app_id', $appId);
+        
+        if (!$isAssociatedWithApp) {
             return null;
         }
 
@@ -301,7 +308,7 @@ class ContractService
             return null;
         }
 
-        // Get all contracts for this app
+        // Get all contracts for this app (using the many-to-many relationship)
         $allContracts = $this->contractRepository->getByAppIdWithRelations($appId);
 
         return [

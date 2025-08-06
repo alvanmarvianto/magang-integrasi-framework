@@ -111,7 +111,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     {
         return $this->handleCacheOperation("contracts.app.{$appId}", function () use ($appId) {
             return $this->model->whereHas('apps', function($query) use ($appId) {
-                $query->where('app_id', $appId);
+                $query->where('apps.app_id', $appId);
             })->get();
         });
     }
@@ -124,7 +124,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         return $this->handleCacheOperation("contracts.app.{$appId}.with_relations", function () use ($appId) {
             return $this->model->with(['apps', 'contractPeriods'])
                 ->whereHas('apps', function($query) use ($appId) {
-                    $query->where('app_id', $appId);
+                    $query->where('apps.app_id', $appId);
                 })
                 ->get();
         });
@@ -158,7 +158,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         $contract = $this->model->create($data);
         
         // Clear related caches
-        $this->clearAllContractCaches(null, $data['app_id'] ?? null);
+        $this->clearAllContractCaches(null);
         
         return $contract;
     }
@@ -172,7 +172,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         
         if ($result) {
             // Clear related caches
-            $this->clearAllContractCaches($contract->id, $contract->app_id);
+            $this->clearAllContractCaches($contract->id);
         }
         
         return $result;
@@ -183,14 +183,13 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
      */
     public function delete(Contract $contract): bool
     {
-        $appId = $contract->app_id;
         $contractId = $contract->id;
         
         $result = $contract->delete();
         
         if ($result) {
             // Clear all contract-related caches systematically
-            $this->clearAllContractCaches($contractId, $appId);
+            $this->clearAllContractCaches($contractId);
         }
         
         return $result;
@@ -300,7 +299,7 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         // Don't cache search results as they can be highly variable
         return $this->model->where('title', 'like', "%{$query}%")
             ->orWhere('contract_number', 'like', "%{$query}%")
-            ->with(['app'])
+            ->with(['apps'])
             ->get();
     }
 
