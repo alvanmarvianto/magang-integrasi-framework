@@ -103,18 +103,18 @@
 import { computed, ref, onMounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useSidebar } from '../composables/useSidebar';
-import { useRoutes } from '../composables/useRoutes';
-import Sidebar from '../components/Sidebar/Sidebar.vue';
-import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
-import SidebarContractPeriod from '../components/Sidebar/SidebarContractPeriod.vue';
-import ErrorState from '../components/ErrorState.vue';
-import DetailSection from '../components/Contract/DetailSection.vue';
-import DetailItem from '../components/Contract/DetailItem.vue';
-import FinancialValue from '../components/Contract/FinancialValue.vue';
-import PeriodCard from '../components/Contract/PeriodCard.vue';
-import { getAppDisplayText, getFinancialFields } from '../utils/contractHelpers';
-import { getContractPeriodAlertStatus, type AlertStatus } from '../utils/contractAlerts';
+import { useSidebar } from '../../composables/useSidebar';
+import { useRoutes } from '../../composables/useRoutes';
+import Sidebar from '../../components/Sidebar/Sidebar.vue';
+import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
+import SidebarContractPeriod from '../../components/Sidebar/SidebarContractPeriod.vue';
+import ErrorState from '../../components/ErrorState.vue';
+import DetailSection from '../../components/Contract/DetailSection.vue';
+import DetailItem from '../../components/Contract/DetailItem.vue';
+import FinancialValue from '../../components/Contract/FinancialValue.vue';
+import PeriodCard from '../../components/Contract/PeriodCard.vue';
+import { getAppDisplayText, getFinancialFields } from '../../utils/contractHelpers';
+import { getContractPeriodAlertStatus, type AlertStatus } from '../../utils/contractAlerts';
 
 interface App {
   app_id: number;
@@ -172,6 +172,11 @@ const navigationLinks = [
     icon: 'fa-solid fa-home',
     text: 'Halaman Utama',
     onClick: () => visitRoute('index'),
+  },
+  {
+    icon: 'fa-solid fa-file-contract',
+    text: 'Semua Kontrak',
+    onClick: () => visitRoute('contract.index'),
   },
   {
     icon: 'fa-solid fa-project-diagram',
@@ -393,4 +398,4 @@ const backToAppUrl = computed(() => {
 }
 </style>
 
-<style scoped src="../../css/app.css"></style>
+<style scoped src="../../../css/app.css"></style>

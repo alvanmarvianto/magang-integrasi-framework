@@ -12,6 +12,12 @@ export interface ContractPeriod {
 
 export type AlertStatus = 'none' | 'warning' | 'danger';
 
+export interface AlertPriority {
+  status: AlertStatus;
+  priority: number; // 1 = highest priority (danger), 3 = lowest priority (none)
+  message?: string;
+}
+
 /**
  * Determines the alert status for a contract period based on payment status and dates
  */
@@ -78,6 +84,54 @@ export function getContractAlertStatus(contractPeriods: ContractPeriod[]): Alert
   }
   
   return hasWarning ? 'warning' : 'none';
+}
+
+/**
+ * Gets the alert priority for a contract based on its periods
+ * Returns status, priority number, and message for sorting and display
+ */
+export function getContractAlertPriority(contract: any): AlertPriority {
+  const periods: ContractPeriod[] = contract.contract_periods || [];
+  const alertStatus = getContractAlertStatus(periods);
+  
+  let priority: number;
+  let message: string | undefined;
+  
+  switch (alertStatus) {
+    case 'danger':
+      priority = 1;
+      // Find the most overdue period for the message
+      const dangerPeriods = periods.filter((p: ContractPeriod) => getContractPeriodAlertStatus(p) === 'danger');
+      if (dangerPeriods.length > 0) {
+        const mostOverdue = dangerPeriods.reduce((max: ContractPeriod, current: ContractPeriod) => {
+          if (!current.end_date || !max.end_date) return max;
+          return new Date(current.end_date) < new Date(max.end_date) ? current : max;
+        });
+        message = getContractPeriodAlertMessage(mostOverdue) || 'Ada pembayaran yang terlambat';
+      }
+      break;
+    case 'warning':
+      priority = 2;
+      // Find the period closest to deadline for the message
+      const warningPeriods = periods.filter((p: ContractPeriod) => getContractPeriodAlertStatus(p) === 'warning');
+      if (warningPeriods.length > 0) {
+        const closestToDeadline = warningPeriods.reduce((min: ContractPeriod, current: ContractPeriod) => {
+          if (!current.end_date || !min.end_date) return min;
+          return new Date(current.end_date) < new Date(min.end_date) ? current : min;
+        });
+        message = getContractPeriodAlertMessage(closestToDeadline) || 'Ada pembayaran yang akan jatuh tempo';
+      }
+      break;
+    default:
+      priority = 3;
+      break;
+  }
+  
+  return {
+    status: alertStatus,
+    priority,
+    message
+  };
 }
 
 /**

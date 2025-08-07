@@ -18,6 +18,25 @@ class ContractController extends Controller
     }
 
     /**
+     * Display a listing of all contracts
+     */
+    public function index(): Response
+    {
+        try {
+            $allContracts = $this->contractService->getAllContracts();
+
+            return Inertia::render('Contract/Index', [
+                'contracts' => $allContracts->map(fn($c) => $c->toArray())->toArray(),
+            ]);
+        } catch (\Exception $e) {
+            return Inertia::render('Contract/Index', [
+                'contracts' => [],
+                'error' => 'Failed to retrieve contracts: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Show contract for a specific app and contract ID
      */
     public function show(int $appId, int $contractId): Response
@@ -36,14 +55,14 @@ class ContractController extends Controller
                 // Get all contracts for this app to show in sidebar
                 $allContracts = $this->contractService->getContractsByAppId($appId);
                 
-                return Inertia::render('Contract', [
+                return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => $appInfo->toArray(),
                     'allContracts' => $allContracts->map(fn($c) => $c->toArray())->toArray(),
                 ]);
             }
 
-            return Inertia::render('Contract', [
+            return Inertia::render('Contract/App', [
                 'contract' => $contractData['contract']->toArray(),
                 'app' => $contractData['app']->toArray(),
                 'allContracts' => $contractData['allContracts']->map(fn($c) => $c->toArray())->toArray(),
@@ -55,7 +74,7 @@ class ContractController extends Controller
                 
                 if (!$appInfo) {
                     // App doesn't exist, render contract page with app not found error
-                    return Inertia::render('Contract', [
+                    return Inertia::render('Contract/App', [
                         'contract' => null,
                         'app' => null,
                         'allContracts' => [],
@@ -66,7 +85,7 @@ class ContractController extends Controller
                 // Get all contracts for this app if possible
                 $allContracts = $this->contractService->getContractsByAppId($appId);
                 
-                return Inertia::render('Contract', [
+                return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => $appInfo->toArray(),
                     'allContracts' => $allContracts->map(fn($c) => $c->toArray())->toArray(),
@@ -74,7 +93,7 @@ class ContractController extends Controller
                 ]);
             } catch (\Exception $fallbackException) {
                 // Complete fallback - render with app not found error
-                return Inertia::render('Contract', [
+                return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => null,
                     'allContracts' => [],
@@ -101,7 +120,7 @@ class ContractController extends Controller
                     abort(404, 'Application not found');
                 }
                 
-                return Inertia::render('Contract', [
+                return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => $appInfo->toArray(),
                     'allContracts' => [],
@@ -125,7 +144,7 @@ class ContractController extends Controller
                 
                 if (!$appInfo) {
                     // App doesn't exist, render contract page with app not found error
-                    return Inertia::render('Contract', [
+                    return Inertia::render('Contract/App', [
                         'contract' => null,
                         'app' => null,
                         'allContracts' => [],
@@ -134,7 +153,7 @@ class ContractController extends Controller
                 }
                 
                 // App exists but there was another error
-                return Inertia::render('Contract', [
+                return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => $appInfo->toArray(),
                     'allContracts' => [],
@@ -142,7 +161,7 @@ class ContractController extends Controller
                 ]);
             } catch (\Exception $fallbackException) {
                 // Complete fallback - render with app not found error
-                return Inertia::render('Contract', [
+                return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => null,
                     'allContracts' => [],

@@ -36,6 +36,7 @@ Route::prefix('technology')->as('technology.')->group(function () {
 
 // User contract routes
 Route::prefix('contract')->as('contract.')->group(function () {
+    Route::get('/', [ContractController::class, 'index'])->name('index');
     Route::get('/{app_id}', [ContractController::class, 'redirectToFirstContract'])->name('app');
     Route::get('/{app_id}/{contract_id}', [ContractController::class, 'show'])->name('show');
 });

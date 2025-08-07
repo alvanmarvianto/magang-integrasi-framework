@@ -198,6 +198,11 @@ const navigationLinks = [
         text: 'Halaman Utama',
         onClick: () => visitRoute('index'),
     },
+    {
+    icon: 'fa-solid fa-file-contract',
+    text: 'Daftar Kontrak',
+    onClick: () => visitRoute('contract.index'),
+  },
 ];
 
 function formatTechName(name: string): string {

@@ -20,6 +20,12 @@
       />
 
       <SidebarNavigation
+        title="Kontrak"
+        :links="contractLinks"
+        variant="group"
+      />
+
+      <SidebarNavigation
         title="Teknologi"
         :links="technologyLinks"
         variant="group"
@@ -64,6 +70,10 @@ const streamLinks = [
   { text: 'Stream Moneter', onClick: () => visitRoute('integrations.stream', { stream: 'moneter' }) },
   { text: 'Stream Market', onClick: () => visitRoute('integrations.stream', { stream: 'market' }) },
   { text: 'Stream Middleware', onClick: () => visitRoute('integrations.stream', { stream: 'middleware' }) },
+];
+
+const contractLinks = [
+  { text: 'Semua Kontrak', onClick: () => visitRoute('contract.index'), variant: 'default' as const },
 ];
 
 const technologyLinks = [

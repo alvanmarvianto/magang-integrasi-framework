@@ -37,6 +37,9 @@ import {
     faCopy,
     faExclamationTriangle,
     faExclamationCircle,
+    faClock,
+    faCheckCircle,
+    faInbox,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -77,6 +80,9 @@ library.add(
     faCopy,
     faExclamationTriangle,
     faExclamationCircle,
+    faClock,
+    faCheckCircle,
+    faInbox,
 );
 
 export { FontAwesomeIcon }; 
