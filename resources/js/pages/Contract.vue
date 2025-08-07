@@ -86,6 +86,7 @@
                 <PeriodCard
                   v-for="(period, index) in contract.contract_periods"
                   :key="index"
+                  :ref="(el) => setPeriodCardRef(el, index)"
                   :period="period"
                   :currency-type="contract.currency_type"
                 />
@@ -99,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useSidebar } from '../composables/useSidebar';
@@ -113,6 +114,7 @@ import DetailItem from '../components/Contract/DetailItem.vue';
 import FinancialValue from '../components/Contract/FinancialValue.vue';
 import PeriodCard from '../components/Contract/PeriodCard.vue';
 import { getAppDisplayText, getFinancialFields } from '../utils/contractHelpers';
+import { getContractPeriodAlertStatus, type AlertStatus } from '../utils/contractAlerts';
 
 interface App {
   app_id: number;
@@ -156,6 +158,14 @@ const props = defineProps<Props>();
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { visitRoute } = useRoutes();
 const loading = ref(false);
+
+// Refs for period cards and auto-scroll functionality
+const periodCardRefs = ref<(any)[]>([]);
+const setPeriodCardRef = (el: any, index: number) => {
+  if (el) {
+    periodCardRefs.value[index] = el;
+  }
+};
 
 const navigationLinks = [
   {
@@ -223,6 +233,34 @@ const hasAnyContractData = computed(() => {
 
 const financialFields = computed(() => {
   return getFinancialFields(props.contract);
+});
+
+// Auto-scroll to first alert period card
+const scrollToFirstAlert = async () => {
+  if (!props.contract?.contract_periods) return;
+  
+  await nextTick();
+  
+  // Find the first period with danger or warning alert (in original order)
+  const firstAlertIndex = props.contract.contract_periods.findIndex(period => {
+    const alertStatus = getContractPeriodAlertStatus(period);
+    return alertStatus === 'danger' || alertStatus === 'warning';
+  });
+  
+  if (firstAlertIndex !== -1 && periodCardRefs.value[firstAlertIndex]) {
+    const cardElement = periodCardRefs.value[firstAlertIndex].$el || periodCardRefs.value[firstAlertIndex];
+    if (cardElement && cardElement.scrollIntoView) {
+      cardElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }
+};
+
+// Trigger auto-scroll on mount
+onMounted(() => {
+  scrollToFirstAlert();
 });
 
 const backToAppUrl = computed(() => {

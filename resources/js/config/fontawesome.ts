@@ -35,6 +35,8 @@ import {
     faDollarSign,
     faCoins,
     faCopy,
+    faExclamationTriangle,
+    faExclamationCircle,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -73,6 +75,8 @@ library.add(
     faDollarSign,
     faCoins,
     faCopy,
+    faExclamationTriangle,
+    faExclamationCircle,
 );
 
 export { FontAwesomeIcon }; 

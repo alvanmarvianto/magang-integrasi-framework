@@ -112,6 +112,32 @@ class ContractDTO
     }
 
     /**
+     * Get the highest alert status from all contract periods
+     */
+    public function getAlertStatus(): string
+    {
+        if (!$this->contractPeriods || $this->contractPeriods->isEmpty()) {
+            return 'none';
+        }
+
+        $hasWarning = false;
+        
+        foreach ($this->contractPeriods as $period) {
+            $status = $period->getAlertStatus();
+            
+            if ($status === 'danger') {
+                return 'danger'; // Danger takes precedence
+            }
+            
+            if ($status === 'warning') {
+                $hasWarning = true;
+            }
+        }
+        
+        return $hasWarning ? 'warning' : 'none';
+    }
+
+    /**
      * Convert to array
      */
     public function toArray(): array
@@ -132,6 +158,7 @@ class ContractDTO
             'app_names' => $this->getAppNamesString(),
             'first_app_name' => $this->getFirstAppName(),
             'contract_periods' => $this->contractPeriods?->map(fn($period) => $period->toArray())->toArray(),
+            'alert_status' => $this->getAlertStatus(),
         ];
     }
 }

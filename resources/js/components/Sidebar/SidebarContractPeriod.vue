@@ -13,11 +13,12 @@
 
 
         <div v-else class="contracts-list">
-            <button v-for="contractItem in contracts" :key="contractItem.id"
+            <button v-for="contractItem in sortedContracts" :key="contractItem.id"
                 @click="navigateToContract(contractItem.id)" :class="[
                     'contract-button',
-                    { 'contract-active': contractItem.id === currentContract?.id }
+                    ...getContractAlertClasses(contractItem)
                 ]">
+
                 <div class="contract-header">
                     <div class="contract-main-info">
                         <h4 class="contract-title">{{ contractItem.title }}</h4>
@@ -25,6 +26,12 @@
                     </div>
 
                     <div class="contract-badges">
+                        <!-- Alert Icon -->
+                        <font-awesome-icon 
+                          v-if="getContractAlertStatusFromContract(contractItem) !== 'none'" 
+                          :icon="getContractAlertIcon(contractItem)" 
+                          :class="['alert-icon-badge', `alert-icon-${getContractAlertStatusFromContract(contractItem)}`]"
+                        />
                         <span :class="[
                             'currency-badge',
                             contractItem.currency_type === 'rp' ? 'badge-rp' : 'badge-non-rp'
@@ -52,8 +59,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { router } from '@inertiajs/vue3';
+import { getContractAlertStatus, getContractPeriodAlertStatus, getAlertClasses, type AlertStatus } from '@/utils/contractAlerts';
 
 interface ContractPeriod {
     period_name: string;
@@ -63,6 +72,8 @@ interface ContractPeriod {
     payment_value_rp?: string;
     payment_value_non_rp?: string;
     payment_status: string;
+    alert_status?: string;
+    alert_message?: string;
 }
 
 interface Contract {
@@ -77,6 +88,7 @@ interface Contract {
   unit_value_rp?: string;
   apps?: App[]; // Changed from app_id to apps array
   contract_periods?: ContractPeriod[];
+  alert_status?: string; // Added for backend compatibility
 }interface App {
     app_id: number;
     app_name: string;
@@ -91,6 +103,29 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Computed property to sort contracts by alert status priority
+const sortedContracts = computed(() => {
+    return [...props.contracts].sort((a, b) => {
+        const alertStatusA = getContractAlertStatusFromContract(a);
+        const alertStatusB = getContractAlertStatusFromContract(b);
+        
+        // Define priority order: danger = 0, warning = 1, none = 2
+        const getPriority = (status: AlertStatus) => {
+            switch (status) {
+                case 'danger': return 0;
+                case 'warning': return 1;
+                default: return 2;
+            }
+        };
+        
+        const priorityA = getPriority(alertStatusA);
+        const priorityB = getPriority(alertStatusB);
+        
+        // Sort by priority (lower number = higher priority)
+        return priorityA - priorityB;
+    });
+});
 
 function navigateToContract(contractId: number) {
     if (props.app) {
@@ -120,6 +155,53 @@ function formatContractValue(contract: Contract): string {
         }).format(value);
     }
     return 'N/A';
+}
+
+// Contract alert helper functions  
+function getContractAlertStatusFromContract(contract: Contract): AlertStatus {
+    // Use the same logic as PeriodCard: check backend alert_status first
+    if (contract.alert_status) {
+        return contract.alert_status as AlertStatus;
+    }
+    
+    // Fallback: Check contract periods using the same logic as PeriodCard
+    if (contract.contract_periods && contract.contract_periods.length > 0) {
+        // Check each period individually using the same function as PeriodCard
+        let hasWarning = false;
+        let hasDanger = false;
+        
+        for (const period of contract.contract_periods) {
+            const periodAlert = getContractPeriodAlertStatus(period);
+            
+            if (periodAlert === 'danger') {
+                hasDanger = true;
+            } else if (periodAlert === 'warning') {
+                hasWarning = true;
+            }
+        }
+        
+        // Return the highest priority alert found (same logic as contractAlerts.ts)
+        return hasDanger ? 'danger' : (hasWarning ? 'warning' : 'none');
+    }
+    
+    return 'none';
+}
+
+function getContractAlertClasses(contract: Contract): string[] {
+    const alertStatus = getContractAlertStatusFromContract(contract);
+    return getAlertClasses(alertStatus);
+}
+
+function getContractAlertIcon(contract: Contract): string[] {
+    const alertStatus = getContractAlertStatusFromContract(contract);
+    switch (alertStatus) {
+        case 'danger':
+            return ['fas', 'exclamation-triangle'];
+        case 'warning':
+            return ['fas', 'exclamation-circle'];
+        default:
+            return ['fas', 'info-circle'];
+    }
 }
 </script>
 
@@ -173,6 +255,35 @@ function formatContractValue(contract: Contract): string {
     backdrop-filter: blur(10px);
     color: var(--text-color, #333);
     font-weight: 500;
+    position: relative;
+}
+
+/* Alert styles for contract buttons */
+.contract-button.alert-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.contract-button.alert-warning {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* Alert icon styles */
+.alert-icon-badge {
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+}
+
+.alert-icon-danger {
+  color: #dc2626;
+}
+
+.alert-icon-warning {
+  color: #d97706;
 }
 
 .contract-button:hover {
@@ -182,15 +293,20 @@ function formatContractValue(contract: Contract): string {
     color: var(--text-color, #333);
 }
 
-.contract-active {
-    background: rgba(255, 255, 255, 0.5) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.contract-button.alert-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
 }
 
-.contract-active:hover {
-    background: rgba(255, 255, 255, 0.6) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+.contract-button.alert-warning:hover {
+    background: rgba(245, 158, 11, 0.25);
+}
+
+/* Ensure button text stays dark */
+.contract-button .contract-title,
+.contract-button .contract-number,
+.contract-button .contract-value,
+.contract-button .periods-count {
+    color: var(--text-color, #333);
 }
 
 .contract-header {
@@ -226,6 +342,9 @@ function formatContractValue(contract: Contract): string {
 }
 
 .contract-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex-shrink: 0;
     margin-left: 0.5rem;
 }

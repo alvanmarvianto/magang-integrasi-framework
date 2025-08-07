@@ -116,6 +116,74 @@ class ContractPeriodDTO
     }
 
     /**
+     * Get alert status for payment deadline
+     */
+    public function getAlertStatus(): string
+    {
+        // Only check periods that are not paid and are actually due
+        // Exclude: 'paid', 'not_due', 'reserved_hr', 'contract_moved'
+        $safeStatuses = ['paid', 'not_due', 'reserved_hr', 'contract_moved'];
+        if (in_array($this->paymentStatus, $safeStatuses)) {
+            return 'none';
+        }
+
+        // Skip if no end date
+        if (!$this->endDate) {
+            return 'none';
+        }
+
+        $now = new \DateTime();
+        $endDate = new \DateTime($this->endDate);
+        
+        // Calculate the difference in days
+        $interval = $now->diff($endDate);
+        $diffDays = (int) $interval->format('%a');
+        
+        // If now is past end date (overdue) - invert will be 1 if now > endDate
+        if ($interval->invert === 1) {
+            return 'danger';
+        }
+
+        // If within 2 weeks (14 days) of end date
+        if ($diffDays <= 14) {
+            return 'warning';
+        }
+
+        return 'none';
+    }
+
+    /**
+     * Get alert message for payment deadline
+     */
+    public function getAlertMessage(): ?string
+    {
+        $alertStatus = $this->getAlertStatus();
+        
+        if ($alertStatus === 'none') {
+            return null;
+        }
+
+        if (!$this->endDate) {
+            return null;
+        }
+
+        $now = new \DateTime();
+        $endDate = new \DateTime($this->endDate);
+        $interval = $now->diff($endDate);
+        $diffDays = (int) $interval->format('%a');
+
+        if ($alertStatus === 'danger') {
+            return "Pembayaran terlambat {$diffDays} hari";
+        }
+
+        if ($alertStatus === 'warning') {
+            return "Pembayaran jatuh tempo dalam {$diffDays} hari";
+        }
+
+        return null;
+    }
+
+    /**
      * Convert to array
      */
     public function toArray(): array
@@ -136,6 +204,8 @@ class ContractPeriodDTO
             'formatted_payment_value' => $this->getFormattedPaymentValue(),
             'payment_status' => $this->paymentStatus,
             'payment_status_label' => $this->getPaymentStatusLabel(),
+            'alert_status' => $this->getAlertStatus(),
+            'alert_message' => $this->getAlertMessage(),
         ];
     }
 }

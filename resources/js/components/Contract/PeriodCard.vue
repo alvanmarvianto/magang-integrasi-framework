@@ -1,5 +1,10 @@
 <template>
-  <div class="period-card">
+  <div 
+    :class="[
+      'period-card',
+      alertInfo.classes
+    ]"
+  >
     <div class="period-header">
       <div class="period-name-container">
         <h4 
@@ -10,9 +15,17 @@
           {{ period.period_name }}
         </h4>
       </div>
-      <span :class="['budget-badge', budgetClass]">
-        {{ period.budget_type }}
-      </span>
+      <div class="period-badges">
+        <!-- Alert Icon -->
+        <font-awesome-icon 
+          v-if="alertInfo.status !== 'none'" 
+          :icon="alertInfo.icon" 
+          :class="['alert-icon-badge', `alert-icon-${alertInfo.status}`]"
+        />
+        <span :class="['budget-badge', budgetClass]">
+          {{ period.budget_type }}
+        </span>
+      </div>
     </div>
     
     <div class="period-details">
@@ -46,8 +59,15 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PaymentStatusBadge from './PaymentStatusBadge.vue';
 import FinancialValue from './FinancialValue.vue';
+import { 
+  getContractPeriodAlertStatus, 
+  getAlertClasses, 
+  getContractPeriodAlertMessage,
+  type AlertStatus 
+} from '@/utils/contractAlerts';
 
 interface ContractPeriod {
   period_name: string;
@@ -57,6 +77,8 @@ interface ContractPeriod {
   payment_value_rp?: string;
   payment_value_non_rp?: string;
   payment_status: string;
+  alert_status?: string;
+  alert_message?: string;
 }
 
 interface Props {
@@ -65,6 +87,31 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Alert information computed properties
+const alertStatus = computed(() => getContractPeriodAlertStatus(props.period));
+const alertMessage = computed(() => getContractPeriodAlertMessage(props.period));
+const alertClasses = computed(() => getAlertClasses(alertStatus.value));
+
+// Alert icon based on status
+const alertIcon = computed(() => {
+  switch (alertStatus.value) {
+    case 'danger':
+      return ['fas', 'exclamation-triangle'];
+    case 'warning':
+      return ['fas', 'exclamation-circle'];
+    default:
+      return ['fas', 'info-circle'];
+  }
+});
+
+// Combined alert info object for template
+const alertInfo = computed(() => ({
+  status: alertStatus.value,
+  message: alertMessage.value,
+  classes: alertClasses.value,
+  icon: alertIcon.value
+}));
 
 const budgetClass = computed(() => 
   props.period.budget_type === 'AO' ? 'budget-ao' : 'budget-ri'
@@ -101,6 +148,43 @@ function formatDate(dateString: string): string {
   height: 175px;
   display: flex;
   flex-direction: column;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Alert styles */
+.period-card.alert-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.period-card.alert-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Alert icon badge styles */
+.period-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.alert-icon-badge {
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alert-icon-danger {
+  color: #dc2626;
+}
+
+.alert-icon-warning {
+  color: #d97706;
 }
 
 .period-header {
@@ -160,6 +244,7 @@ function formatDate(dateString: string): string {
   font-weight: 600;
   padding: var(--spacing-1) var(--spacing-2);
   border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .budget-ao {
