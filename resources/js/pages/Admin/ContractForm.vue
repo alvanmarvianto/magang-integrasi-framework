@@ -256,9 +256,6 @@ const selectedApps = ref<AppSelection[]>([]);
 const contractPeriods = ref<ContractPeriod[]>([]);
 
 onMounted(() => {
-  console.log('ContractForm mounted with props:', props);
-  console.log('FormData apps:', props.formData?.apps);
-  
   if (props.contract) {
     form.value = {
       app_ids: props.contract.apps?.map(app => app.app_id) || [],

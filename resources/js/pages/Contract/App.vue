@@ -174,11 +174,6 @@ const navigationLinks = [
     onClick: () => visitRoute('index'),
   },
   {
-    icon: 'fa-solid fa-file-contract',
-    text: 'Semua Kontrak',
-    onClick: () => visitRoute('contract.index'),
-  },
-  {
     icon: 'fa-solid fa-project-diagram',
     text: 'Halaman Integrasi',
     onClick: () => {
@@ -206,6 +201,11 @@ const navigationLinks = [
         visitRoute('technology.index');
       }
     },
+  },
+    {
+    icon: 'fa-solid fa-file-contract',
+    text: 'Semua Kontrak',
+    onClick: () => visitRoute('contract.index'),
   },
 ];
 

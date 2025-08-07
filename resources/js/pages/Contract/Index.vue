@@ -181,21 +181,75 @@ const navigationLinks = [
 
 // Add alert status to each contract and sort by priority
 const contractsWithAlerts = computed(() => {
-  return props.contracts.map(contract => {
+  const contractsWithData = props.contracts.map(contract => {
     const alertPriority = getContractAlertPriority(contract);
+    
+    // Extract days from backend alert message if available
+    let backendDays: number = 0;
+    if (alertPriority.message) {
+      const match = alertPriority.message.match(/(\d+)\s+hari/);
+      if (match) {
+        backendDays = parseInt(match[1]);
+        // If message contains "terlambat", make it negative
+        if (alertPriority.message.includes('terlambat')) {
+          backendDays = -backendDays;
+        }
+      }
+    }
+    
+    // Find the most critical period and calculate days difference (fallback)
+    let mostCriticalDate: Date | null = null;
+    let daysDifference: number = backendDays; // Use backend days if available
+    
+    if (backendDays === 0 && contract.contract_periods && contract.contract_periods.length > 0) {
+      const activePeriods = contract.contract_periods.filter(period => period.end_date);
+      if (activePeriods.length > 0) {
+        // For sorting, we want the earliest end date (most urgent)
+        const dates = activePeriods.map(period => new Date(period.end_date!));
+        mostCriticalDate = new Date(Math.min(...dates.map(d => d.getTime())));
+        
+        // Calculate days difference from today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to avoid time-based differences
+        const endDate = new Date(mostCriticalDate);
+        endDate.setHours(0, 0, 0, 0);
+        
+        const timeDiff = endDate.getTime() - today.getTime();
+        daysDifference = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+      }
+    }
+    
     return {
       ...contract,
       alertPriority,
-      alertStatus: alertPriority.status
+      alertStatus: alertPriority.status,
+      mostCriticalDate,
+      daysDifference, // This now uses backend days when available
+      backendDays
     };
-  }).sort((a, b) => {
-    // Sort by priority: danger (1) -> warning (2) -> normal (3)
+  });
+
+  const sorted = contractsWithData.sort((a, b) => {
+    // Sort by priority first: danger (1) -> warning (2) -> normal (3)
     if (a.alertPriority.priority !== b.alertPriority.priority) {
       return a.alertPriority.priority - b.alertPriority.priority;
     }
-    // If same priority, sort by title alphabetically
-    return a.title.localeCompare(b.title);
+    
+    // Within same priority, sort by days difference
+    if (a.alertStatus === 'danger') {
+      // For danger: most overdue first (most negative daysDifference first)
+      // -981 should come before -127, which should come before -38
+      return a.daysDifference - b.daysDifference;
+    } else if (a.alertStatus === 'warning') {
+      // For warning: closer to deadline first (smaller positive numbers first)
+      return a.daysDifference - b.daysDifference;
+    } else {
+      // For normal: sort by earliest end date (smaller positive numbers first)
+      return a.daysDifference - b.daysDifference;
+    }
   });
+
+  return sorted;
 });
 
 // Filter contracts based on selected filter and search query
