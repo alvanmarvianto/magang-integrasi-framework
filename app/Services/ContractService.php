@@ -177,16 +177,32 @@ class ContractService
         
         // Update contract periods
         if (isset($contractPeriodsData)) {
-            // Delete existing periods
             $existingPeriods = $this->contractPeriodRepository->getByContractId($contract->id);
-            foreach ($existingPeriods as $period) {
-                $this->contractPeriodRepository->delete($period);
-            }
+            $existingPeriodsById = $existingPeriods->keyBy('id');
             
-            // Create new periods
+            $updatedPeriodIds = [];
+            
+            // Update or create periods
             foreach ($contractPeriodsData as $periodData) {
                 $periodData['contract_id'] = $contract->id;
-                $this->contractPeriodRepository->create($periodData);
+                
+                if (isset($periodData['id']) && $existingPeriodsById->has($periodData['id'])) {
+                    // Update existing period
+                    $existingPeriod = $existingPeriodsById->get($periodData['id']);
+                    $this->contractPeriodRepository->update($existingPeriod, $periodData);
+                    $updatedPeriodIds[] = $periodData['id'];
+                } else {
+                    // Create new period
+                    $newPeriod = $this->contractPeriodRepository->create($periodData);
+                    $updatedPeriodIds[] = $newPeriod->id;
+                }
+            }
+            
+            // Delete periods that are no longer present
+            foreach ($existingPeriods as $period) {
+                if (!in_array($period->id, $updatedPeriodIds)) {
+                    $this->contractPeriodRepository->delete($period);
+                }
             }
         }
         

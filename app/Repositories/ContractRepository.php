@@ -171,8 +171,12 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         $result = $contract->update($data);
         
         if ($result) {
-            // Clear related caches
+            // Clear all contract-related caches comprehensively
             $this->clearAllContractCaches($contract->id);
+            
+            // Also clear contract period caches since they're loaded with contracts
+            Cache::forget("contract_periods.contract.{$contract->id}");
+            Cache::forget("contract_periods.contract.{$contract->id}.with_relations");
         }
         
         return $result;
@@ -204,6 +208,10 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         if ($contractId) {
             Cache::forget("contracts.{$contractId}");
             Cache::forget("contracts.{$contractId}.with_relations");
+            
+            // Clear contract period caches for this contract
+            Cache::forget("contract_periods.contract.{$contractId}");
+            Cache::forget("contract_periods.contract.{$contractId}.with_relations");
         }
         
         // Clear app-specific contract caches
@@ -219,6 +227,11 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         Cache::forget('contracts.all_with_apps');
         Cache::forget('contracts.statistics');
         Cache::forget('contractss.statistics'); // plural form
+        
+        // Clear general contract period caches that might be affected
+        Cache::forget('contract_periods.all');
+        Cache::forget('contract_periods.all.with_relations');
+        Cache::forget('contract_periods.active');
         
         // Clear currency-specific caches
         Cache::forget('contracts.currency.rp');
