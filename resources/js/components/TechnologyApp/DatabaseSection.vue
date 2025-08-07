@@ -5,7 +5,7 @@
         v-for="item in technology.database"
         :key="item.name"
         class="content-item"
-        :data-tooltip="item.version ? `${item.name} - ${item.version}` : item.name"
+        :data-tooltip="item.version ? `${item.name} ${item.version}` : item.name"
         :href="`/technology/database/${item.name}`"
         target="_blank"
         rel="noopener"

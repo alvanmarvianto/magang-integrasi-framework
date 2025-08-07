@@ -180,7 +180,6 @@ const periodsCount = computed(() => {
 
 .contract-card.alert-none {
   border-left-color: var(--border-color);
-  background: #f0fdf4;
 }
 
 /* Alert Indicator */

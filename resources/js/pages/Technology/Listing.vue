@@ -112,7 +112,7 @@ function navigateToApp(appId: number) {
 }
 
 .app-card {
-  background: var(--card-bg);
+  background: #f0f8ff;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
@@ -169,9 +169,10 @@ function navigateToApp(appId: number) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: var(--tech-bg, #f8f9fa);
+  background: white;
   border-radius: 8px;
   border-left: 3px solid var(--primary-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .tech-label {

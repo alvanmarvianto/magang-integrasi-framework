@@ -5,7 +5,7 @@
         v-for="item in technology.platform" 
         :key="item.name"
         class="content-item"
-        :data-tooltip="item.version ? `${item.name} - ${item.version}` : item.name"
+        :data-tooltip="item.version ? `${item.name} ${item.version}` : item.name"
         :href="`/technology/platform/${item.name}`"
         target="_blank"
         rel="noopener"

@@ -15,9 +15,9 @@
       </div>
       <div id="loader" v-if="loading"></div>
       <div id="body">
-        <div class="contract-index-content">
+        <div class="index-content">
           <!-- Header -->
-          <div class="contract-index-header">
+          <div class="index-header">
             <div class="header-content">
               <h1>
                 <font-awesome-icon icon="fa-solid fa-file-contract" />
@@ -27,8 +27,8 @@
           </div>
 
           <!-- Statistics -->
-          <div class="stats-section">
-            <div class="stats-grid">
+          <div class="cards-section">
+            <div class="cards-grid">
               <div class="stat-card danger">
                 <div class="stat-icon">
                   <font-awesome-icon icon="fa-solid fa-exclamation-triangle" />
@@ -93,9 +93,9 @@
           </div>
 
           <!-- Contracts List -->
-          <div class="contracts-section">
-            <div v-if="filteredContracts.length === 0" class="no-contracts">
-              <font-awesome-icon icon="fa-solid fa-inbox" class="no-contracts-icon" />
+          <div>
+            <div v-if="filteredContracts.length === 0" class="no-content">
+              <font-awesome-icon icon="fa-solid fa-inbox" class="no-content-icon" />
               <h3>Tidak ada kontrak ditemukan</h3>
               <p>{{ searchQuery ? 'Coba ubah kata kunci pencarian' : 'Belum ada kontrak yang tersedia' }}</p>
             </div>
@@ -247,40 +247,18 @@ const goToContract = (contract: Contract) => {
 
 <style scoped>
 /* Contract Index specific styles */
-.contract-index-content {
-  padding: 1rem;
-  height: 96%;
-  max-height: 100%;
-  overflow-y: auto;
+.contracts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-4);
 }
 
-.contract-index-header {
-  margin-bottom: var(--spacing-8);
-  padding-bottom: var(--spacing-4);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.header-content {
-  text-align: center;
-}
-
-.header-content h1 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-2);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color);
-  margin: 0 0 var(--spacing-2) 0;
-}
-
-/* Statistics Section */
-.stats-section {
+/* Statistics/Cards Grid (Contract-specific) */
+.cards-section {
   margin-bottom: var(--spacing-8);
 }
 
-.stats-grid {
+.cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--spacing-4);
@@ -295,8 +273,10 @@ const goToContract = (contract: Contract) => {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
   border-left: 4px solid transparent;
+  transition: all 0.3s ease;
 }
 
+/* Status-based styling for stat cards */
 .stat-card.danger {
   border-left-color: var(--danger-color);
   background: #fef2f2;
@@ -307,15 +287,18 @@ const goToContract = (contract: Contract) => {
   background: #fffbeb;
 }
 
-.stat-card.none {
+.stat-card.none,
+.stat-card.success {
   border-left-color: var(--success-color);
   background: #f0fdf4;
 }
 
-.stat-card.total {
+.stat-card.total,
+.stat-card.primary {
   border-left-color: var(--primary-color);
 }
 
+/* Icon styling */
 .stat-icon {
   font-size: 2rem;
   width: 3rem;
@@ -337,14 +320,21 @@ const goToContract = (contract: Contract) => {
   background: rgba(255, 193, 7, 0.1);
 }
 
-.stat-card.none .stat-icon {
+.stat-card.none .stat-icon,
+.stat-card.success .stat-icon {
   color: var(--success-color);
   background: rgba(40, 167, 69, 0.1);
 }
 
-.stat-card.total .stat-icon {
+.stat-card.total .stat-icon,
+.stat-card.primary .stat-icon {
   color: var(--primary-color);
   background: rgba(0, 123, 255, 0.1);
+}
+
+/* Category content styling */
+.stat-content {
+  flex: 1;
 }
 
 .stat-number {
@@ -360,7 +350,7 @@ const goToContract = (contract: Contract) => {
   margin: 0;
 }
 
-/* Filter Section */
+/* Filter Section (Contract-specific) */
 .filter-section {
   margin-bottom: var(--spacing-6);
   padding: var(--spacing-4);
@@ -408,46 +398,13 @@ const goToContract = (contract: Contract) => {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-/* Contracts Section */
-.contracts-section {
-  margin-bottom: var(--spacing-4);
-}
-
-.no-contracts {
-  text-align: center;
-  padding: var(--spacing-12) var(--spacing-4);
-  color: var(--text-muted);
-}
-
-.no-contracts-icon {
-  font-size: 4rem;
-  margin-bottom: var(--spacing-4);
-  opacity: 0.5;
-}
-
-.no-contracts h3 {
-  font-size: 1.25rem;
-  margin: 0 0 var(--spacing-2) 0;
-}
-
-.no-contracts p {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.contracts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: var(--spacing-4);
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-  .contract-index-content {
-    padding: var(--spacing-4);
+  .contracts-grid {
+    grid-template-columns: 1fr;
   }
 
-  .stats-grid {
+  .cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
@@ -465,32 +422,8 @@ const goToContract = (contract: Contract) => {
     min-width: unset;
     width: 100%;
   }
-
-  .contracts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Loader */
-#loader {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 1;
-  width: 60px;
-  height: 60px;
-  margin: -30px 0 0 -30px;
-  border: 8px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  border-top-color: var(--primary-color);
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 </style>
 
+<style scoped src="../../../css/index-shared.css"></style>
 <style scoped src="../../../css/app.css"></style>

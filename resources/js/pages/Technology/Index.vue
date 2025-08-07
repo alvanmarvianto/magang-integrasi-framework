@@ -10,8 +10,14 @@
                 <FontAwesomeIcon icon="fa-solid fa-bars" />
             </div>
             <div id="technology-container">
-                <div class="tech-header">
-                    <h1>Daftar Teknologi</h1>
+                <!-- Header -->
+                <div class="index-header">
+                    <div class="header-content">
+                        <h1>
+                            <FontAwesomeIcon icon="fa-solid fa-microchip" />
+                            Daftar Teknologi
+                        </h1>
+                    </div>
                 </div>
 
                 <div class="tech-categories-grid">
@@ -215,128 +221,134 @@ function formatTechName(name: string): string {
 <style scoped>
 @import '../../../css/app.css';
 @import '../../../css/technology.css';
+@import '../../../css/index-shared.css';
 
+/* Categories Grid Layout */
 .tech-categories-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-    padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
 }
 
+/* Technology-specific category card styling */
 .tech-category-card {
-    background: var(--card-bg, white);
-    border: 1px solid var(--border-color, #e5e7eb);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+  background: var(--card-bg, white);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
 .tech-category-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
+/* Category Header */
 .tech-category-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .category-icon {
-    font-size: 1.5rem;
-    color: var(--primary-color, #007AFF);
+  font-size: 1.5rem;
+  color: var(--primary-color, #007AFF);
 }
 
 .tech-category-header h3 {
-    flex: 1;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary, #1f2937);
+  flex: 1;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
 }
 
 .category-count {
-    font-size: 0.875rem;
-    color: var(--text-secondary, #6b7280);
-    background: var(--bg-alt, #f9fafb);
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-alt, #f9fafb);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 500;
 }
 
+/* Technology Items Grid */
 .tech-items-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
 }
 
+/* Technology Items Styling */
 .tech-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    text-decoration: none;
-    color: var(--text-primary, #1f2937);
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-align: center;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-primary, #1f2937);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  min-height: 44px;
 }
 
 .tech-item:hover {
-    background: rgba(255, 255, 255, 0.5);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    color: var(--primary-color, #007AFF);
-    border-color: var(--primary-color, #007AFF);
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: var(--primary-color, #007AFF);
+  border-color: var(--primary-color, #007AFF);
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .tech-categories-grid {
-        grid-template-columns: 1fr;
-        padding: 0.5rem;
-    }
-
-    .tech-category-card {
-        padding: 1rem;
-    }
-
-    .tech-items-grid {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 0.5rem;
-    }
-
-    .tech-item {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8rem;
-    }
-}
-
-/* Empty state */
+/* Empty State for Technology Cards */
 .tech-category-card:has(.tech-items-grid:empty) {
-    opacity: 0.6;
+  opacity: 0.6;
 }
 
 .tech-category-card:has(.tech-items-grid:empty) .tech-category-header {
-    border-bottom-color: transparent;
+  border-bottom-color: transparent;
 }
 
 .tech-category-card:has(.tech-items-grid:empty)::after {
-    content: 'Belum ada data tersedia';
-    display: block;
-    text-align: center;
-    color: var(--text-secondary, #6b7280);
-    font-style: italic;
-    padding: 2rem;
+  content: 'Belum ada data tersedia';
+  display: block;
+  text-align: center;
+  color: var(--text-secondary, #6b7280);
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Responsive design for Technology Index */
+@media (max-width: 768px) {
+  .tech-categories-grid {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+
+  .tech-category-card {
+    padding: 1rem;
+  }
+
+  .tech-items-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .tech-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
 }
 </style>
