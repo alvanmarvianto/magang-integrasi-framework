@@ -21,7 +21,6 @@ return new class extends Migration
             $table->decimal('contract_value_non_rp', 15, 2)->nullable(); // Nilai Kontrak (Non Rp)
             $table->decimal('lumpsum_value_rp', 15, 2)->nullable(); // Nilai Kontrak Lumpsum (Rp)
             $table->decimal('unit_value_rp', 15, 2)->nullable(); // Nilai Kontrak Satuan (Rp)
-            $table->text('description')->nullable();
         });
 
         // Create contract_periods table

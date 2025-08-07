@@ -29,6 +29,8 @@ return new class extends Migration
             $table->string('app_name');
             $table->integer('stream_id')->nullable()->index('stream_id');
             $table->text('description')->nullable();
+            $table->enum('app_type', ['cots', 'inhouse', 'outsource']);
+            $table->enum('stratification', ['strategis', 'kritikal', 'umum']);
         });
 
         // Create appintegrations table
@@ -40,6 +42,7 @@ return new class extends Migration
             $table->text('inbound_description')->nullable();
             $table->text('outbound_description')->nullable();
             $table->text('endpoint')->nullable();
+            $table->enum('direction', ['one_way', 'both_ways']);
 
             $table->unique(['source_app_id', 'target_app_id', 'connection_type_id'], 'source_app_id');
         });
