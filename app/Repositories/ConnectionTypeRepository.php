@@ -292,7 +292,10 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
 
         // Clear diagram-related caches for all streams since connection types affect colors
         try {
-            $streams = \App\Constants\StreamConstants::ALLOWED_DIAGRAM_STREAMS;
+            // Use legacy constant for now, will be replaced by service injection later
+            $streams = [
+                'sp', 'mi', 'ssk', 'moneter', 'market', 'middleware'
+            ];
             foreach ($streams as $streamName) {
                 Cache::forget("diagram_data.{$streamName}");
                 Cache::forget("vue_flow_data.{$streamName}");

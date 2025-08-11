@@ -15,6 +15,10 @@ return new class extends Migration
         Schema::create('streams', function (Blueprint $table) {
             $table->integer('stream_id', true);
             $table->string('stream_name')->unique('stream_name');
+            $table->text('description')->nullable();
+            $table->string('color', 7)->default('#000000'); // Hex color code for allowed streams
+            $table->boolean('is_allowed_for_diagram')->default(false);
+            $table->integer('sort_order')->nullable(); // Only for allowed streams
         });
 
         // Create connectiontypes table (referenced by appintegrations)

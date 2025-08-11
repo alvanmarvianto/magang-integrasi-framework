@@ -10,6 +10,7 @@ use App\Repositories\ConnectionTypeRepository;
 use App\Repositories\StreamLayoutRepository;
 use App\Repositories\ContractRepository;
 use App\Repositories\ContractPeriodRepository;
+use App\Repositories\StreamConfigurationRepository;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use App\Repositories\Interfaces\IntegrationRepositoryInterface;
 use App\Repositories\Interfaces\StreamRepositoryInterface;
@@ -18,7 +19,9 @@ use App\Repositories\Interfaces\ConnectionTypeRepositoryInterface;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\ContractRepositoryInterface;
 use App\Repositories\Interfaces\ContractPeriodRepositoryInterface;
+use App\Repositories\Interfaces\StreamConfigurationRepositoryInterface;
 use App\Services\StreamLayoutService;
+use App\Services\StreamConfigurationService;
 use Illuminate\Support\ServiceProvider;
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -35,6 +38,7 @@ class RepositoryServiceProvider extends ServiceProvider
         StreamLayoutRepositoryInterface::class => StreamLayoutRepository::class,
         ContractRepositoryInterface::class => ContractRepository::class,
         ContractPeriodRepositoryInterface::class => ContractPeriodRepository::class,
+        StreamConfigurationRepositoryInterface::class => StreamConfigurationRepository::class,
     ];
 
     /**
@@ -49,6 +53,7 @@ class RepositoryServiceProvider extends ServiceProvider
 
         // Register singleton services
         $this->app->singleton(StreamLayoutService::class);
+        $this->app->singleton(StreamConfigurationService::class);
     }
 
     /**

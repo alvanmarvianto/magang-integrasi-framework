@@ -20,21 +20,69 @@ class ApplicationDataSeeder extends Seeder
     {        
         $this->command->info('Seeding application data...');
 
-        // 1. Create Streams (8 streams)
+        // 1. Create Streams with allowed diagram configuration
         $this->command->info('Creating streams...');
-        $streams = [
-            'sp',
-            'mi',
-            'ssk',
-            'moneter',
-            'market',
-            'internal bi',
-            'external bi',
-            'middleware'
+        $streamsData = [
+            [
+                'stream_name' => 'sp',
+                'description' => 'Sistem Pembayaran',
+                'is_allowed_for_diagram' => true,
+                'sort_order' => 1,
+                'color' => '#FF6B35'
+            ],
+            [
+                'stream_name' => 'mi',
+                'description' => 'Market Infrastructure',
+                'is_allowed_for_diagram' => true,
+                'sort_order' => 2,
+                'color' => '#F7931E'
+            ],
+            [
+                'stream_name' => 'ssk',
+                'description' => 'Sistem Surveilans Keuangan',
+                'is_allowed_for_diagram' => true,
+                'sort_order' => 3,
+                'color' => '#FFD23F'
+            ],
+            [
+                'stream_name' => 'moneter',
+                'description' => 'Kebijakan Moneter',
+                'is_allowed_for_diagram' => true,
+                'sort_order' => 4,
+                'color' => '#06FFA5'
+            ],
+            [
+                'stream_name' => 'market',
+                'description' => 'Market Operations',
+                'is_allowed_for_diagram' => true,
+                'sort_order' => 5,
+                'color' => '#118AB2'
+            ],
+            [
+                'stream_name' => 'internal bi',
+                'description' => 'Internal BI Systems',
+                'is_allowed_for_diagram' => false,
+                'sort_order' => null,
+                'color' => null
+            ],
+            [
+                'stream_name' => 'external bi',
+                'description' => 'External BI Systems',
+                'is_allowed_for_diagram' => false,
+                'sort_order' => null,
+                'color' => null
+            ],
+            [
+                'stream_name' => 'middleware',
+                'description' => 'Middleware Services',
+                'is_allowed_for_diagram' => true,
+                'sort_order' => 6,
+                'color' => '#8E44AD'
+            ]
         ];
         
-        foreach ($streams as $streamName) {
-            Stream::create(['stream_name' => $streamName]);
+        foreach ($streamsData as $streamData) {
+            Stream::create($streamData);
         }
 
         // 2. Create Connection Types (exactly 4 types)

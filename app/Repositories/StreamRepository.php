@@ -184,9 +184,15 @@ class StreamRepository extends BaseRepository implements StreamRepositoryInterfa
         try {
             $stream = Stream::create([
                 'stream_name' => $data['stream_name'],
+                'description' => $data['description'] ?? null,
+                'is_allowed_for_diagram' => $data['is_allowed_for_diagram'] ?? false,
+                'sort_order' => $data['sort_order'] ?? null,
+                'color' => $data['color'] ?? null,
             ]);
 
             $this->clearEntityCache($this->getEntityName());
+            
+            // Note: Cache clearing will be handled by service layer
 
             return $stream;
         } catch (\Exception $e) {
@@ -215,6 +221,10 @@ class StreamRepository extends BaseRepository implements StreamRepositoryInterfa
         try {
             $updated = $stream->update([
                 'stream_name' => $data['stream_name'],
+                'description' => $data['description'] ?? $stream->description,
+                'is_allowed_for_diagram' => $data['is_allowed_for_diagram'] ?? $stream->is_allowed_for_diagram,
+                'sort_order' => $data['sort_order'] ?? $stream->sort_order,
+                'color' => $data['color'] ?? $stream->color,
             ]);
 
             if ($updated) {
@@ -222,6 +232,8 @@ class StreamRepository extends BaseRepository implements StreamRepositoryInterfa
                 // Clear old name caches
                 Cache::forget($this->buildCacheKey('stream', 'name', $oldName));
                 Cache::forget($this->buildCacheKey('stream', 'name_with_apps', $oldName));
+                
+                // Note: Stream configuration cache clearing will be handled by service layer
             }
 
             return $updated;
@@ -255,6 +267,8 @@ class StreamRepository extends BaseRepository implements StreamRepositoryInterfa
                 $this->clearEntityCache($this->getEntityName(), $streamId);
                 Cache::forget($this->buildCacheKey('stream', 'name', $streamName));
                 Cache::forget($this->buildCacheKey('stream', 'name_with_apps', $streamName));
+                
+                // Note: Stream configuration cache clearing will be handled by service layer
             }
 
             return $deleted;

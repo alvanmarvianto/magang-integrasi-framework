@@ -38,6 +38,20 @@ class Stream extends Model
      */
     protected $fillable = [
         'stream_name',
+        'description',
+        'is_allowed_for_diagram',
+        'sort_order',
+        'color',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'is_allowed_for_diagram' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     /**
@@ -46,5 +60,42 @@ class Stream extends Model
     public function apps(): HasMany
     {
         return $this->hasMany(App::class, 'stream_id', 'stream_id');
+    }
+
+    /**
+     * Scope to get only streams allowed for diagrams
+     */
+    public function scopeAllowedForDiagram($query)
+    {
+        return $query->where('is_allowed_for_diagram', true);
+    }
+
+    /**
+     * Scope to get streams ordered by priority
+     */
+    public function scopeOrderedByPriority($query)
+    {
+        return $query->orderBy('sort_order');
+    }
+
+    /**
+     * Get all allowed streams for diagrams
+     */
+    public static function getAllowedDiagramStreams(): array
+    {
+        return static::allowedForDiagram()
+            ->orderedByPriority()
+            ->pluck('stream_name')
+            ->toArray();
+    }
+
+    /**
+     * Check if stream is allowed for diagrams
+     */
+    public static function isStreamAllowed(string $streamName): bool
+    {
+        return static::where('stream_name', $streamName)
+            ->allowedForDiagram()
+            ->exists();
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Constants\StreamConstants;
 use App\Models\Stream;
 use App\DTOs\StreamDTO;
 use App\DTOs\HierarchyNodeDTO;
+use App\Services\StreamConfigurationService;
 use App\Http\Resources\StreamResource;
 use App\Repositories\Interfaces\StreamRepositoryInterface;
 use Illuminate\Support\Collection;
@@ -13,10 +13,14 @@ use Illuminate\Support\Collection;
 class StreamService
 {
     protected StreamRepositoryInterface $streamRepository;
+    protected StreamConfigurationService $streamConfigService;
 
-    public function __construct(StreamRepositoryInterface $streamRepository)
-    {
+    public function __construct(
+        StreamRepositoryInterface $streamRepository,
+        StreamConfigurationService $streamConfigService
+    ) {
         $this->streamRepository = $streamRepository;
+        $this->streamConfigService = $streamConfigService;
     }
 
     /**
@@ -72,6 +76,10 @@ class StreamService
         $this->validateStreamData($data);
         
         $stream = $this->streamRepository->create($data);
+        
+        // Clear stream configuration cache after creation
+        $this->streamConfigService->clearCache();
+        
         return StreamDTO::fromModel($stream);
     }
 
@@ -83,6 +91,9 @@ class StreamService
         $this->validateStreamData($data);
         
         $this->streamRepository->update($stream, $data);
+        
+        // Clear stream configuration cache after update
+        $this->streamConfigService->clearCache();
         
         // Reload the stream to get updated data
         $updatedStream = $this->streamRepository->findById($stream->stream_id);
@@ -99,7 +110,14 @@ class StreamService
             throw new \InvalidArgumentException('Cannot delete stream that contains applications');
         }
         
-        return $this->streamRepository->delete($stream);
+        $result = $this->streamRepository->delete($stream);
+        
+        // Clear stream configuration cache after deletion
+        if ($result) {
+            $this->streamConfigService->clearCache();
+        }
+        
+        return $result;
     }
 
     /**
@@ -132,7 +150,15 @@ class StreamService
      */
     public function getAllowedDiagramStreams(): array
     {
-        return StreamConstants::ALLOWED_DIAGRAM_STREAMS;
+        return $this->streamConfigService->getAllowedDiagramStreams();
+    }
+
+    /**
+     * Get allowed streams with details for UI components
+     */
+    public function getAllowedDiagramStreamsWithDetails(): array
+    {
+        return $this->streamConfigService->getAllowedDiagramStreamsWithDetails()->toArray();
     }
 
     /**
@@ -140,7 +166,7 @@ class StreamService
      */
     public function isStreamAllowedForDiagram(string $streamName): bool
     {
-        return in_array(strtolower($streamName), array_map('strtolower', $this->getAllowedDiagramStreams()));
+        return $this->streamConfigService->isStreamAllowed($streamName);
     }
 
     /**

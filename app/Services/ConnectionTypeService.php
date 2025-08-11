@@ -7,7 +7,7 @@ use App\Models\ConnectionType;
 use App\Repositories\ConnectionTypeRepository;
 use App\Services\StreamLayoutService;
 use App\Services\DiagramCleanupService;
-use App\Constants\StreamConstants;
+use App\Services\StreamConfigurationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -16,7 +16,8 @@ class ConnectionTypeService
     public function __construct(
         private ConnectionTypeRepository $connectionTypeRepository,
         private StreamLayoutService $streamLayoutService,
-        private DiagramCleanupService $cleanupService
+        private DiagramCleanupService $cleanupService,
+        private StreamConfigurationService $streamConfigService
     ) {}
 
     /**
@@ -125,8 +126,8 @@ class ConnectionTypeService
     private function refreshDiagramLayouts(): void
     {
         try {
-            // Get all available streams from constants
-            $streams = StreamConstants::ALLOWED_DIAGRAM_STREAMS;
+            // Get all available streams from stream configuration service
+            $streams = $this->streamConfigService->getAllowedDiagramStreams();
             
             // First, clean up any invalid data globally
             $this->cleanupService->removeDuplicateIntegrations();

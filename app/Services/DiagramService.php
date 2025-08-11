@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Constants\StreamConstants;
+use App\Services\StreamConfigurationService;
 use App\DTOs\DiagramDataDTO;
 use App\DTOs\DiagramEdgeDTO;
 use App\DTOs\DiagramNodeDTO;
@@ -15,7 +15,8 @@ use Illuminate\Support\Collection;
 class DiagramService
 {
     public function __construct(
-        private readonly StreamLayoutRepositoryInterface $streamLayoutRepository
+        private readonly StreamLayoutRepositoryInterface $streamLayoutRepository,
+        private readonly StreamConfigurationService $streamConfigService
     ) {}
 
     /**
@@ -23,7 +24,7 @@ class DiagramService
      */
     public function validateStreamName(string $streamName): bool
     {
-        return in_array(strtolower($streamName), array_map('strtolower', StreamConstants::ALLOWED_DIAGRAM_STREAMS));
+        return $this->streamConfigService->isStreamAllowed($streamName);
     }
 
     /**
@@ -31,7 +32,7 @@ class DiagramService
      */
     public function getAllowedStreams(): array
     {
-        return StreamConstants::ALLOWED_DIAGRAM_STREAMS;
+        return $this->streamConfigService->getAllowedDiagramStreams();
     }
 
     /**
