@@ -326,7 +326,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                 Cache::forget("apps.search.{$i}");
             }
             
-            Log::info("Cleared comprehensive app caches for app ID: {$appId}");
             
         } catch (\Exception $e) {
             Log::warning("Failed to clear comprehensive app caches for app {$appId}: " . $e->getMessage());

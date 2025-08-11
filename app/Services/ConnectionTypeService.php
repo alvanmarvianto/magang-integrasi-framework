@@ -128,14 +128,10 @@ class ConnectionTypeService
             // Get all available streams from constants
             $streams = StreamConstants::ALLOWED_DIAGRAM_STREAMS;
             
-            Log::info('Starting diagram layout refresh for streams: ' . implode(', ', $streams));
-            
             // First, clean up any invalid data globally
-            $duplicatesRemoved = $this->cleanupService->removeDuplicateIntegrations();
-            $invalidRemoved = $this->cleanupService->removeInvalidIntegrations();
-            
-            Log::info("Cleanup completed: {$duplicatesRemoved} duplicates removed, {$invalidRemoved} invalid integrations removed");
-            
+            $this->cleanupService->removeDuplicateIntegrations();
+            $this->cleanupService->removeInvalidIntegrations();
+ 
             $totalColorsSynced = 0;
             $totalEdgesSynced = 0;
             
@@ -150,13 +146,8 @@ class ConnectionTypeService
                 $colorsSynced = $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
                 
                 $totalEdgesSynced += $edgesSynced;
-                $totalColorsSynced += $colorsSynced;
-                
-                Log::info("Stream {$streamName}: {$edgesSynced} edges synced, {$colorsSynced} colors synced");
+                $totalColorsSynced += $colorsSynced;        
             }
-            
-            Log::info("Total refresh completed: {$totalEdgesSynced} edges synced, {$totalColorsSynced} colors synced across all streams");
-            
         } catch (\Exception $e) {
             // Log error but don't fail the main operation
             Log::error('Failed to refresh diagram layouts after connection type update: ' . $e->getMessage());

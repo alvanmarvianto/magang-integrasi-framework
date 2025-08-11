@@ -233,7 +233,7 @@ class StreamService
         }
 
         return HierarchyNodeDTO::createFolder(
-            'Bank Indonesia - DLDS',
+            'Aplikasi BI - DLDS',
             $streamChildren
         );
     }

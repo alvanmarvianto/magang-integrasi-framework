@@ -54,7 +54,6 @@ class DiagramCleanupService
             // Delete all duplicates at once
             if (!empty($toDelete)) {
                 AppIntegration::whereIn('integration_id', $toDelete)->delete();
-                Log::info("Removed {$deletedCount} duplicate integrations from database");
             }
 
             return $deletedCount;
@@ -88,8 +87,6 @@ class DiagramCleanupService
                     $query->whereNotIn('source_app_id', $validAppIds)
                           ->orWhereNotIn('target_app_id', $validAppIds);
                 })->delete();
-
-                Log::info("Removed {$deletedCount} invalid integrations referencing non-existent apps");
             }
 
             return $deletedCount;
@@ -132,8 +129,7 @@ class DiagramCleanupService
             );
 
             if (count($cleanedLayout) !== count($layoutDto->nodesLayout)) {
-                $removedCount = count($layoutDto->nodesLayout) - count($cleanedLayout);
-                Log::info("Cleaning layout for stream {$streamName}: {$removedCount} layout nodes removed from stream_layouts");
+                count($layoutDto->nodesLayout) - count($cleanedLayout);
                 
                 $updatedDto = StreamLayoutDTO::forSave(
                     $layoutDto->streamName,

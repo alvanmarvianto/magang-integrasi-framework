@@ -197,8 +197,6 @@ class StreamLayoutService
         );
         $this->streamLayoutRepository->update($layoutDto->id, $updatedDto);
 
-        Log::info("Synchronized {$streamName} stream layout: " . count($newEdgesLayout) . " edges updated");
-
         return count($newEdgesLayout);
     }
 

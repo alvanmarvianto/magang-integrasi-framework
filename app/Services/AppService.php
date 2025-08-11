@@ -75,11 +75,6 @@ class AppService
         // For edit operations, use fresh data to bypass cache
         $appDTO = $appId ? $this->appRepository->findAsDTOFresh($appId) : null;
         
-        // Debug logging to verify fresh data is being used
-        if ($appDTO) {
-            Log::info("Admin form data loaded for app {$appId}: " . $appDTO->appName);
-        }
-        
         $technologyOptions = $this->getTechnologyOptions();
 
         return [
