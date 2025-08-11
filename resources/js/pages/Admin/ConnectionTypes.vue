@@ -1,72 +1,100 @@
 <template>
   <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">Connection Types</h1>
-      <button @click="openCreateModal" class="admin-action-button">
-        Add Connection Type
-      </button>
-    </div>
+    <AdminNavbar 
+      title="Manajemen Tipe Koneksi"
+      :showBackButton="true"
+    />
 
-    <div class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Type Name</th>
-            <th>Usage Count</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="type in connectionTypes" :key="type.connection_type_id">
-            <td>{{ type.type_name }}</td>
-            <td>{{ type.app_integrations_count || 0 }}</td>
-            <td>
-              <div class="flex justify-center gap-2">
-                <button
-                  class="action-button edit-button"
-                  @click="openEditModal(type)"
-                  title="Edit"
-                >
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button
-                  class="action-button delete-button"
-                  @click="confirmDelete(type)"
-                  title="Delete"
-                  :disabled="type.app_integrations_count > 0"
-                >
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="connection-type-card">
+      <div class="connection-type-header">
+        <h2 class="connection-type-title">Tipe Koneksi</h2>
+        <button @click="addConnectionType" class="add-button">
+          <font-awesome-icon icon="fa-solid fa-plus" />
+          Tambah
+        </button>
+      </div>
 
-    <!-- Modal for Create/Edit -->
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal-container">
-        <div class="modal-header">
-          <h2>{{ isEditing ? 'Edit Connection Type' : 'Create Connection Type' }}</h2>
-          <button @click="closeModal" class="modal-close">&amp;times;</button>
-        </div>
-        
-        <form @submit.prevent="submit" class="modal-form">
-          <div class="admin-form-field">
-            <label class="admin-form-label">Type Name</label>
-            <input
-              v-model="form.type_name"
-              type="text"
-              class="admin-form-input"
-              required
-            >
+      <AdminTable
+        :columns="tableColumns"
+        :items="tableItems"
+      >
+        <template #column:name="{ item }">
+          <div class="connection-type-display">
+            <div 
+              class="color-indicator" 
+              :style="{ backgroundColor: item.color }"
+            ></div>
+            {{ item.name }}
           </div>
-          
-          <div class="modal-footer">
-            <button type="button" @click="closeModal" class="modal-button cancel">Cancel</button>
-            <button type="submit" class="modal-button submit">
-              {{ isEditing ? 'Update' : 'Create' }}
+        </template>
+        
+        <template #column:actions="{ item }">
+          <div class="flex justify-center gap-2">
+            <button 
+              @click="editConnectionType(item)"
+              class="action-button edit-button"
+              title="Edit"
+            >
+              <font-awesome-icon icon="fa-solid fa-pencil" />
+            </button>
+            <button 
+              @click="deleteConnectionType(item)"
+              class="action-button delete-button"
+              title="Hapus"
+            >
+              <font-awesome-icon icon="fa-solid fa-trash" />
+            </button>
+          </div>
+        </template>
+      </AdminTable>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div v-if="showModal" class="modal-backdrop" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <h3 class="modal-title">
+          {{ isEditing ? 'Edit' : 'Tambah' }} Tipe Koneksi
+        </h3>
+        
+        <form @submit.prevent="saveConnectionType" class="modal-form">
+          <div class="form-group">
+            <label for="name" class="form-label">Nama</label>
+            <input
+              type="text"
+              id="name"
+              v-model="formData.name"
+              class="form-input"
+              required
+              placeholder="Masukkan nama tipe koneksi"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="color" class="form-label">Warna</label>
+            <div class="color-input-container">
+              <input
+                type="color"
+                id="color"
+                v-model="formData.color"
+                class="color-input"
+                required
+              />
+              <input
+                type="text"
+                v-model="formData.color"
+                class="form-input color-text-input"
+                placeholder="#000000"
+                pattern="^#[0-9A-Fa-f]{6}$"
+              />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeModal" class="button-secondary">
+              Batal
+            </button>
+            <button type="submit" class="button-primary">
+              {{ isEditing ? 'Simpan' : 'Tambah' }}
             </button>
           </div>
         </form>
@@ -75,142 +103,379 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { useForm } from '@inertiajs/vue3';
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
+import { useNotification } from '@/composables/useNotification';
+import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
+import AdminTable from '@/components/Admin/AdminTable.vue';
 
-const props = defineProps({
-  connectionTypes: {
-    type: Array,
-    required: true
-  }
-});
+interface ConnectionType {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface FormData {
+  name: string;
+  color: string;
+}
+
+interface Props {
+  connectionTypes: ConnectionType[];
+}
+
+interface PageProps {
+  flash: {
+    success?: string;
+    error?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+const props = defineProps<Props>();
+
+const tableColumns = [
+  { key: 'name', label: 'Nama', sortable: true },
+  { key: 'actions', label: 'Aksi', centered: true }
+];
+
+const tableItems = computed(() => 
+  props.connectionTypes.map(connectionType => ({
+    id: connectionType.id,
+    name: connectionType.name,
+    color: connectionType.color
+  }))
+);
 
 const showModal = ref(false);
-const editingType = ref(null);
-const isEditing = computed(() => !!editingType.value);
+const isEditing = ref(false);
+const selectedConnectionType = ref<ConnectionType | null>(null);
+const formData = ref<FormData>({ name: '', color: '#000000' });
 
-const form = useForm({
-  type_name: ''
-});
+const page = usePage<PageProps>();
+const { showSuccess, showError, showConfirm } = useNotification();
 
-function openCreateModal() {
-  form.reset();
-  editingType.value = null;
+async function checkConnectionTypeUsage(id: number): Promise<any> {
+  const response = await fetch(`/admin/connection-types/${id}/check`);
+  return await response.json();
+}
+
+function addConnectionType() {
+  isEditing.value = false;
+  selectedConnectionType.value = null;
+  formData.value = { name: '', color: '#000000' };
   showModal.value = true;
 }
 
-function openEditModal(type) {
-  editingType.value = type;
-  form.type_name = type.type_name;
+async function editConnectionType(connectionType: ConnectionType) {
+  isEditing.value = true;
+  selectedConnectionType.value = connectionType;
+  formData.value = { 
+    name: connectionType.name, 
+    color: connectionType.color 
+  };
   showModal.value = true;
+}
+
+async function deleteConnectionType(connectionType: ConnectionType) {
+  try {
+    const usage = await checkConnectionTypeUsage(connectionType.id);
+    
+    if (usage.is_used && usage.count > 0) {
+      showError(`Tidak dapat menghapus tipe koneksi "${connectionType.name}" karena sedang digunakan oleh ${usage.count} integrasi.`);
+      return;
+    }
+
+    const confirmed = await showConfirm(
+      `Apakah anda yakin ingin menghapus tipe koneksi "${connectionType.name}"?`
+    );
+    
+    if (confirmed) {
+      router.delete(`/admin/connection-types/${connectionType.id}`, {
+        preserveScroll: true,
+      });
+    }
+  } catch (error) {
+    showError('Terjadi kesalahan saat menghapus tipe koneksi');
+    console.error('Delete error:', error);
+  }
+}
+
+function saveConnectionType() {
+  if (isEditing.value && selectedConnectionType.value) {
+    router.put(`/admin/connection-types/${selectedConnectionType.value.id}`, formData.value, {
+      preserveScroll: true,
+      onSuccess: () => {
+        closeModal();
+      },
+    });
+  } else {
+    router.post('/admin/connection-types', formData.value, {
+      preserveScroll: true,
+      onSuccess: () => {
+        closeModal();
+      },
+    });
+  }
 }
 
 function closeModal() {
   showModal.value = false;
-  form.reset();
-  editingType.value = null;
+  selectedConnectionType.value = null;
+  formData.value = { name: '', color: '#000000' };
 }
 
-function submit() {
-  if (isEditing.value) {
-    router.put(route('admin.connection-types.update', editingType.value.connection_type_id), form);
-  } else {
-    router.post(route('admin.connection-types.store'), form);
+// Handle flash messages
+onMounted(() => {
+  const flash = page.props.flash;
+  if (flash?.success) {
+    showSuccess(flash.success);
   }
-  closeModal();
-}
+  if (flash?.error) {
+    showError(flash.error);
+  }
+});
 
-function confirmDelete(type) {
-  if (type.app_integrations_count > 0) {
-    alert('Cannot delete connection type that is in use');
-    return;
+// Watch for flash message changes
+watch(() => page.props.flash, (newFlash) => {
+  if (newFlash?.success) {
+    showSuccess(newFlash.success);
   }
-  
-  if (confirm(`Are you sure you want to delete the connection type "${type.type_name}"?`)) {
-    router.delete(route('admin.connection-types.destroy', type.connection_type_id));
+  if (newFlash?.error) {
+    showError(newFlash.error);
   }
-}
+}, { deep: true });
 </script>
 
 <style scoped>
-.modal-overlay {
+@import '@/../css/admin.css';
+
+.connection-type-card {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.connection-type-header {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-alt);
+}
+
+.connection-type-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  transition: opacity var(--transition-fast);
+}
+
+.add-button:hover {
+  opacity: 0.9;
+}
+
+.connection-type-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.color-indicator {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+/* Modal Styles */
+.modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
-.modal-container {
+.modal-content {
   background-color: white;
   border-radius: var(--radius-lg);
-  width: 90%;
+  padding: 2rem;
+  width: 100%;
   max-width: 500px;
   box-shadow: var(--shadow-lg);
 }
 
-.modal-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
+.modal-title {
   font-size: 1.25rem;
-  font-weight: 500;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 1.5rem;
 }
 
 .modal-form {
-  padding: 1.5rem;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border-color);
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.modal-button {
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
-  font-weight: 500;
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
   font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.modal-button.cancel {
-  background-color: var(--bg-alt);
-  border: 1px solid var(--border-color);
+  font-weight: 500;
   color: var(--text-color);
 }
 
-.modal-button.submit {
+.form-input {
+  padding: 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-light);
+}
+
+.color-input-container {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.color-input {
+  width: 3rem;
+  height: 2.5rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.color-text-input {
+  flex: 1;
+  font-family: monospace;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.button-primary {
+  padding: 0.5rem 1rem;
   background-color: var(--primary-color);
-  border: none;
+  color: white;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  transition: opacity var(--transition-fast);
+  text-decoration: none;
+}
+
+.button-primary:hover {
+  opacity: 0.9;
+}
+
+.button-secondary {
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-alt);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+}
+
+.button-secondary:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Action buttons */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+}
+
+.edit-button {
+  background-color: var(--warning-color);
   color: white;
 }
 
-.action-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.edit-button:hover {
+  opacity: 0.9;
+}
+
+.delete-button {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.delete-button:hover {
+  opacity: 0.9;
+}
+
+.flex {
+  display: flex;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .color-input-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .color-input {
+    width: 100%;
+  }
 }
 </style>

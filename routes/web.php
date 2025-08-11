@@ -62,6 +62,7 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::post('/', [ConnectionTypeController::class, 'store'])->name('store');
         Route::put('/{id}', [ConnectionTypeController::class, 'update'])->name('update');
         Route::delete('/{id}', [ConnectionTypeController::class, 'destroy'])->name('destroy');
+        Route::get('/{id}/check', [ConnectionTypeController::class, 'checkUsage'])->name('check');
     });
 
     // App management

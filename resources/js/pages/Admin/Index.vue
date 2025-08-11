@@ -36,6 +36,12 @@
         <h2 class="admin-menu-title">Manajemen Diagram</h2>
         <p class="admin-menu-description">Kelola tata letak dan tampilan diagram integrasi</p>
       </a>
+
+      <a :href="getRoute('admin.connection-types.index')" class="admin-menu-card">
+        <font-awesome-icon icon="fa-solid fa-plug" class="admin-menu-icon" />
+        <h2 class="admin-menu-title">Manajemen Tipe Koneksi</h2>
+        <p class="admin-menu-description">Kelola tipe koneksi dan warna</p>
+      </a>
     </div>
   </div>
 </template>

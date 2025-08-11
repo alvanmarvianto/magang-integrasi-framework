@@ -40,7 +40,11 @@
       <div class="detail-section">
         <h3>Tipe Koneksi</h3>
         <div class="badges-content">
-          <div class="detail-badge" :class="getConnectionBadgeClass(edgeData.connection_type)">
+          <div 
+            class="detail-badge" 
+            :class="getConnectionBadgeClass(edgeData.connection_type)"
+            :style="getConnectionBadgeStyle(edgeData)"
+          >
             {{ (edgeData.connection_type || 'direct').toUpperCase() }}
           </div>
         </div>
@@ -147,6 +151,7 @@ interface EdgeData {
   source_app_name?: string;
   target_app_name?: string;
   connection_type: string;
+  color?: string;
   direction: string;
   inbound?: string;
   outbound?: string;
@@ -189,13 +194,31 @@ const sidebarTitle = computed(() => {
 });
 
 function getConnectionBadgeClass(type: string): string {
-  const typeMap: { [key: string]: string } = {
-    'direct': 'badge-direct',
-    'soa': 'badge-soa',
-    'sftp': 'badge-sftp',
-    'soa-sftp': 'badge-soa-sftp'
+  // Return a generic class since we'll use dynamic styles
+  return 'badge-dynamic';
+}
+
+function getConnectionBadgeStyle(edgeData: EdgeData): any {
+  if (edgeData.color) {
+    // Convert hex color to rgba for background with opacity
+    const hexColor = edgeData.color;
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    
+    return {
+      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.2)`,
+      borderColor: `rgba(${r}, ${g}, ${b}, 0.3)`,
+      color: '#000000'
+    };
+  }
+  
+  // Fallback style
+  return {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    color: '#000000'
   };
-  return typeMap[type?.toLowerCase()] || 'badge-default';
 }
 
 function editIntegration() {
@@ -384,6 +407,15 @@ function editApp() {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-color);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.badge-dynamic {
   background: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--text-color);

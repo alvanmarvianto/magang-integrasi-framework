@@ -49,6 +49,11 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         );
     }
 
+    public function getAllWithUsageCount(): Collection
+    {
+        return $this->getAllWithUsageCounts();
+    }
+
     public function findById(int $id): ?ConnectionType
     {
         if ($id <= 0) {
@@ -98,6 +103,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         try {
             $connectionType = ConnectionType::create([
                 'type_name' => $connectionTypeData->typeName,
+                'color' => $connectionTypeData->color,
                 'description' => $connectionTypeData->description,
             ]);
 
@@ -116,6 +122,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         try {
             $updated = $connectionType->update([
                 'type_name' => $connectionTypeData->typeName,
+                'color' => $connectionTypeData->color,
                 'description' => $connectionTypeData->description,
             ]);
 
@@ -217,6 +224,60 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         );
     }
 
+    public function isBeingUsed(int $id): bool
+    {
+        $cacheKey = CacheConfig::buildKey('connection_type', 'is_used', $id);
+        $cacheTTL = CacheConfig::getTTL('default');
+
+        return Cache::remember(
+            $cacheKey,
+            $cacheTTL,
+            function() use ($id) {
+                try {
+                    $connectionType = ConnectionType::find($id);
+                    return $connectionType ? $connectionType->appIntegrations()->exists() : false;
+                } catch (\Exception $e) {
+                    throw RepositoryException::createFailed('check connection type usage', $e->getMessage());
+                }
+            }
+        );
+    }
+
+    public function getUsageDetails(int $id): array
+    {
+        $cacheKey = CacheConfig::buildKey('connection_type', 'usage_details', $id);
+        $cacheTTL = CacheConfig::getTTL('default');
+
+        return Cache::remember(
+            $cacheKey,
+            $cacheTTL,
+            function() use ($id) {
+                try {
+                    $connectionType = ConnectionType::with(['appIntegrations.sourceApp', 'appIntegrations.targetApp'])
+                        ->find($id);
+                    
+                    if (!$connectionType) {
+                        return [
+                            'is_used' => false,
+                            'usage_count' => 0,
+                            'integrations' => collect()
+                        ];
+                    }
+
+                    $integrations = $connectionType->appIntegrations;
+                    
+                    return [
+                        'is_used' => $integrations->count() > 0,
+                        'usage_count' => $integrations->count(),
+                        'integrations' => $integrations
+                    ];
+                } catch (\Exception $e) {
+                    throw RepositoryException::createFailed('get connection type usage details', $e->getMessage());
+                }
+            }
+        );
+    }
+
     private function clearConnectionTypeCache(): void
     {
         // Clear main cache keys using CacheConfig
@@ -227,6 +288,18 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         // Clear most used cache for common limits
         for ($i = 5; $i <= 20; $i += 5) {
             Cache::forget(CacheConfig::buildKey('connection_types', 'most_used', $i));
+        }
+
+        // Clear diagram-related caches for all streams since connection types affect colors
+        try {
+            $streams = \App\Constants\StreamConstants::ALLOWED_DIAGRAM_STREAMS;
+            foreach ($streams as $streamName) {
+                Cache::forget("diagram_data.{$streamName}");
+                Cache::forget("vue_flow_data.{$streamName}");
+                Cache::forget("stream_layout.{$streamName}");
+            }
+        } catch (\Exception $e) {
+            // Stream constants might not be available, continue without diagram cache clearing
         }
     }
 }

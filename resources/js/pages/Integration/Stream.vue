@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { VueFlow, PanOnScrollMode, useVueFlow } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import { Background, BackgroundVariant } from '@vue-flow/background';
@@ -222,11 +222,41 @@ const nodeTypeLegend = [
   { label: 'Middleware', type: 'circle' as const, class: 'middleware' },
 ];
 
-const connectionTypeLegend = [
-  { label: 'Direct', type: 'line' as const, class: 'direct' },
-  { label: 'SOA', type: 'line' as const, class: 'soa' },
-  { label: 'SFTP', type: 'line' as const, class: 'sftp' },
-];
+const connectionTypeLegend = computed(() => {
+  if (!props.edges || props.edges.length === 0) {
+    return [
+      { label: 'DIRECT', type: 'line' as const, class: 'direct' },
+      { label: 'SOA', type: 'line' as const, class: 'soa' },
+      { label: 'SFTP', type: 'line' as const, class: 'sftp' },
+    ];
+  }
+  
+  // Extract unique connection types from edges data
+  const uniqueConnectionTypes = new Map();
+  
+  props.edges.forEach((edge: any) => {
+    if (edge.data && edge.data.connection_type && edge.data.color) {
+      const connectionType = edge.data.connection_type;
+      uniqueConnectionTypes.set(connectionType, {
+        label: connectionType.toUpperCase(),
+        type: 'line' as const,
+        class: connectionType.toLowerCase(),
+        color: edge.data.color
+      });
+    }
+  });
+  
+  // Fallback to default if no connection types found
+  if (uniqueConnectionTypes.size === 0) {
+    return [
+      { label: 'DIRECT', type: 'line' as const, class: 'direct' },
+      { label: 'SOA', type: 'line' as const, class: 'soa' },
+      { label: 'SFTP', type: 'line' as const, class: 'sftp' },
+    ];
+  }
+  
+  return Array.from(uniqueConnectionTypes.values());
+});
 
 // Refs
 const vueFlowRef = ref()
