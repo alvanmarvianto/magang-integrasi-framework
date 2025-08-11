@@ -17,12 +17,7 @@ class EdgeTransformer
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
             $connectionType = $integration->connectionType?->type_name ?? 'direct';
-            $edgeColor = match (strtolower($connectionType)) {
-                'soa' => '#02a330',
-                'sftp' => '#002ac0',
-                'soa-sftp' => '#6b7280',
-                default => '#000000',
-            };
+            $edgeColor = $integration->connectionType?->color ?? '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
             
@@ -41,6 +36,7 @@ class EdgeTransformer
                 'data' => [
                     'label' => $connectionType,
                     'connection_type' => strtolower($connectionType),
+                    'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
                         'app_id' => $integration->sourceApp?->app_id ?? 0,
@@ -86,12 +82,7 @@ class EdgeTransformer
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
             $connectionType = $integration->connectionType?->type_name ?? 'direct';
-            $edgeColor = match (strtolower($connectionType)) {
-                'soa' => '#02a330',
-                'sftp' => '#002ac0',
-                'soa-sftp' => '#6b7280',
-                default => '#000000',
-            };
+            $edgeColor = $integration->connectionType?->color ?? '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
             
@@ -110,6 +101,7 @@ class EdgeTransformer
                 'data' => [
                     'label' => $connectionType,
                     'connection_type' => strtolower($connectionType),
+                    'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
                         'app_id' => $integration->sourceApp?->app_id ?? 0,

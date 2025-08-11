@@ -6,6 +6,7 @@
         <span 
           class="legend-key" 
           :class="getLegendClass(item)"
+          :style="getLegendStyle(item)"
         ></span>
         {{ item.label }}
       </li>
@@ -18,6 +19,7 @@ interface LegendItem {
   label: string;
   type: 'circle' | 'line';
   class?: string;
+  color?: string;
 }
 
 interface Props {
@@ -38,6 +40,22 @@ function getLegendClass(item: LegendItem) {
   }
   
   return classes;
+}
+
+function getLegendStyle(item: LegendItem) {
+  if (item.color) {
+    if (item.type === 'circle') {
+      return {
+        backgroundColor: item.color,
+        borderColor: item.color
+      };
+    } else if (item.type === 'line') {
+      return {
+        backgroundColor: item.color
+      };
+    }
+  }
+  return {};
 }
 </script>
 

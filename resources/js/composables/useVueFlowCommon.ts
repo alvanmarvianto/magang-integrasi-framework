@@ -1,4 +1,4 @@
-import { ref, Ref } from 'vue';
+import { ref, Ref } from 'vue'
 import type { Node, Edge } from '@vue-flow/core';
 
 /**
@@ -31,13 +31,6 @@ const NODE_COLORS: { [key: string]: { background: string; border: string } } = {
   'middleware': { background: '#f0fffe', border: '#00ddff' },
 };
 
-const EDGE_COLORS: { [key: string]: string } = {
-  'direct': '#000000',
-  'soa': '#02a330', 
-  'sftp': '#002ac0',
-  'soa-sftp': '#6b7280',
-};
-
 /**
  * Get node color based on lingkup/stream
  */
@@ -47,11 +40,23 @@ export function getNodeColor(lingkup: string, isAdminMode: boolean = false): { b
 }
 
 /**
- * Get edge color based on connection type
+ * Get edge color based on connection type or use provided color
  */
-export function getEdgeColor(type: string, isAdminMode: boolean = false): string {
-  const colorMap = EDGE_COLORS;
-  return colorMap[type] || '#6b7280';
+export function getEdgeColor(type: string, color?: string, isAdminMode: boolean = false): string {
+  // If color is provided directly, use it
+  if (color && color !== '#000000' && color !== '') {
+    return color;
+  }
+  
+  // Fallback to hardcoded colors for backward compatibility
+  const fallbackColors: { [key: string]: string } = {
+    'direct': '#000000',
+    'soa': '#02a330', 
+    'sftp': '#002ac0',
+    'soa-sftp': '#6b7280',
+  };
+  
+  return fallbackColors[type] || '#6b7280';
 }
 
 /**
@@ -269,7 +274,7 @@ export function createStyledNode(node: any, savedLayout?: any, isAdmin: boolean 
  * Create edge with appropriate styling
  */
 export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
-  const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct');
+  const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color);
   const isSelected = selectedEdgeId === edge.id;
   const isBothWays = edge.data?.direction === 'both_ways';
   
@@ -312,7 +317,7 @@ export function updateEdgeStyles(edges: Edge[], selectedEdgeId?: string): Edge[]
   return edges.map(edge => {
     // Preserve original color from backend or fall back to calculated color
     const originalColor = edge.style?.stroke
-    const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct')
+    const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color)
     const isSelected = selectedEdgeId === edge.id;
     const isBothWays = edge.data?.direction === 'both_ways';
     
@@ -551,7 +556,7 @@ export function initializeEdgesWithLayout(
   }
   
   return removeDuplicateEdges(edgesData).map(edge => {
-    const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', isAdminMode);
+    const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, isAdminMode);
     const isSelected = selectedEdgeId === edge.id;
     const isBothWays = edge.data?.direction === 'both_ways';
     

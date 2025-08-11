@@ -20,6 +20,7 @@ readonly class AppIntegrationDataDTO
                 'name' => $integration['app_name'],
                 'lingkup' => $integration['stream_name'] ?? null,
                 'link' => $integration['connection_type'] ?? null,
+                'link_color' => $integration['connection_color'] ?? '#000000',
                 'app_id' => $integration['app_id'],
             ];
         })->toArray();

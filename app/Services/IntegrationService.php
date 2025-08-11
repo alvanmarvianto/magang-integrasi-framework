@@ -362,6 +362,7 @@ class IntegrationService
                 'app_name' => $integration->app_name,
                 'stream_name' => $integration->stream?->stream_name,
                 'connection_type' => $integration->pivot?->connectionType?->type_name,
+                'connection_color' => $integration->pivot?->connectionType?->color ?? '#000000',
             ];
         });
 
@@ -372,6 +373,7 @@ class IntegrationService
                 'app_name' => $integration->app_name,
                 'stream_name' => $integration->stream?->stream_name,
                 'connection_type' => $integration->pivot?->connectionType?->type_name,
+                'connection_color' => $integration->pivot?->connectionType?->color ?? '#000000',
             ];
         });
 

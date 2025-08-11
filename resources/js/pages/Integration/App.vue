@@ -48,6 +48,7 @@
 import { useSidebar } from '@/composables/useSidebar';
 import { useD3ForceAppIntegration } from '@/composables/useD3ForceAppIntegration';
 import { useRoutes } from '@/composables/useRoutes';
+import { computed } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '@/components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
@@ -98,11 +99,38 @@ const nodeTypeLegend = [
   { label: 'Middleware', type: 'circle' as const, class: 'middleware' },
 ];
 
-const connectionTypeLegend = [
-  { label: 'Direct', type: 'line' as const, class: 'direct' },
-  { label: 'SOA', type: 'line' as const, class: 'soa' },
-  { label: 'SFTP', type: 'line' as const, class: 'sftp' },
-];
+const connectionTypeLegend = computed(() => {
+  if (!props.integrationData || !props.integrationData.children) {
+    return [
+      { label: 'DIRECT', type: 'line' as const, class: 'direct' },
+      { label: 'SOA', type: 'line' as const, class: 'soa' },
+      { label: 'SFTP', type: 'line' as const, class: 'sftp' },
+    ];
+  }
+  
+  // Extract unique connection types from the integration data
+  const uniqueConnectionTypes = new Map();
+  
+  const processNode = (node: any) => {
+    if (node.children) {
+      node.children.forEach((child: any) => {
+        if (child.link && child.link_color) {
+          uniqueConnectionTypes.set(child.link, {
+            label: child.link.toUpperCase(),
+            type: 'line' as const,
+            class: child.link.toLowerCase(),
+            color: child.link_color
+          });
+        }
+        processNode(child);
+      });
+    }
+  };
+  
+  processNode(props.integrationData);
+  
+  return Array.from(uniqueConnectionTypes.values());
+});
 </script>
 
 <style scoped>

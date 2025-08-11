@@ -7,6 +7,7 @@ use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\Stream;
+use App\Models\StreamLayout;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -355,5 +356,64 @@ class StreamLayoutService
             default:
                 return '#000000';
         }
+    }
+
+    /**
+     * Synchronize connection type colors in stream layout
+     * Updates edge colors in saved layouts when connection type colors change
+     */
+    public function synchronizeConnectionTypeColors(string $streamName): int
+    {
+        $layout = StreamLayout::where('stream_name', $streamName)->first();
+        
+        if (!$layout || !$layout->edges_layout) {
+            return 0;
+        }
+        
+        $edgesLayout = $layout->edges_layout;
+        $colorsSynced = 0;
+        
+        // Get all connection types with their current colors
+        $connectionTypes = \App\Models\ConnectionType::all()->keyBy('type_name');
+        
+        foreach ($edgesLayout as $index => $edge) {
+            if (!isset($edge['data']['connection_type'])) {
+                continue;
+            }
+            
+            $connectionTypeName = $edge['data']['connection_type'];
+            $connectionType = $connectionTypes->get($connectionTypeName);
+            
+            if (!$connectionType) {
+                continue;
+            }
+            
+            $currentColor = $connectionType->color ?? '#000000';
+            $savedColor = $edge['data']['color'] ?? null;
+            $styleColor = $edge['style']['stroke'] ?? null;
+            
+            // Update if colors don't match
+            if ($savedColor !== $currentColor || $styleColor !== $currentColor) {
+                $edgesLayout[$index]['data']['color'] = $currentColor;
+                $edgesLayout[$index]['style']['stroke'] = $currentColor;
+                
+                // Update marker colors if they exist
+                if (isset($edgesLayout[$index]['markerEnd']['color'])) {
+                    $edgesLayout[$index]['markerEnd']['color'] = $currentColor;
+                }
+                if (isset($edgesLayout[$index]['markerStart']['color'])) {
+                    $edgesLayout[$index]['markerStart']['color'] = $currentColor;
+                }
+                
+                $colorsSynced++;
+            }
+        }
+        
+        if ($colorsSynced > 0) {
+            $layout->edges_layout = $edgesLayout;
+            $layout->save();
+        }
+        
+        return $colorsSynced;
     }
 }

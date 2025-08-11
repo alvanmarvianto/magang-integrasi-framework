@@ -36,7 +36,7 @@ export function useAdminEdgeHandling() {
     return edges.map(edge => {
       // Preserve original color from backend or fall back to calculated color
       const originalColor = edge.style?.stroke
-      const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', true)
+      const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, true)
       const isSelected = selectedEdgeId.value === edge.id
       const isBothWays = edge.data?.direction === 'both_ways'
       
@@ -142,7 +142,7 @@ export function useAdminEdgeHandling() {
     return removeDuplicateEdges(edgesData).map(edge => {
       // Preserve original color from backend or fall back to calculated color
       const originalColor = edge.style?.stroke
-      const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', true)
+      const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, true)
       const isSelected = selectedEdgeId.value === edge.id
       const isBothWays = edge.data?.direction === 'both_ways'
       

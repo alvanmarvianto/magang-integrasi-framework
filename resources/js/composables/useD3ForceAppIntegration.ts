@@ -19,6 +19,7 @@ interface NodeData {
   depth?: number;
   lingkup?: string;
   link?: string;
+  link_color?: string;
 }
 
 export function useD3ForceAppIntegration(integrationData: any) {
@@ -47,7 +48,8 @@ export function useD3ForceAppIntegration(integrationData: any) {
         allLinks.push({
           source: parentNode,
           target: current,
-          type: current.link || 'default'
+          type: current.link || 'default',
+          color: current.link_color || '#000000'
         });
       }
       
@@ -153,7 +155,11 @@ export function useD3ForceAppIntegration(integrationData: any) {
       .insert('path', 'g')
       .attr('class', (d: any) => `link ${d.type || 'default'}`)
       .style('stroke-width', 1.5)
+      .style('stroke', (d: any) => d.color || '#000000')
       .style('fill', 'none');
+    
+    // Update existing links with color
+    link.style('stroke', (d: any) => d.color || '#000000');
 
     link.exit().remove();
 

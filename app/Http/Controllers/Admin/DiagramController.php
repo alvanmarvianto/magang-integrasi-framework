@@ -128,11 +128,14 @@ class DiagramController extends Controller
 
             // Synchronize edges layout with current AppIntegration data using StreamLayoutService
             $edgesSynced = $this->streamLayoutService->synchronizeStreamLayoutEdges($streamName);
+            
+            // Synchronize connection type colors in the layout
+            $colorsSynced = $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
 
             $totalRemoved = $duplicatesRemoved + $invalidRemoved;
             
-            if ($totalRemoved > 0 || $edgesSynced > 0) {
-                $message = "Layout refreshed successfully. Removed {$duplicatesRemoved} duplicates, {$invalidRemoved} invalid connections, and synchronized {$edgesSynced} edges.";
+            if ($totalRemoved > 0 || $edgesSynced > 0 || $colorsSynced > 0) {
+                $message = "Layout refreshed successfully. Removed {$duplicatesRemoved} duplicates, {$invalidRemoved} invalid connections, synchronized {$edgesSynced} edges, and updated {$colorsSynced} connection type colors.";
             } else {
                 $message = "Layout refreshed successfully. No invalid data found.";
             }
