@@ -38,6 +38,7 @@ class ConnectionType extends Model
      */
     protected $fillable = [
         'type_name',
+        'color',
     ];
 
     public function appIntegrations(): HasMany

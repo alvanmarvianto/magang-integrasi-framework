@@ -21,6 +21,7 @@ return new class extends Migration
         Schema::create('connectiontypes', function (Blueprint $table) {
             $table->integer('connection_type_id', true);
             $table->string('type_name')->unique('type_name');
+            $table->string('color', 7)->default('#000000'); // Hex color code
         });
 
         // Create apps table

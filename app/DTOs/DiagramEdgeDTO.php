@@ -11,6 +11,7 @@ readonly class DiagramEdgeDTO
         public string $label,
         public string $connectionType,
         public string $direction,
+        public string $color = '#000000',
         public bool $animated = false,
         public ?array $style = null,
         public ?array $labelStyle = null
@@ -25,6 +26,7 @@ readonly class DiagramEdgeDTO
             label: $data['label'] ?? '',
             connectionType: $data['connection_type'] ?? '',
             direction: $data['direction'] ?? 'one_way',
+            color: $data['color'] ?? '#000000',
             animated: $data['animated'] ?? false,
             style: $data['style'] ?? null,
             labelStyle: $data['label_style'] ?? null
@@ -35,6 +37,7 @@ readonly class DiagramEdgeDTO
     {
         $id = $integration->sourceAppId . '-' . $integration->targetAppId;
         $label = $integration->connectionType?->typeName ?? 'Unknown';
+        $color = $integration->connectionType?->color ?? '#000000';
 
         return new self(
             id: $id,
@@ -43,6 +46,7 @@ readonly class DiagramEdgeDTO
             label: $label,
             connectionType: $integration->connectionType?->typeName ?? '',
             direction: $integration->direction,
+            color: $color,
             animated: $integration->isBidirectional()
         );
     }
@@ -56,6 +60,7 @@ readonly class DiagramEdgeDTO
             'label' => $this->label,
             'connection_type' => $this->connectionType,
             'direction' => $this->direction,
+            'color' => $this->color,
             'animated' => $this->animated,
         ];
 

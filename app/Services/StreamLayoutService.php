@@ -280,7 +280,7 @@ class StreamLayoutService
         
         // Update the edge style based on connection type
         $connectionType = $integration->connectionType->type_name ?? 'direct';
-        $edgeColor = $this->getEdgeColorByConnectionType($connectionType);
+        $edgeColor = $integration->connectionType->color ?? '#000000';
         $edge['style'] = [
             'stroke' => $edgeColor,
             'strokeWidth' => 2
@@ -294,13 +294,14 @@ class StreamLayoutService
     private function createNewEdgeFromIntegration(AppIntegration $integration): DiagramEdgeDTO
     {
         $connectionType = $integration->connectionType->type_name ?? 'direct';
-        $edgeColor = $this->getEdgeColorByConnectionType($connectionType);
+        $edgeColor = $integration->connectionType->color ?? '#000000';
         
         $edgeData = [
             'id' => $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
             'source' => (string)$integration->getAttribute('source_app_id'),
             'target' => (string)$integration->getAttribute('target_app_id'),
             'type' => 'smoothstep',
+            'color' => $edgeColor,
             'style' => [
                 'stroke' => $edgeColor,
                 'strokeWidth' => 2
@@ -327,17 +328,22 @@ class StreamLayoutService
                     'app_id' => $integration->getAttribute('target_app_id'),
                     'app_name' => $integration->targetApp->app_name ?? ''
                 ]
-            ]
+            ],
+            'label' => $connectionType,
+            'connection_type' => $connectionType,
+            'direction' => $integration->getAttribute('direction') ?? 'one_way'
         ];
 
         return DiagramEdgeDTO::fromArray($edgeData);
     }
 
     /**
-     * Get edge color based on connection type
+     * Get edge color based on connection type (Legacy method - now uses database colors)
+     * @deprecated Use database color from connection_types table instead
      */
     private function getEdgeColorByConnectionType(string $connectionType): string
     {
+        // Fallback colors if database color is not available
         switch (strtolower($connectionType)) {
             case 'soa':
                 return '#02a330';

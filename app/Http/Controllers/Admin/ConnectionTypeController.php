@@ -22,6 +22,7 @@ class ConnectionTypeController extends Controller
     {
         $validated = $request->validate([
             'type_name' => 'required|string|max:255|unique:connectiontypes,type_name',
+            'color' => 'required|string|regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/',
             'description' => 'nullable|string',
         ]);
 
@@ -37,6 +38,7 @@ class ConnectionTypeController extends Controller
     {
         $validated = $request->validate([
             'type_name' => 'required|string|max:255|unique:connectiontypes,type_name,' . $id . ',connection_type_id',
+            'color' => 'required|string|regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/',
             'description' => 'nullable|string',
         ]);
 

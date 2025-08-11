@@ -39,10 +39,15 @@ class ApplicationDataSeeder extends Seeder
 
         // 2. Create Connection Types (exactly 4 types)
         $this->command->info('Creating connection types...');
-        $connectionTypes = ['direct', 'sftp', 'soa', 'soa-sftp'];
+        $connectionTypes = [
+            ['type_name' => 'direct', 'color' => '#000000'],
+            ['type_name' => 'sftp', 'color' => '#002ac0'],
+            ['type_name' => 'soa', 'color' => '#02a330'],
+            ['type_name' => 'soa-sftp', 'color' => '#6b7280']
+        ];
         
-        foreach ($connectionTypes as $typeName) {
-            ConnectionType::create(['type_name' => $typeName]);
+        foreach ($connectionTypes as $connectionType) {
+            ConnectionType::create($connectionType);
         }
 
         // 3. Create Apps (24 apps - 3 per stream to ensure every stream has apps)
