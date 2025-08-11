@@ -5,7 +5,7 @@
         </Sidebar>
 
         <main id="main-content">
-            <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
+            <div id="menu-toggle" v-show="!visible" :class="{ active: visible }"
                 @click.stop="toggleSidebar">
                 <FontAwesomeIcon icon="fa-solid fa-bars" />
             </div>

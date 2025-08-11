@@ -44,9 +44,9 @@
       </Sidebar>
 
       <main id="main-content">
-        <div id="menu-toggle" v-show="isMobile && !visible" :class="{ active: visible }"
+        <div id="menu-toggle" v-show="!visible" :class="{ active: visible }"
           @click.stop="toggleSidebar">
-          <i class="fas fa-bars"></i>
+          <FontAwesomeIcon icon="fa-solid fa-bars" />
         </div>
         
         <!-- Vue Flow Container -->
@@ -167,6 +167,7 @@ interface Props {
 const props = defineProps<Props>();
 
 // Use composables
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { visitRoute } = useRoutes();
 const {

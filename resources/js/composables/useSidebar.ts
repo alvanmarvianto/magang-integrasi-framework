@@ -6,11 +6,6 @@ export function useSidebar() {
 
   function checkScreenSize() {
     isMobile.value = window.innerWidth <= 768;
-    if (!isMobile.value) {
-      visible.value = false;
-      const sidebar = document.getElementById('sidebar');
-      sidebar?.classList.remove('visible');
-    }
   }
 
   function toggleSidebar() {
