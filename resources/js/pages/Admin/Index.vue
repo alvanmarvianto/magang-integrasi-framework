@@ -37,6 +37,12 @@
         <p class="admin-menu-description">Kelola tata letak dan tampilan diagram integrasi</p>
       </a>
 
+      <a :href="getRoute('admin.streams.index')" class="admin-menu-card">
+        <font-awesome-icon icon="fa-solid fa-sitemap" class="admin-menu-icon" />
+        <h2 class="admin-menu-title">Manajemen Stream</h2>
+        <p class="admin-menu-description">Kelola stream aplikasi, izin diagram, dan prioritas</p>
+      </a>
+
       <a :href="getRoute('admin.connection-types.index')" class="admin-menu-card">
         <font-awesome-icon icon="fa-solid fa-plug" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Tipe Koneksi</h2>

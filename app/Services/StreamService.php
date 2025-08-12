@@ -33,6 +33,31 @@ class StreamService
     }
 
     /**
+     * Get streams with apps count for admin table
+     */
+    public function getStreamsWithAppsCount(?string $search = null, string $sortBy = 'stream_name', bool $sortDesc = false, int $perPage = 10)
+    {
+        $query = Stream::withCount('apps');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('stream_name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $direction = $sortDesc ? 'desc' : 'asc';
+        $query->orderBy($sortBy, $direction);
+
+        return $query->paginate($perPage)
+            ->withQueryString()
+            ->through(fn ($stream) => array_merge(
+                $stream->toArray(),
+                ['apps_count' => $stream->apps_count]
+            ));
+    }
+
+    /**
      * Get all streams with apps as DTOs
      */
     public function getAllStreamsWithApps(): Collection
@@ -194,11 +219,6 @@ class StreamService
         if (strlen($data['stream_name']) > 255) {
             throw new \InvalidArgumentException('Stream name must not exceed 255 characters');
         }
-
-        // Check for valid stream name format (only alphanumeric and underscores)
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $data['stream_name'])) {
-            throw new \InvalidArgumentException('Stream name can only contain letters, numbers, and underscores');
-        }
     }
 
     /**
@@ -216,43 +236,75 @@ class StreamService
     }
 
     /**
+     * Bulk update sort order for streams
+     */
+    public function bulkUpdateSort(array $updates): bool
+    {
+        try {
+            foreach ($updates as $update) {
+                $stream = $this->streamRepository->findById($update['stream_id']);
+                if ($stream) {
+                    $this->streamRepository->update($stream, [
+                        'stream_name' => $stream->stream_name,
+                        'description' => $stream->description,
+                        'is_allowed_for_diagram' => $stream->is_allowed_for_diagram,
+                        'sort_order' => $update['sort_order'],
+                        'color' => $stream->color,
+                    ]);
+                }
+            }
+
+            // Clear stream configuration cache after bulk update
+            $this->streamConfigService->clearCache();
+            
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to bulk update sort order: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get app hierarchy for index page
      */
     public function getAppHierarchyForIndex(): HierarchyNodeDTO
     {
-        $allowedStreamNames = $this->getAllowedDiagramStreams();
-        $streams = $this->streamRepository->getAllWithAppsLimited($allowedStreamNames);
+        $allowedStreams = $this->streamConfigService->getAllowedDiagramStreamsWithDetails();
+        $streamNames = $allowedStreams->pluck('stream_name')->toArray();
+        $streams = $this->streamRepository->getAllWithAppsLimited($streamNames);
         
         $streamChildren = [];
-        foreach ($streams as $stream) {
+        foreach ($allowedStreams as $allowedStream) {
+            // Find the corresponding stream with apps
+            $streamWithApps = $streams->firstWhere('stream_name', $allowedStream->stream_name);
+            
+            if (!$streamWithApps) {
+                continue;
+            }
+            
             $appChildren = [];
-            foreach ($stream->apps as $app) {
+            foreach ($streamWithApps->apps as $app) {
                 $appNode = HierarchyNodeDTO::createFolder($app->app_name, [
                     HierarchyNodeDTO::createUrl(
                         'Integrasi',
                         '/integration/app/' . $app->app_id,
-                        $stream->stream_name
+                        $streamWithApps->stream_name
                     ),
                     HierarchyNodeDTO::createUrl(
                         'Teknologi', 
                         '/technology/' . $app->app_id,
-                        $stream->stream_name
+                        $streamWithApps->stream_name
                     ),
                     HierarchyNodeDTO::createUrl(
                         'Kontrak', 
                         '/contract/' . $app->app_id,
-                        $stream->stream_name
+                        $streamWithApps->stream_name
                     )
                 ]);
                 $appChildren[] = $appNode;
             }
-
-            $displayName = strlen($stream->stream_name) > 3 
-                ? ucfirst(strtolower($stream->stream_name))
-                : strtoupper($stream->stream_name);
             
             $streamNode = HierarchyNodeDTO::createFolder(
-                'Stream ' . $displayName,
+                $allowedStream->stream_name,
                 $appChildren
             );
             $streamChildren[] = $streamNode;
