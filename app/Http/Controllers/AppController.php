@@ -18,9 +18,13 @@ class AppController extends Controller
     public function index(): Response
     {
         $hierarchyData = $this->streamService->getAppHierarchyForIndex();
+        $allowedStreams = $this->streamService->getAllowedDiagramStreamsWithDetails();
+        $allStreams = $this->streamService->getAllStreamsWithDetails();
         
         return Inertia::render('Index', [
             'appData' => $hierarchyData->toArray(),
+            'allowedStreams' => $allowedStreams,
+            'allStreams' => $allStreams,
         ]);
     }
 
@@ -28,14 +32,20 @@ class AppController extends Controller
     {
         try {
             $integrationData = $this->integrationService->getAppIntegrationData($appId);
+            $allowedStreams = $this->streamService->getAllowedDiagramStreamsWithDetails();
+            $allStreams = $this->streamService->getAllStreamsWithDetails();
             
             return Inertia::render('Integration/App', [
                 'integrationData' => $this->cleanTree($integrationData->toArray()),
                 'parentAppId' => $integrationData->appId,
                 'appName' => $integrationData->appName,
                 'streamName' => $integrationData->streamName,
+                'allowedStreams' => $allowedStreams,
+                'allStreams' => $allStreams,
             ]);
         } catch (\Exception $e) {
+            $allStreams = $this->streamService->getAllStreamsWithDetails();
+            
             if (str_contains($e->getMessage(), 'not allowed')) {
                 return Inertia::render('Integration/App', [
                     'integrationData' => [],
@@ -43,6 +53,8 @@ class AppController extends Controller
                     'appName' => 'Akses ditolak',
                     'streamName' => '',
                     'error' => $e->getMessage(),
+                    'allowedStreams' => [],
+                    'allStreams' => $allStreams,
                 ]);
             }
             
@@ -52,6 +64,8 @@ class AppController extends Controller
                 'appName' => 'Aplikasi tidak ditemukan',
                 'streamName' => '',
                 'error' => 'Application not found',
+                'allowedStreams' => [],
+                'allStreams' => $allStreams,
             ]);
         }
     }

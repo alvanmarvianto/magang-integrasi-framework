@@ -1,6 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { 
+    faSort,
+    faSortUp,
+    faSortDown,
     faPlus,
     faPencil,
     faTrash,
@@ -25,6 +28,7 @@ import {
     faInfoCircle,
     faCircleInfo,
     faTimes,
+    faTimesCircle,
     faSitemap,
     faBezierCurve,
     faEdit,
@@ -40,10 +44,17 @@ import {
     faClock,
     faCheckCircle,
     faInbox,
+    faArrowsAlt,
+    faList,
+    faGripVertical,
+    faCircleNotch,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
 library.add(
+    faSort,
+    faSortUp,
+    faSortDown,
     faPlus,
     faPencil,
     faTrash,
@@ -68,6 +79,7 @@ library.add(
     faInfoCircle,
     faCircleInfo,
     faTimes,
+    faTimesCircle,
     faSitemap,
     faBezierCurve,
     faEdit,
@@ -83,6 +95,10 @@ library.add(
     faClock,
     faCheckCircle,
     faInbox,
+    faArrowsAlt,
+    faList,
+    faGripVertical,
+    faCircleNotch,
 );
 
 export { FontAwesomeIcon }; 

@@ -11,6 +11,7 @@ use App\DTOs\AppDTO;
 use App\DTOs\AppIntegrationDataDTO;
 use App\Repositories\Interfaces\IntegrationRepositoryInterface;
 use App\Repositories\Interfaces\AppRepositoryInterface;
+use App\Services\StreamConfigurationService;
 use Illuminate\Support\Collection;
 
 class IntegrationService
@@ -18,15 +19,18 @@ class IntegrationService
     protected IntegrationRepositoryInterface $integrationRepository;
     protected AppRepositoryInterface $appRepository;
     protected StreamLayoutService $streamLayoutService;
+    protected StreamConfigurationService $streamConfigService;
 
     public function __construct(
         IntegrationRepositoryInterface $integrationRepository,
         AppRepositoryInterface $appRepository,
-        StreamLayoutService $streamLayoutService
+        StreamLayoutService $streamLayoutService,
+        StreamConfigurationService $streamConfigService
     ) {
         $this->integrationRepository = $integrationRepository;
         $this->appRepository = $appRepository;
         $this->streamLayoutService = $streamLayoutService;
+        $this->streamConfigService = $streamConfigService;
     }
 
     /**
@@ -332,9 +336,9 @@ class IntegrationService
             throw new \Exception("App with ID {$appId} not found");
         }
 
-        // Check if the app belongs to an allowed stream
-        $allowedStreams = ['sp', 'mi', 'ssk', 'moneter', 'market'];
-        if (!$app->stream || !in_array(strtolower($app->stream->stream_name), array_map('strtolower', $allowedStreams))) {
+        // Check if the app belongs to an allowed stream using database-driven approach
+        $allowedStreams = $this->streamConfigService->getAllowedDiagramStreams();
+        if (!$app->stream || !in_array($app->stream->stream_name, $allowedStreams)) {
             throw new \Exception('Access to this app integration is not allowed');
         }
 

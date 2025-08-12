@@ -57,20 +57,26 @@ import Sidebar from '../components/Sidebar/Sidebar.vue';
 import SidebarSearchControls from '../components/Sidebar/SidebarSearchControls.vue';
 import SidebarNavigation from '../components/Sidebar/SidebarNavigation.vue';
 
-const props = defineProps<{ appData: any }>();
+const props = defineProps<{ 
+  appData: any;
+  allowedStreams: Array<{
+    stream_id: number;
+    stream_name: string;
+    description: string | null;
+    color: string | null;
+    sort_order: number | null;
+  }>;
+}>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData);
 const { visitRoute, getRoute } = useRoutes();
 
-const streamLinks = [
-  { text: 'Stream SP', onClick: () => visitRoute('integrations.stream', { stream: 'sp' }) },
-  { text: 'Stream MI', onClick: () => visitRoute('integrations.stream', { stream: 'mi' }) },
-  { text: 'Stream SSK', onClick: () => visitRoute('integrations.stream', { stream: 'ssk' }) },
-  { text: 'Stream Moneter', onClick: () => visitRoute('integrations.stream', { stream: 'moneter' }) },
-  { text: 'Stream Market', onClick: () => visitRoute('integrations.stream', { stream: 'market' }) },
-  { text: 'Stream Middleware', onClick: () => visitRoute('integrations.stream', { stream: 'middleware' }) },
-];
+// Generate stream links dynamically from database
+const streamLinks = props.allowedStreams.map(stream => ({
+  text: stream.stream_name,
+  onClick: () => visitRoute('integrations.stream', { stream: stream.stream_name })
+}));
 
 const contractLinks = [
   { text: 'Semua Kontrak', onClick: () => visitRoute('contract.index'), variant: 'default' as const },

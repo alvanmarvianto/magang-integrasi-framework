@@ -91,6 +91,18 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::get('/{streamName}/refresh', [AdminDiagramController::class, 'refreshLayout'])->name('refresh');
     });
 
+    // Stream CRUD management
+    Route::prefix('streams')->as('streams.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\StreamController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\StreamController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\StreamController::class, 'store'])->name('store');
+        Route::get('/{stream}/edit', [\App\Http\Controllers\Admin\StreamController::class, 'edit'])->name('edit');
+        Route::put('/{stream}', [\App\Http\Controllers\Admin\StreamController::class, 'update'])->name('update');
+        Route::delete('/{stream}', [\App\Http\Controllers\Admin\StreamController::class, 'destroy'])->name('destroy');
+        Route::patch('/{stream}/toggle-allowed', [\App\Http\Controllers\Admin\StreamController::class, 'toggleAllowed'])->name('toggle-allowed');
+        Route::patch('/bulk-update-sort', [\App\Http\Controllers\Admin\StreamController::class, 'bulkUpdateSort'])->name('bulk-update-sort');
+    });
+
     // Contract management
     Route::prefix('contracts')->as('contracts.')->group(function () {
         Route::get('/', [AdminContractController::class, 'index'])->name('index');

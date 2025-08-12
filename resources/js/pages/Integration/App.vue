@@ -61,6 +61,21 @@ const props = defineProps<{
   streamName: string;
   parentAppId: number;
   error?: string;
+  allowedStreams?: Array<{
+    stream_id: number;
+    stream_name: string;
+    description: string | null;
+    color: string | null;
+    sort_order: number | null;
+  }>;
+  allStreams?: Array<{
+    stream_id: number;
+    stream_name: string;
+    description: string | null;
+    color: string | null;
+    sort_order: number | null;
+    is_allowed_for_diagram: boolean;
+  }>;
 }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
@@ -68,7 +83,7 @@ const { visitRoute } = useRoutes();
 
 // Only initialize D3 if there's actual integration data and no error
 if (!props.error && props.integrationData && (!Array.isArray(props.integrationData) || props.integrationData.length > 0)) {
-  useD3ForceAppIntegration(props.integrationData);
+  useD3ForceAppIntegration(props.integrationData, props.allStreams || props.allowedStreams);
 }
 
 const navigationLinks = [
@@ -89,15 +104,48 @@ const navigationLinks = [
   },
 ];
 
-const nodeTypeLegend = [
-  { label: 'Aplikasi SP', type: 'circle' as const, class: 'sp' },
-  { label: 'Aplikasi MI', type: 'circle' as const, class: 'mi' },
-  { label: 'Aplikasi SSK & Moneter', type: 'circle' as const, class: 'ssk-mon' },
-  { label: 'Aplikasi Market', type: 'circle' as const, class: 'market' },
-  { label: 'Aplikasi Internal BI di luar DLDS', type: 'circle' as const, class: 'internal' },
-  { label: 'Aplikasi Eksternal BI', type: 'circle' as const, class: 'external' },
-  { label: 'Middleware', type: 'circle' as const, class: 'middleware' },
-];
+const nodeTypeLegend = computed(() => {
+  // Use allStreams if available, otherwise fallback to allowedStreams
+  const streams = props.allStreams || props.allowedStreams || [];
+  
+  if (streams.length === 0 || !props.integrationData) {
+    return [];
+  }
+  
+  // Extract unique streams from the integration data
+  const streamsInData = new Set<string>();
+  
+  const extractStreams = (node: any) => {
+    if (node.lingkup) {
+      streamsInData.add(node.lingkup.toLowerCase());
+    }
+    if (node.children) {
+      node.children.forEach((child: any) => extractStreams(child));
+    }
+  };
+  
+  extractStreams(props.integrationData);
+  
+  // Filter streams to only include those present in the data
+  return streams
+    .filter(stream => stream.stream_name && streamsInData.has(stream.stream_name.toLowerCase()))
+    .map(stream => ({
+      label: stream.description || stream.stream_name,
+      type: 'circle' as const,
+      color: stream.color || '#000000',
+      class: stream.stream_name ? stream.stream_name.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'unknown',
+      isAllowed: 'is_allowed_for_diagram' in stream ? stream.is_allowed_for_diagram : true,
+      sortOrder: stream.sort_order || 999
+    }))
+    .sort((a, b) => {
+      // First sort by allowed status (allowed first)
+      if (a.isAllowed !== b.isAllowed) {
+        return a.isAllowed ? -1 : 1;
+      }
+      // Then sort by sort_order
+      return a.sortOrder - b.sortOrder;
+    });
+});
 
 const connectionTypeLegend = computed(() => {
   if (!props.integrationData || !props.integrationData.children) {

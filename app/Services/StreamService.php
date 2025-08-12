@@ -186,6 +186,11 @@ class StreamService
         return $this->streamConfigService->getAllowedDiagramStreamsWithDetails()->toArray();
     }
 
+    public function getAllStreamsWithDetails(): array
+    {
+        return $this->streamConfigService->getAllStreamsWithDetails()->toArray();
+    }
+
     /**
      * Validate if stream is allowed for diagram operations
      */
@@ -302,7 +307,7 @@ class StreamService
                 ]);
                 $appChildren[] = $appNode;
             }
-            
+
             $streamNode = HierarchyNodeDTO::createFolder(
                 $allowedStream->stream_name,
                 $appChildren

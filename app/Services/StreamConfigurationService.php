@@ -35,6 +35,18 @@ class StreamConfigurationService
     }
 
     /**
+     * Get all streams with full details (ordered by sort_order)
+     */
+    public function getAllStreamsWithDetails(): Collection
+    {
+        return Cache::remember('all_streams_details', 3600, function () {
+            return Stream::orderBy('sort_order')
+                ->select('stream_id', 'stream_name', 'description', 'color', 'sort_order', 'is_allowed_for_diagram')
+                ->get();
+        });
+    }
+
+    /**
      * Check if a stream is allowed for diagram operations
      */
     public function isStreamAllowed(string $streamName): bool
@@ -63,6 +75,7 @@ class StreamConfigurationService
     {
         Cache::forget('allowed_diagram_streams');
         Cache::forget('allowed_diagram_streams_details');
+        Cache::forget('all_streams_details');
         
         // Clear individual stream caches
         $streams = Stream::pluck('stream_name');

@@ -20,6 +20,7 @@ interface LegendItem {
   type: 'circle' | 'line';
   class?: string;
   color?: string;
+  isAllowed?: boolean;
 }
 
 interface Props {

@@ -22,12 +22,31 @@ interface NodeData {
   link_color?: string;
 }
 
-export function useD3ForceAppIntegration(integrationData: any) {
+export function useD3ForceAppIntegration(integrationData: any, allStreams?: Array<{
+  stream_id: number;
+  stream_name: string;
+  description: string | null;
+  color: string | null;
+  sort_order: number | null;
+  is_allowed_for_diagram?: boolean;
+}>) {
   let root: NodeData | null = null;
   let i = 0;
   let simulation: any, vis: any;
   let nodes: any[] = [];
   let links: any[] = [];
+
+  // Create a map of stream names to colors for quick lookup
+  const streamColorMap = new Map();
+  const allowedStreamMap = new Map();
+  if (allStreams) {
+    allStreams.forEach(stream => {
+      if (stream.stream_name && stream.color) {
+        streamColorMap.set(stream.stream_name.toLowerCase(), stream.color);
+        allowedStreamMap.set(stream.stream_name.toLowerCase(), stream.is_allowed_for_diagram !== false);
+      }
+    });
+  }
 
   function collapse(d: NodeData) {
     if (d.children) {
@@ -103,7 +122,7 @@ export function useD3ForceAppIntegration(integrationData: any) {
           return 'pointer'; // Root node is always clickable
         }
         // Check if the node is in allowed streams
-        const isAllowed = d.app_id && (d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter');
+        const isAllowed = d.app_id && d.lingkup && allowedStreamMap.get(d.lingkup.toLowerCase());
         return isAllowed ? 'pointer' : 'not-allowed';
       })
       .on('click', (event, d: any) => {
@@ -120,16 +139,26 @@ export function useD3ForceAppIntegration(integrationData: any) {
     nodeEnter.append('circle')
       .attr('r', (d: any) => d.name === root.name ? 12 : 8)
       .attr('class', (d: any) => `node-border ${d.lingkup || 'external'}`)
-      .style('fill', (d: any) => {
-        if (d.name === root.name) return `var(--${d.lingkup || 'external'})`;
-        return '#fff';
+      .style('fill', '#fff') // Always white fill for all nodes
+      .style('stroke', (d: any) => {
+        if (d.lingkup) {
+          // Use stream color for border (for both allowed and unallowed streams)
+          const streamColor = streamColorMap.get(d.lingkup.toLowerCase());
+          return streamColor || `var(--${d.lingkup})`;
+        }
+        return '#ccc';
       })
-      .style('stroke-width', 2)
+      .style('stroke-width', (d: any) => {
+        // Thinner borders - half the previous thickness
+        if (d.name === root.name) return 3; // Was 4
+        if (d.lingkup) return 2; // Was 3
+        return 1,5; // Was 2
+      })
       .on('click', function (event, d) {
         if (d.name === root.name) {
           event.stopPropagation();
           window.location.href = `/technology/${d.app_id}`;
-        } else if (d.app_id && (d.lingkup === 'sp' || d.lingkup === 'mi' || d.lingkup === 'ssk' || d.lingkup === 'market' || d.lingkup === 'moneter')) {
+        } else if (d.app_id && d.lingkup && allowedStreamMap.get(d.lingkup.toLowerCase())) {
           event.stopPropagation();
           window.location.href = `/integration/app/${d.app_id}`;
         }
