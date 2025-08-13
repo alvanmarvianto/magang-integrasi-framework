@@ -138,13 +138,13 @@ export function useD3ForceAppIntegration(integrationData: any, allStreams?: Arra
 
     nodeEnter.append('circle')
       .attr('r', (d: any) => d.name === root.name ? 12 : 8)
-      .attr('class', (d: any) => `node-border ${d.lingkup || 'external'}`)
+    .attr('class', (d: any) => `node-border`)
       .style('fill', '#fff') // Always white fill for all nodes
       .style('stroke', (d: any) => {
         if (d.lingkup) {
           // Use stream color for border (for both allowed and unallowed streams)
           const streamColor = streamColorMap.get(d.lingkup.toLowerCase());
-          return streamColor || `var(--${d.lingkup})`;
+      return streamColor || '#999999';
         }
         return '#ccc';
       })
