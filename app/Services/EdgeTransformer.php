@@ -63,9 +63,11 @@ class EdgeTransformer
                 if (isset($savedEdge['targetHandle'])) {
                     $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
-                // Override style if saved layout has different styling
-                if (isset($savedEdge['style'])) {
-                    $edgeData['style'] = array_merge($edgeData['style'], $savedEdge['style']);
+                // Merge saved style but enforce DB color for stroke
+                if (isset($savedEdge['style']) && is_array($savedEdge['style'])) {
+                    $mergedStyle = array_merge($edgeData['style'], $savedEdge['style']);
+                    $mergedStyle['stroke'] = $edgeColor; // enforce sync with connection type color
+                    $edgeData['style'] = $mergedStyle;
                 }
             }
 
@@ -128,9 +130,11 @@ class EdgeTransformer
                 if (isset($savedEdge['targetHandle'])) {
                     $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
-                // Override style if saved layout has different styling
-                if (isset($savedEdge['style'])) {
-                    $edgeData['style'] = array_merge($edgeData['style'], $savedEdge['style']);
+                // Merge saved style but enforce DB color for stroke
+                if (isset($savedEdge['style']) && is_array($savedEdge['style'])) {
+                    $mergedStyle = array_merge($edgeData['style'], $savedEdge['style']);
+                    $mergedStyle['stroke'] = $edgeColor; // enforce sync with connection type color
+                    $edgeData['style'] = $mergedStyle;
                 }
             }
 

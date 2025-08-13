@@ -58,12 +58,14 @@ class ConnectionTypeService
             'connection_type_id' => $id
         ]);
         
-        $updatedConnectionType = $this->connectionTypeRepository->update($connectionType, $connectionTypeDTO);
+    $this->connectionTypeRepository->update($connectionType, $connectionTypeDTO);
         
-        // Refresh diagram layouts after updating connection type
-        $this->refreshDiagramLayouts();
+    // Refresh diagram layouts after updating connection type (edges + colors)
+    $this->refreshDiagramLayouts();
         
-        return ConnectionTypeDTO::fromModel($updatedConnectionType);
+    // Re-fetch the updated model to return an accurate DTO
+    $refetched = $this->connectionTypeRepository->findById($id);
+    return ConnectionTypeDTO::fromModel($refetched);
     }
 
     /**

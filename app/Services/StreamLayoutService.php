@@ -385,29 +385,105 @@ class StreamLayoutService
         $colorsSynced = 0;
         
         // Get all connection types with their current colors
-        $connectionTypes = \App\Models\ConnectionType::all()->keyBy('type_name');
+        $connectionTypes = \App\Models\ConnectionType::all();
+        // Build lookup maps: by ID and by lowercase name (to handle casing differences)
+        $connectionTypesById = $connectionTypes->keyBy('connection_type_id');
+        $connectionTypesByName = $connectionTypes->mapWithKeys(function ($ct) {
+            return [strtolower($ct->type_name) => $ct];
+        });
         
         foreach ($edgesLayout as $index => $edge) {
-            if (!isset($edge['data']['connection_type'])) {
+            // Extract connection type info from either new (data.*) or legacy (root) shapes
+            $ctId = $edge['data']['connection_type_id'] ?? null;
+            $ctName = $edge['data']['connection_type'] ?? ($edge['connection_type'] ?? ($edge['label'] ?? null));
+
+            if (!$ctId && !$ctName) {
                 continue;
             }
-            
-            $connectionTypeName = $edge['data']['connection_type'];
-            $connectionType = $connectionTypes->get($connectionTypeName);
-            
-            if (!$connectionType) {
-                continue;
+
+            // Prefer ID if available for exact match; fall back to case-insensitive name
+            $connectionTypeModel = null;
+            if ($ctId) {
+                $connectionTypeModel = $connectionTypesById->get($ctId);
             }
-            
-            $currentColor = $connectionType->color ?? '#000000';
-            $savedColor = $edge['data']['color'] ?? null;
-            $styleColor = $edge['style']['stroke'] ?? null;
-            
-            // Update if colors don't match
-            if ($savedColor !== $currentColor || $styleColor !== $currentColor) {
+            if (!$connectionTypeModel && $ctName) {
+                $connectionTypeModel = $connectionTypesByName->get(strtolower($ctName));
+            }
+
+            if (!$connectionTypeModel) {
+                // Fallback: resolve via integration (handles renamed connection types)
+                $integration = null;
+                $edgeSource = $edge['source'] ?? null;
+                $edgeTarget = $edge['target'] ?? null;
+                $edgeIntegrationId = $edge['data']['integration_id'] ?? null;
+
+                if ($edgeIntegrationId) {
+                    $integration = \App\Models\AppIntegration::with('connectionType')
+                        ->find($edgeIntegrationId);
+                } elseif ($edgeSource && $edgeTarget) {
+                    // Try both directions
+                    $integration = \App\Models\AppIntegration::with('connectionType')
+                        ->where(function($q) use ($edgeSource, $edgeTarget) {
+                            $q->where(function($q2) use ($edgeSource, $edgeTarget) {
+                                $q2->where('source_app_id', $edgeSource)
+                                   ->where('target_app_id', $edgeTarget);
+                            })->orWhere(function($q3) use ($edgeSource, $edgeTarget) {
+                                $q3->where('source_app_id', $edgeTarget)
+                                   ->where('target_app_id', $edgeSource);
+                            });
+                        })->orderByDesc('integration_id')->first();
+                }
+
+                if ($integration && $integration->connectionType) {
+                    $connectionTypeModel = $integration->connectionType;
+                    // Also set ctId to be used below
+                    $ctId = $integration->getAttribute('connection_type_id');
+                } else {
+                    // Still nothing to sync
+                    continue;
+                }
+            }
+
+            $currentColor = $connectionTypeModel->color ?? '#000000';
+
+            // Ensure arrays exist before writing
+            if (!isset($edgesLayout[$index]['style']) || !is_array($edgesLayout[$index]['style'])) {
+                $edgesLayout[$index]['style'] = [];
+            }
+            if (!isset($edgesLayout[$index]['data']) || !is_array($edgesLayout[$index]['data'])) {
+                $edgesLayout[$index]['data'] = [];
+            }
+
+            $savedColor = $edgesLayout[$index]['data']['color'] ?? null;
+            $styleColor = $edgesLayout[$index]['style']['stroke'] ?? null;
+            $rootColor = $edgesLayout[$index]['color'] ?? null;
+
+            // Update if colors or type names don't match
+            $currentName = $connectionTypeModel->type_name;
+            $savedNameData = $edgesLayout[$index]['data']['connection_type'] ?? null;
+            $savedNameRoot = $edgesLayout[$index]['connection_type'] ?? null;
+            $savedLabel = $edgesLayout[$index]['label'] ?? null;
+
+            $needsNameUpdate = ($savedNameData && strtolower($savedNameData) !== strtolower($currentName))
+                || ($savedNameRoot && strtolower($savedNameRoot) !== strtolower($currentName))
+                || ($savedLabel && strtolower($savedLabel) !== strtolower($currentName));
+
+            if ($savedColor !== $currentColor || $styleColor !== $currentColor || $rootColor !== $currentColor || $needsNameUpdate) {
                 $edgesLayout[$index]['data']['color'] = $currentColor;
                 $edgesLayout[$index]['style']['stroke'] = $currentColor;
-                
+                // Some edges also keep a root-level color field
+                $edgesLayout[$index]['color'] = $currentColor;
+                // Update connection type name/labels to current DB value for consistency
+                $edgesLayout[$index]['data']['connection_type'] = $currentName;
+                // Ensure connection_type_id is set so future syncs are exact
+                if (isset($ctId) && $ctId) {
+                    $edgesLayout[$index]['data']['connection_type_id'] = $ctId;
+                } elseif (isset($connectionTypeModel->connection_type_id)) {
+                    $edgesLayout[$index]['data']['connection_type_id'] = $connectionTypeModel->connection_type_id;
+                }
+                $edgesLayout[$index]['connection_type'] = $currentName;
+                $edgesLayout[$index]['label'] = $currentName;
+
                 // Update marker colors if they exist
                 if (isset($edgesLayout[$index]['markerEnd']['color'])) {
                     $edgesLayout[$index]['markerEnd']['color'] = $currentColor;
@@ -415,7 +491,7 @@ class StreamLayoutService
                 if (isset($edgesLayout[$index]['markerStart']['color'])) {
                     $edgesLayout[$index]['markerStart']['color'] = $currentColor;
                 }
-                
+
                 $colorsSynced++;
             }
         }
