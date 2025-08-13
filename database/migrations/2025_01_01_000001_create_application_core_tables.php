@@ -55,7 +55,7 @@ return new class extends Migration
         // Create stream_layouts table
         Schema::create('stream_layouts', function (Blueprint $table) {
             $table->id();
-            $table->string('stream_name')->unique();
+            $table->integer('stream_id')->unique();
             $table->json('nodes_layout');
             $table->json('stream_config');
             $table->json('edges_layout')->nullable();
@@ -71,6 +71,10 @@ return new class extends Migration
             $table->foreign(['source_app_id'], 'appintegrations_ibfk_1')->references(['app_id'])->on('apps')->onUpdate('cascade')->onDelete('cascade');
             $table->foreign(['target_app_id'], 'appintegrations_ibfk_2')->references(['app_id'])->on('apps')->onUpdate('cascade')->onDelete('cascade');
             $table->foreign(['connection_type_id'], 'appintegrations_ibfk_3')->references(['connection_type_id'])->on('connectiontypes')->onUpdate('cascade')->onDelete('cascade');
+        });
+
+        Schema::table('stream_layouts', function (Blueprint $table) {
+            $table->foreign(['stream_id'], 'stream_layouts_ibfk_1')->references(['stream_id'])->on('streams')->onUpdate('cascade')->onDelete('cascade');
         });
     }
 

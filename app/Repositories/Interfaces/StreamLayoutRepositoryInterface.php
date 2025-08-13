@@ -23,6 +23,11 @@ interface StreamLayoutRepositoryInterface
     public function findByStreamName(string $streamName): ?StreamLayoutDTO;
 
     /**
+     * Find stream layout by stream ID
+     */
+    public function findByStreamId(int $streamId): ?StreamLayoutDTO;
+
+    /**
      * Create a new stream layout
      */
     public function create(StreamLayoutDTO $dto): StreamLayoutDTO;
@@ -33,9 +38,19 @@ interface StreamLayoutRepositoryInterface
     public function update(int $id, StreamLayoutDTO $dto): ?StreamLayoutDTO;
 
     /**
-     * Save layout for a specific stream (create or update)
+     * Save layout for a specific stream (create or update) - backward compatibility
      */
     public function saveLayout(string $streamName, array $nodesLayout, array $edgesLayout, array $streamConfig): StreamLayoutDTO;
+
+    /**
+     * Save layout for a specific stream by ID
+     */
+    public function saveLayoutById(int $streamId, array $nodesLayout, array $edgesLayout, array $streamConfig): StreamLayoutDTO;
+
+    /**
+     * Save layout for a specific stream by name (backward compatibility)
+     */
+    public function saveLayoutByName(string $streamName, array $nodesLayout, array $edgesLayout, array $streamConfig): StreamLayoutDTO;
 
     /**
      * Delete stream layout by ID
@@ -48,7 +63,12 @@ interface StreamLayoutRepositoryInterface
     public function removeAppFromLayouts(int $appId): void;
 
     /**
-     * Get layout data for a specific stream
+     * Get layout data for a specific stream by ID
+     */
+    public function getLayoutDataById(int $streamId): ?array;
+
+    /**
+     * Get layout data for a specific stream by name (backward compatibility)
      */
     public function getLayoutData(string $streamName): ?array;
 

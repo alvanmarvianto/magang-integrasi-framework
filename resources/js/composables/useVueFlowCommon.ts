@@ -34,9 +34,54 @@ const NODE_COLORS: { [key: string]: { background: string; border: string } } = {
 /**
  * Get node color based on lingkup/stream
  */
-export function getNodeColor(lingkup: string, isAdminMode: boolean = false): { background: string; border: string } {
+export function getNodeColor(lingkupOrParams: string | { lingkup: string; allStreams?: any[] }, isAdminMode: boolean = false): { background: string; border: string } {
+  // Handle both old signature (string) and new signature (object)
+  let lingkup: string;
+  
+  if (typeof lingkupOrParams === 'string') {
+    lingkup = lingkupOrParams;
+  } else {
+    lingkup = lingkupOrParams.lingkup || '';
+    
+    // If allStreams is provided but empty, log the issue
+    if (lingkupOrParams.allStreams !== undefined && lingkupOrParams.allStreams.length === 0) {
+    }
+  }
+  
+  // Normalize lingkup for matching
+  const normalizedLingkup = lingkup.toLowerCase().replace(/^stream\s+/, '');
+  
   const colorMap = NODE_COLORS;
-  return colorMap[lingkup] || { background: '#ffffff', border: '#6b7280' };
+  
+  // Try exact match first
+  if (colorMap[lingkup]) {
+    return colorMap[lingkup];
+  }
+  
+  // Try normalized match
+  if (colorMap[normalizedLingkup]) {
+    return colorMap[normalizedLingkup];
+  }
+  
+  // Try some common mappings
+  const mappings: { [key: string]: string } = {
+    'stream sp': 'sp',
+    'stream mi': 'mi', 
+    'stream ssk': 'ssk',
+    'stream moneter': 'moneter',
+    'stream market': 'market',
+    'stream internal': 'internal bi',
+    'stream eksternal': 'external bi',
+    'middleware': 'middleware'
+  };
+  
+  const mappedKey = mappings[lingkup.toLowerCase()];
+  if (mappedKey && colorMap[mappedKey]) {
+    return colorMap[mappedKey];
+  }
+  
+  // Default fallback
+  return { background: '#ffffff', border: '#6b7280' };
 }
 
 /**
@@ -446,10 +491,18 @@ export function initializeNodesWithLayout(
     const isClickable = isAdminMode || !nodeStream || allowedStreams.length === 0 || 
       allowedStreams.some(allowedStream => allowedStream.toLowerCase() === nodeStream.toLowerCase());
     
+    // Use saved position if available, otherwise use default or input position
+    let nodePosition = { x: 0, y: 0 };
+    if (hasSavedLayout && savedNode?.position) {
+      nodePosition = savedNode.position;
+    } else if (node.position) {
+      nodePosition = node.position;
+    }
+    
     const newNode: Node = {
       id: node.id,
       type: node.data.is_parent_node ? 'stream' : 'app',
-      position: hasSavedLayout ? (savedNode?.position || { x: 0, y: 0 }) : { x: 0, y: 0 },
+      position: nodePosition,
       data: node.data,
       draggable: isAdminMode || !node.data.is_parent_node, // Stream nodes not draggable in user mode
       selectable: isAdminMode,
@@ -460,32 +513,70 @@ export function initializeNodesWithLayout(
     };
     
     if (node.data.is_parent_node) {
-      // Stream node
-      newNode.style = {
+      // Stream node - use saved style if available, otherwise use defaults
+      const baseStreamStyle = {
         cursor: isAdminMode ? 'grab' : 'default',
         backgroundColor: 'rgba(59, 130, 246, 0.3)',
         border: '2px solid #3b82f6',
         borderRadius: '8px',
-        width: savedNode?.dimensions?.width ? `${savedNode.dimensions.width}px` : '300px',
-        height: savedNode?.dimensions?.height ? `${savedNode.dimensions.height}px` : '200px'
+        width: '300px',
+        height: '200px'
       };
+            
+      // Apply saved style if available
+      if (savedNode?.style) {
+        newNode.style = {
+          ...baseStreamStyle,
+          ...savedNode.style,
+          cursor: isAdminMode ? 'grab' : 'default', // Always override cursor based on mode
+        };
+      } else {
+        newNode.style = baseStreamStyle;
+      }
       
+      // Handle dimensions
       if (savedNode?.dimensions) {
         newNode.data = {
           ...newNode.data,
           dimensions: savedNode.dimensions
         };
+        // Update style dimensions to match
+        if (newNode.style) {
+          newNode.style.width = `${savedNode.dimensions.width}px`;
+          newNode.style.height = `${savedNode.dimensions.height}px`;
+        }
       }
     } else {
-      // App node
-      newNode.style = {
+      // App node - prioritize saved style colors over computed colors
+      const baseAppStyle = {
         cursor: isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed'),
         width: '120px',
         height: '80px',
-        backgroundColor: nodeColors.background,
-        border: `2px solid ${nodeColors.border}`,
         borderRadius: '8px',
       };
+      
+      
+      // Use saved style if it exists and has color information
+      if (savedNode?.style) {
+        // Build the style object by merging base style with saved properties
+        newNode.style = {
+          ...baseAppStyle,
+          ...savedNode.style, // This will include all saved style properties
+        };
+        
+        // Override cursor based on mode (always use computed cursor)
+        if (newNode.style) {
+          newNode.style.cursor = isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed');
+        }
+        
+      } else {
+        // No saved style, use computed colors
+        newNode.style = {
+          ...baseAppStyle,
+          backgroundColor: nodeColors.background,
+          border: `2px solid ${nodeColors.border}`,
+        };
+      }
     }
     
     return newNode;
@@ -501,61 +592,61 @@ export function initializeEdgesWithLayout(
   selectedEdgeId: string | null = null,
   isAdminMode: boolean = false
 ): Edge[] {
-  let edgesData = inputEdges;
-  
-  // If we have saved layout edges, merge them with fresh input data
-  if (savedLayout?.edges_layout && savedLayout.edges_layout.length > 0) {
-    // Create a map of fresh edge data by edge ID
-    const freshEdgeMap = new Map<string, Edge>();
-    inputEdges.forEach(edge => {
-      freshEdgeMap.set(edge.id, edge);
-    });
-    
-    // Merge saved layout with fresh data
-    edgesData = savedLayout.edges_layout.map((savedEdge: any) => {
-      const freshEdge = freshEdgeMap.get(savedEdge.id);
-      if (freshEdge) {
-        // Use fresh data but preserve layout-specific properties
-        return {
-          ...freshEdge,
-          sourceHandle: savedEdge.sourceHandle,
-          targetHandle: savedEdge.targetHandle,
-          style: savedEdge.style || freshEdge.style,
-          // Ensure we have proper data structure
-          data: {
-            ...freshEdge.data,
-            // Preserve connection type and direction from saved layout if available
-            connection_type: savedEdge.data?.connection_type || freshEdge.data?.connection_type || 'direct',
-            direction: savedEdge.data?.direction || freshEdge.data?.direction || 'one_way',
-            label: savedEdge.data?.label || freshEdge.data?.label || (savedEdge.data?.connection_type || 'direct'),
-          }
-        };
-      }
-      // If no fresh data found, enhance saved edge with default values
-      return {
-        ...savedEdge,
-        data: {
-          ...savedEdge.data,
-          connection_type: savedEdge.data?.connection_type || 'direct',
-          direction: savedEdge.data?.direction || 'one_way',
-          label: savedEdge.data?.label || (savedEdge.data?.connection_type || 'direct'),
-          // Ensure we have app names for display
-          source_app_name: savedEdge.data?.source_app_name || `App ${savedEdge.source}`,
-          target_app_name: savedEdge.data?.target_app_name || `App ${savedEdge.target}`,
-        }
-      };
-    });
-    
-    // Add any new edges that weren't in the saved layout
-    inputEdges.forEach(edge => {
-      const existsInSaved = savedLayout.edges_layout.some((savedEdge: any) => savedEdge.id === edge.id);
-      if (!existsInSaved) {
-        edgesData.push(edge);
-      }
-    });
-  }
-  
-  return removeDuplicateEdges(edgesData).map(edge => {
+  // Build quick lookup maps
+  const freshEdgeMap = new Map<string, Edge>();
+  inputEdges.forEach(e => freshEdgeMap.set(e.id, e));
+  const layoutEdges: any[] = savedLayout?.edges_layout || [];
+  const layoutEdgeMap = new Map<string, any>();
+  layoutEdges.forEach(se => layoutEdgeMap.set(se.id, se));
+
+  // 1) Start from fresh edges (backend is source of truth for metadata)
+  const mergedEdges: Edge[] = inputEdges.map(edge => {
+    const savedEdge = layoutEdgeMap.get(edge.id);
+    if (!savedEdge) return edge;
+
+    return {
+      ...edge,
+      sourceHandle: savedEdge.sourceHandle ?? edge.sourceHandle,
+      targetHandle: savedEdge.targetHandle ?? edge.targetHandle,
+      // Overlay saved style but let backend style/values override when present
+      style: {
+        ...(savedEdge.style || {}),
+        ...(edge.style || {}),
+      },
+    } as Edge;
+  });
+
+  // 2) Add edges that exist only in saved layout (not returned by backend)
+  layoutEdges.forEach((savedEdge: any) => {
+    if (freshEdgeMap.has(savedEdge.id)) return;
+    const connectionType = savedEdge.data?.connection_type || 'direct';
+    const color = getEdgeColor(connectionType, savedEdge.data?.color, isAdminMode);
+
+    const fallbackEdge: Edge = {
+      id: savedEdge.id ?? `${savedEdge.source}-${savedEdge.target}`,
+      source: String(savedEdge.source),
+      target: String(savedEdge.target),
+      type: 'smoothstep',
+      sourceHandle: savedEdge.sourceHandle || undefined,
+      targetHandle: savedEdge.targetHandle || undefined,
+      style: {
+        stroke: color,
+        strokeWidth: 2,
+        ...(savedEdge.style || {}),
+      },
+      data: {
+        connection_type: connectionType,
+        direction: savedEdge.data?.direction || 'one_way',
+        color,
+        // keep any layout-provided metadata like names/labels
+        ...savedEdge.data,
+      } as any,
+    } as Edge;
+
+    mergedEdges.push(fallbackEdge);
+  });
+
+  return removeDuplicateEdges(mergedEdges).map(edge => {
     const edgeColor = getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, isAdminMode);
     const isSelected = selectedEdgeId === edge.id;
     const isBothWays = edge.data?.direction === 'both_ways';
@@ -577,7 +668,6 @@ export function initializeEdgesWithLayout(
       data: {
         connection_type: edge.data?.connection_type || 'direct',
         direction: edge.data?.direction || 'one_way',
-        label: edge.data?.label || (edge.data?.connection_type || 'direct'),
         ...edge.data
       }
     };

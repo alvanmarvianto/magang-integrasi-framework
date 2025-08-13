@@ -63,6 +63,14 @@ class Stream extends Model
     }
 
     /**
+     * Get the layout associated with the stream.
+     */
+    public function layout()
+    {
+        return $this->hasOne(StreamLayout::class, 'stream_id', 'stream_id');
+    }
+
+    /**
      * Scope to get only streams allowed for diagrams
      */
     public function scopeAllowedForDiagram($query)

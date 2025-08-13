@@ -32,7 +32,10 @@ class StreamLayoutService
         foreach ($layouts as $layoutDto) {
             $updated = false;
             $edgesLayout = $layoutDto->edgesLayout;
-            $streamName = $layoutDto->streamName;
+            
+            // Get stream name from database using stream ID
+            $stream = \App\Models\Stream::find($layoutDto->streamId);
+            $streamName = $stream ? $stream->stream_name : '';
             
             // Check if this integration involves apps from this stream
             $sourceAppStream = $integration->sourceApp->stream->stream_name ?? null;
@@ -89,7 +92,7 @@ class StreamLayoutService
             // Save the updated layout if changes were made
             if ($updated) {
                 $updatedDto = StreamLayoutDTO::forSave(
-                    $layoutDto->streamName,
+                    $layoutDto->streamId,
                     $layoutDto->nodesLayout,
                     $edgesLayout,
                     $layoutDto->streamConfig
@@ -182,15 +185,25 @@ class StreamLayoutService
 
         // Count of valid nodes (excluding stream parent node)
         $nodesLayout = $layoutDto->nodesLayout;
+        
+        // Get the stream name from database using stream ID
+        $stream = \App\Models\Stream::find($layoutDto->streamId);
+        $streamName = $stream ? $stream->stream_name : '';
+        
         $validNodesCount = count(array_filter($nodesLayout, function($key) use ($streamName) {
-            return $key !== $streamName && $key !== 'sp'; // Exclude stream parent nodes
+            // Exclude stream parent nodes - these use the clean stream name as the node ID
+            $cleanStreamName = strtolower(trim($streamName));
+            if (str_starts_with($cleanStreamName, 'stream ')) {
+                $cleanStreamName = substr($cleanStreamName, 7);
+            }
+            return $key !== $streamName && $key !== $cleanStreamName;
         }, ARRAY_FILTER_USE_KEY));
         
         $streamConfig['totalNodes'] = $validNodesCount;
 
         // Update the layout
         $updatedDto = StreamLayoutDTO::forSave(
-            $layoutDto->streamName,
+            $layoutDto->streamId,
             $nodesLayout,
             $newEdgesLayout,
             $streamConfig
@@ -232,7 +245,7 @@ class StreamLayoutService
                 }
                 
                 $updatedDto = StreamLayoutDTO::forSave(
-                    $layoutDto->streamName,
+                    $layoutDto->streamId,
                     $layoutDto->nodesLayout,
                     array_values($edgesLayout), // Re-index array
                     $streamConfig
@@ -362,13 +375,13 @@ class StreamLayoutService
      */
     public function synchronizeConnectionTypeColors(string $streamName): int
     {
-        $layout = StreamLayout::where('stream_name', $streamName)->first();
+        $layoutDTO = $this->streamLayoutRepository->findByStreamName($streamName);
         
-        if (!$layout || !$layout->edges_layout) {
+        if (!$layoutDTO || !$layoutDTO->edgesLayout) {
             return 0;
         }
         
-        $edgesLayout = $layout->edges_layout;
+        $edgesLayout = $layoutDTO->edgesLayout;
         $colorsSynced = 0;
         
         // Get all connection types with their current colors
@@ -408,8 +421,90 @@ class StreamLayoutService
         }
         
         if ($colorsSynced > 0) {
-            $layout->edges_layout = $edgesLayout;
-            $layout->save();
+            // Save the updated layout using the repository
+            $this->streamLayoutRepository->saveLayoutById(
+                $layoutDTO->streamId, 
+                $layoutDTO->nodesLayout, 
+                $edgesLayout, 
+                $layoutDTO->streamConfig
+            );
+        }
+        
+        return $colorsSynced;
+    }
+
+    /**
+     * Synchronize stream colors for app nodes in stream layout
+     * Updates node colors when stream colors change
+     */
+    public function synchronizeStreamColors(string $streamName): int
+    {
+        $layoutDTO = $this->streamLayoutRepository->findByStreamName($streamName);
+        
+        if (!$layoutDTO || !$layoutDTO->nodesLayout) {
+            return 0;
+        }
+        
+        $nodesLayout = $layoutDTO->nodesLayout;
+        $colorsSynced = 0;
+        
+        // Get all streams with their current colors
+        $streams = \App\Models\Stream::all()->keyBy('stream_name');
+        
+        foreach ($nodesLayout as $nodeId => $node) {
+            if (!isset($node['data']['stream_name'])) {
+                continue;
+            }
+            
+            $nodeStreamName = $node['data']['stream_name'];
+            $stream = $streams->get($nodeStreamName);
+            
+            if (!$stream || !$stream->color) {
+                continue;
+            }
+            
+            $currentColor = $stream->color;
+            
+            // Check if node has style and backgroundColor that needs updating
+            $savedColor = $node['style']['backgroundColor'] ?? null;
+            $savedBorderColor = $node['style']['borderColor'] ?? null;
+            
+            // Update if colors don't match and this is not a parent stream node
+            if (!isset($node['data']['is_parent_node']) || !$node['data']['is_parent_node']) {
+                $colorNeedsUpdate = false;
+                
+                // Check if background color needs update
+                if ($savedColor && $savedColor !== $currentColor) {
+                    $nodesLayout[$nodeId]['style']['backgroundColor'] = $currentColor;
+                    $colorNeedsUpdate = true;
+                }
+                
+                // Check if border color needs update
+                if ($savedBorderColor && $savedBorderColor !== $currentColor) {
+                    $nodesLayout[$nodeId]['style']['borderColor'] = $currentColor;
+                    $colorNeedsUpdate = true;
+                }
+                
+                // Also update any data color field if it exists
+                if (isset($node['data']['color']) && $node['data']['color'] !== $currentColor) {
+                    $nodesLayout[$nodeId]['data']['color'] = $currentColor;
+                    $colorNeedsUpdate = true;
+                }
+                
+                if ($colorNeedsUpdate) {
+                    $colorsSynced++;
+                }
+            }
+        }
+        
+        if ($colorsSynced > 0) {
+            // Save the updated layout using the repository
+            $this->streamLayoutRepository->saveLayoutById(
+                $layoutDTO->streamId, 
+                $nodesLayout, 
+                $layoutDTO->edgesLayout, 
+                $layoutDTO->streamConfig
+            );
         }
         
         return $colorsSynced;

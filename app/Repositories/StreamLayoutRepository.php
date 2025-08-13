@@ -64,21 +64,57 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
     }
 
     /**
-     * Find stream layout by stream name
+     * Find stream layout by stream ID
      */
-    public function findByStreamName(string $streamName): ?StreamLayoutDTO
+    public function findByStreamId(int $streamId): ?StreamLayoutDTO
     {
-        $cacheKey = CacheConfig::buildKey('stream_layout', 'stream_name', $streamName);
+        $cacheKey = CacheConfig::buildKey('stream_layout', 'stream_id', $streamId);
         $cacheTTL = CacheConfig::getTTL('default');
         
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            function() use ($streamName) {
-                $layout = $this->model->where('stream_name', $streamName)->first();
+            function() use ($streamId) {
+                $layout = $this->model->where('stream_id', $streamId)->first();
                 return $layout ? StreamLayoutDTO::fromModel($layout) : null;
             }
         );
+    }
+
+    /**
+     * Find stream layout by stream name (for backward compatibility)
+     */
+    public function findByStreamName(string $streamName): ?StreamLayoutDTO
+    {
+        // Clean up the input stream name
+        $cleanStreamName = strtolower(trim($streamName));
+        if (str_starts_with($cleanStreamName, 'stream ')) {
+            $cleanStreamName = substr($cleanStreamName, 7); // Remove "stream " prefix
+        }
+        
+        // Try to find stream by exact match first
+        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
+        
+        // If not found, try with "Stream " prefix
+        if (!$stream) {
+            $stream = \App\Models\Stream::where('stream_name', 'Stream ' . ucfirst($cleanStreamName))->first();
+        }
+        
+        // If still not found, try case-insensitive search
+        if (!$stream) {
+            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->first();
+        }
+        
+        // If still not found, try case-insensitive search with "Stream " prefix
+        if (!$stream) {
+            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', ['stream ' . $cleanStreamName])->first();
+        }
+        
+        if (!$stream) {
+            return null;
+        }
+        
+        return $this->findByStreamId($stream->stream_id);
     }
 
     /**
@@ -110,18 +146,26 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         // Clear relevant caches
         $this->clearCaches();
         Cache::forget(CacheConfig::buildKey('stream_layout', 'id', $id));
-        Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_name', $dto->streamName));
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_id', $dto->streamId));
         
         return StreamLayoutDTO::fromModel($layout->fresh());
     }
 
     /**
-     * Save layout for a specific stream (create or update)
+     * Save layout for a specific stream (create or update) - backward compatibility
      */
     public function saveLayout(string $streamName, array $nodesLayout, array $edgesLayout, array $streamConfig): StreamLayoutDTO
     {
+        return $this->saveLayoutByName($streamName, $nodesLayout, $edgesLayout, $streamConfig);
+    }
+
+    /**
+     * Save layout for a specific stream by ID
+     */
+    public function saveLayoutById(int $streamId, array $nodesLayout, array $edgesLayout, array $streamConfig): StreamLayoutDTO
+    {
         $layout = $this->model->updateOrCreate(
-            ['stream_name' => $streamName],
+            ['stream_id' => $streamId],
             [
                 'nodes_layout' => $nodesLayout,
                 'edges_layout' => $edgesLayout,
@@ -131,9 +175,45 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         
         // Clear relevant caches
         $this->clearCaches();
-        Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_name', $streamName));
+        Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_id', $streamId));
         
         return StreamLayoutDTO::fromModel($layout);
+    }
+
+    /**
+     * Save layout for a specific stream by name (for backward compatibility)
+     */
+    public function saveLayoutByName(string $streamName, array $nodesLayout, array $edgesLayout, array $streamConfig): StreamLayoutDTO
+    {
+        // Clean up the input stream name
+        $cleanStreamName = strtolower(trim($streamName));
+        if (str_starts_with($cleanStreamName, 'stream ')) {
+            $cleanStreamName = substr($cleanStreamName, 7);
+        }
+        
+        // Try to find stream by exact match first
+        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
+        
+        // If not found, try with "Stream " prefix
+        if (!$stream) {
+            $stream = \App\Models\Stream::where('stream_name', 'Stream ' . ucfirst($cleanStreamName))->first();
+        }
+        
+        // If still not found, try case-insensitive search
+        if (!$stream) {
+            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->first();
+        }
+        
+        // If still not found, try case-insensitive search with "Stream " prefix
+        if (!$stream) {
+            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', ['stream ' . $cleanStreamName])->first();
+        }
+        
+        if (!$stream) {
+            throw new \InvalidArgumentException("Unknown stream name: {$streamName}");
+        }
+        
+        return $this->saveLayoutById($stream->stream_id, $nodesLayout, $edgesLayout, $streamConfig);
     }
 
     /**
@@ -147,14 +227,14 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
             return false;
         }
         
-        $streamName = $layout->stream_name;
+        $streamId = $layout->stream_id;
         $deleted = $layout->delete();
         
         if ($deleted) {
             // Clear relevant caches
             $this->clearCaches();
             Cache::forget(CacheConfig::buildKey('stream_layout', 'id', $id));
-            Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_name', $streamName));
+            Cache::forget(CacheConfig::buildKey('stream_layout', 'stream_id', $streamId));
         }
         
         return $deleted;
@@ -213,6 +293,20 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         
         // Clear all caches since multiple layouts may have been updated
         $this->clearCaches();
+    }
+
+    /**
+     * Get layout data for a specific stream by ID
+     */
+    public function getLayoutDataById(int $streamId): ?array
+    {
+        $layout = $this->findByStreamId($streamId);
+        
+        return $layout ? [
+            'nodes_layout' => $layout->nodesLayout,
+            'edges_layout' => $layout->edgesLayout,
+            'stream_config' => $layout->streamConfig,
+        ] : null;
     }
 
     /**

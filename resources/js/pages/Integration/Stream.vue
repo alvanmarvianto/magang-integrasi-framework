@@ -161,6 +161,18 @@ interface Props {
   } | null
   streams: string[];
   allowedStreams: string[];
+  config?: {
+    node_types?: Array<{
+      label: string;
+      type: string;
+      class: string;
+      stream_name: string;
+      color?: string;
+    }>;
+    total_apps?: number;
+    home_apps?: number;
+    external_apps?: number;
+  } | null;
   error?: string | null;
 }
 
@@ -212,15 +224,41 @@ const controls = [
   },
 ];
 
-const nodeTypeLegend = [
-  { label: 'Aplikasi SP', type: 'circle' as const, class: 'sp' },
-  { label: 'Aplikasi MI', type: 'circle' as const, class: 'mi' },
-  { label: 'Aplikasi SSK & Moneter', type: 'circle' as const, class: 'ssk-mon' },
-  { label: 'Aplikasi Market', type: 'circle' as const, class: 'market' },
-  { label: 'Aplikasi Internal BI di luar DLDS', type: 'circle' as const, class: 'internal' },
-  { label: 'Aplikasi External BI', type: 'circle' as const, class: 'external' },
-  { label: 'Middleware', type: 'circle' as const, class: 'middleware' },
-];
+const nodeTypeLegend = computed(() => {
+  // Use backend-provided node types if available
+  if (props.config?.node_types && props.config.node_types.length > 0) {
+    return props.config.node_types.map(nodeType => ({
+      label: nodeType.label,
+      type: 'circle' as const,
+      class: nodeType.class,
+      color: nodeType.color // Include color from backend
+    }));
+  }
+
+  // Fallback: Extract from actual nodes if backend data not available
+  if (!props.nodes || props.nodes.length === 0) {
+    return [];
+  }
+
+  // Extract unique lingkup values from actual nodes (excluding stream parent nodes)
+  const uniqueLingkupTypes = new Map();
+  
+  props.nodes.forEach((node: any) => {
+    if (node.data && node.data.lingkup && !node.data.is_parent_node) {
+      const lingkup = node.data.lingkup.toLowerCase();
+      
+      if (!uniqueLingkupTypes.has(lingkup)) {
+        uniqueLingkupTypes.set(lingkup, {
+          label: `Aplikasi ${lingkup.toUpperCase()}`,
+          type: 'circle' as const,
+          class: lingkup.replace(/\s+/g, '-'), // Convert spaces to hyphens for CSS class
+        });
+      }
+    }
+  });
+
+  return Array.from(uniqueLingkupTypes.values());
+});
 
 const connectionTypeLegend = computed(() => {
   if (!props.edges || props.edges.length === 0) {
@@ -320,6 +358,8 @@ function onEdgeClick(event: any) {
   // Find the edge data
   const edge = edges.value.find(e => e.id === clickedEdgeId);
   if (edge && edge.data) {
+    console.log('Edge data being passed to DetailsSidebar:', edge.data);
+    console.log('Edge full object:', edge);
     selectedEdgeData.value = edge.data;
     showEdgeDetails.value = true;
   }

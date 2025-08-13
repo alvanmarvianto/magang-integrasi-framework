@@ -14,14 +14,20 @@ class NodeTransformer
      */
     public function createStreamNode(string $streamName, bool $isAdmin = false): DiagramNodeDTO
     {
+        // Clean up the stream name for consistent ID: remove "Stream " prefix and convert to lowercase
+        $cleanStreamName = strtolower(trim($streamName));
+        if (str_starts_with($cleanStreamName, 'stream ')) {
+            $cleanStreamName = substr($cleanStreamName, 7); // Remove "stream " prefix
+        }
+        
         $nodeData = [
-            'id' => $streamName,
+            'id' => $cleanStreamName, // Use clean stream name as ID to match database
             'data' => [
-                'label' => strtoupper($streamName) . ' Stream',
+                'label' => strtoupper($cleanStreamName) . ' Stream',
                 'app_id' => -1,
-                'app_name' => strtoupper($streamName) . ' Stream',
-                'stream_name' => $streamName,
-                'lingkup' => $streamName,
+                'app_name' => strtoupper($cleanStreamName) . ' Stream',
+                'stream_name' => $cleanStreamName,
+                'lingkup' => $cleanStreamName,
                 'is_home_stream' => true,
                 'is_parent_node' => true,
             ]

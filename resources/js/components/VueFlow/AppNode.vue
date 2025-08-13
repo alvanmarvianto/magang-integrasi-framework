@@ -80,6 +80,7 @@
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { NodeProps } from '@vue-flow/core'
+import { getNodeColor } from '@/composables/useVueFlowCommon'
 
 interface Props extends NodeProps {
   adminMode?: boolean
@@ -100,27 +101,38 @@ const nodeData = computed(() => ({
 }))
 
 const nodeColors = computed(() => {
-  const colorMap: { [key: string]: { background: string; border: string } } = {
-    'sp': { background: '#f5f5f5', border: '#000000' },
-    'mi': { background: '#fff5f5', border: '#ff0000' },
-    'ssk': { background: '#fffef0', border: '#fbff00' },
-    'ssk-mon': { background: '#fffef0', border: '#fbff00' },
-    'moneter': { background: '#fffef0', border: '#fbff00' },
-    'market': { background: '#fdf4ff', border: '#dd00ff' },
-    'internal bi': { background: '#f0fff4', border: '#00ff48' },
-    'external bi': { background: '#eff6ff', border: '#0a74da' },
-    'middleware': { background: '#f0fffe', border: '#00ddff' },
-  }
-  
-  return colorMap[nodeData.value.lingkup] || { background: '#ffffff', border: '#6b7280' }
+  // Use the shared getNodeColor function from useVueFlowCommon
+  return getNodeColor(nodeData.value.lingkup, props.adminMode);
 })
 
 const nodeStyle = computed(() => {
-  const colors = nodeColors.value
+  // If Vue Flow has provided styles (from saved layout), use those
+  // Otherwise, fall back to computed colors from lingkup
+  if (props.style && (props.style.backgroundColor || props.style.background)) {
+    let borderColor = nodeColors.value.border; // fallback
+    
+    // Extract color from border string like "2px solid #fbff00"
+    if (props.style.border) {
+      const borderParts = props.style.border.split(' ');
+      if (borderParts.length >= 3) {
+        borderColor = borderParts[2]; // The color part
+      }
+    } else if (props.style.borderColor) {
+      borderColor = props.style.borderColor;
+    }
+    
+    return {
+      backgroundColor: props.style.backgroundColor || props.style.background,
+      borderColor: borderColor,
+    };
+  }
+  
+  // Fallback to computed colors
+  const colors = nodeColors.value;
   return {
     backgroundColor: colors.background,
     borderColor: colors.border,
-  }
+  };
 })
 </script>
 

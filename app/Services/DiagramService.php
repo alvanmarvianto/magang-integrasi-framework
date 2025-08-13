@@ -24,7 +24,19 @@ class DiagramService
      */
     public function validateStreamName(string $streamName): bool
     {
-        return $this->streamConfigService->isStreamAllowed($streamName);
+        // Try direct validation first
+        if ($this->streamConfigService->isStreamAllowed($streamName)) {
+            return true;
+        }
+        
+        // If that fails, try with "Stream " prefix
+        $cleanStreamName = strtolower(trim($streamName));
+        if (str_starts_with($cleanStreamName, 'stream ')) {
+            $cleanStreamName = substr($cleanStreamName, 7);
+        }
+        
+        $prefixedStreamName = 'Stream ' . ucfirst($cleanStreamName);
+        return $this->streamConfigService->isStreamAllowed($prefixedStreamName);
     }
 
     /**
@@ -79,18 +91,21 @@ class DiagramService
      */
     public function getIntegrations(array $appIds, array $homeAppIds = []): Collection
     {
-        $integrations = AppIntegration::whereIn('source_app_id', $appIds)
-            ->whereIn('target_app_id', $appIds)
+        // Fetch integrations where EITHER endpoint is in the provided app set
+        // This ensures we also include edges from/to external apps that connect to home apps
+        $integrations = AppIntegration::where(function ($q) use ($appIds) {
+                $q->whereIn('source_app_id', $appIds)
+                  ->orWhereIn('target_app_id', $appIds);
+            })
             ->with(['connectionType', 'sourceApp', 'targetApp'])
             ->get();
 
-        // If homeAppIds provided, filter to only include connections involving home stream apps
+        // If homeAppIds provided, keep only integrations where at least one side is a home app
+        // (This is redundant when $appIds === $homeAppIds but kept for clarity when they differ)
         if (!empty($homeAppIds)) {
             $integrations = $integrations->filter(function ($integration) use ($homeAppIds) {
-                $sourceIsHome = in_array($integration->source_app_id, $homeAppIds);
-                $targetIsHome = in_array($integration->target_app_id, $homeAppIds);
-                
-                return $sourceIsHome || $targetIsHome;
+                return in_array($integration->source_app_id, $homeAppIds)
+                    || in_array($integration->target_app_id, $homeAppIds);
             });
         }
 
@@ -109,49 +124,36 @@ class DiagramService
         $this->streamLayoutRepository->saveLayout($streamName, $nodesLayout, $edgesLayout, $streamConfig);
     }
 
-    /**
+        /**
      * Get Vue Flow data for a specific stream using DTOs
      */
     public function getVueFlowData(string $streamName, bool $isUserView = false): DiagramDataDTO
     {
-        // Validate stream
-        if (!$this->validateStreamName($streamName)) {
-            return DiagramDataDTO::withError('Invalid stream name');
-        }
-
-        $stream = $this->getStream($streamName);
+        // Get stream from database
+        $stream = Stream::where('stream_name', $streamName)->first();
         if (!$stream) {
-            return DiagramDataDTO::withError('Stream not found');
+            throw new \InvalidArgumentException("Stream not found: {$streamName}");
         }
+        
+        // Get apps and integrations for this stream
+        $streamApps = $this->getStreamApps($stream);
+        $appIds = $streamApps->pluck('app_id')->toArray();
+        $integrations = $this->getIntegrations($appIds, $appIds);
+        $externalApps = $this->getConnectedExternalApps($appIds);
 
-        try {
-            // Get apps in this stream
-            $streamApps = $this->getStreamApps($stream);
-            $streamAppIds = $streamApps->pluck('app_id')->toArray();
+        // Initialize node and edge transformers
+        $nodeTransformer = new NodeTransformer();
+        $edgeTransformer = new EdgeTransformer();
 
-            // Get all integrations involving these stream apps
-            $integrations = AppIntegration::with(['sourceApp.stream', 'targetApp.stream', 'connectionType'])
-                ->where(function ($query) use ($streamAppIds) {
-                    $query->whereIn('source_app_id', $streamAppIds)
-                          ->orWhereIn('target_app_id', $streamAppIds);
-                })
-                ->get();
+    $nodes = [];
+    $edges = collect(); // Use Collection to simplify toArray() later
+    $savedLayout = null;
 
-            // Get connected external apps with stream relationships
-            $externalApps = $this->getConnectedExternalApps($streamAppIds);
-            $externalApps->load('stream');
+        // Add the parent stream node
+        $streamNode = $nodeTransformer->createStreamNode($streamName, !$isUserView);
+        $nodes[] = $streamNode->toArray();
 
-            // Combine all apps
-            $allApps = $streamApps->merge($externalApps)->keyBy('app_id');
-
-            // Create nodes using transformer
-            $nodeTransformer = new \App\Services\NodeTransformer();
-            $nodes = [];
-            
-            // Add stream parent node
-            $streamNodeData = $nodeTransformer->createStreamNode($streamName, !$isUserView);
-            $nodes[] = $streamNodeData;
-            
+        if ($streamApps->isNotEmpty()) {
             // Add stream apps
             $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView);
             $nodes = array_merge($nodes, $streamNodeApps->toArray());
@@ -160,19 +162,114 @@ class DiagramService
             $externalNodeApps = $nodeTransformer->transformExternalApps($externalApps, !$isUserView);
             $nodes = array_merge($nodes, $externalNodeApps->toArray());
 
-            // Get saved layout if exists
-            $savedLayout = $this->streamLayoutRepository->getLayoutData($streamName);
+            // Get saved layout using stream ID instead of stream name
+            $savedLayout = $this->streamLayoutRepository->getLayoutDataById($stream->stream_id);
+            
+            // Debug: Check what layouts exist in the database
+            try {
+                $allLayouts = \App\Models\StreamLayout::with('stream')->get()->map(function($layout) {
+                    return $layout->stream ? $layout->stream->stream_name : "No stream (ID: {$layout->stream_id})";
+                })->toArray();
+                \Log::info("DiagramService - All stream layouts in DB: ", $allLayouts);
+                
+                // Also show the cleaned stream name for debugging
+                $cleanStreamName = strtolower(trim($streamName));
+                if (str_starts_with($cleanStreamName, 'stream ')) {
+                    $cleanStreamName = substr($cleanStreamName, 7);
+                }
+                \Log::info("DiagramService - Looking for layout with stream ID: {$stream->stream_id} ('{$streamName}' -> '{$cleanStreamName}')");
+                \Log::info("DiagramService - Found layout: " . ($savedLayout ? 'YES' : 'NO'));
+                if ($savedLayout) {
+                    \Log::info("DiagramService - Layout contents: ", $savedLayout);
+                }
+            } catch (\Exception $e) {
+                \Log::error("DiagramService - Debug error: " . $e->getMessage());
+            }
 
-            // Create edges using transformer with saved layout
-            $edgeTransformer = new \App\Services\EdgeTransformer();
+            // Transform edges using EdgeTransformer with saved layout
             $edges = $isUserView 
                 ? $edgeTransformer->transformForUser($integrations, $savedLayout)
                 : $edgeTransformer->transformForAdmin($integrations, $savedLayout);
-
-            return DiagramDataDTO::create($nodes, $edges->toArray(), $savedLayout);
-
-        } catch (\Exception $e) {
-            return DiagramDataDTO::withError('Failed to generate diagram data: ' . $e->getMessage());
         }
+
+        return DiagramDataDTO::create(
+            $nodes,
+            $edges instanceof \Illuminate\Support\Collection ? $edges->toArray() : (array)$edges,
+            $savedLayout,
+            $this->getStreamMetadata($streamApps, $externalApps)
+        );
+    }
+
+    /**
+     * Get metadata for the stream including available node types
+     */
+    private function getStreamMetadata($streamApps, $externalApps): array
+    {
+        $allApps = $streamApps->merge($externalApps);
+        
+        // Get unique stream names from all apps to build node type legend
+        $nodeTypes = [];
+        $processedStreams = new \stdClass(); // Use object to track processed streams
+        
+        // Get all stream colors from database in one query
+        $streamColors = Stream::pluck('color', 'stream_name')->toArray();
+        
+        foreach ($allApps as $app) {
+            $streamName = $app->stream?->stream_name ?? 'external';
+            $streamKey = strtolower($streamName);
+            
+            if (!property_exists($processedStreams, $streamKey)) {
+                $processedStreams->$streamKey = true;
+                
+                // Get color from database, default to gray if not found
+                $streamColor = $streamColors[$streamName] ?? '#6b7280';
+                
+                // Map stream names to readable labels and CSS classes
+                $nodeTypes[] = [
+                    'label' => $this->getStreamDisplayName($streamName),
+                    'type' => 'circle',
+                    'class' => $this->getStreamCssClass($streamName),
+                    'stream_name' => $streamName,
+                    'color' => $streamColor
+                ];
+            }
+        }
+        
+        return [
+            'node_types' => $nodeTypes,
+            'total_apps' => $allApps->count(),
+            'home_apps' => $streamApps->count(),
+            'external_apps' => $externalApps->count(),
+        ];
+    }
+
+    /**
+     * Get display name for stream
+     */
+    private function getStreamDisplayName(string $streamName): string
+    {
+        $displayNames = [
+            'sp' => 'Aplikasi SP',
+            'mi' => 'Aplikasi MI',
+            'ssk' => 'Aplikasi SSK & Moneter',
+            'ssk-mon' => 'Aplikasi SSK & Moneter', 
+            'moneter' => 'Aplikasi SSK & Moneter',
+            'market' => 'Aplikasi Market',
+            'internal bi' => 'Aplikasi Internal BI di luar DLDS',
+            'external bi' => 'Aplikasi External BI',
+            'middleware' => 'Middleware',
+            'external' => 'Aplikasi External',
+        ];
+        
+        $key = strtolower($streamName);
+        return $displayNames[$key] ?? "Aplikasi " . strtoupper($streamName);
+    }
+
+    /**
+     * Get CSS class for stream
+     */
+    private function getStreamCssClass(string $streamName): string
+    {
+        return strtolower(str_replace([' ', '_'], '-', $streamName));
     }
 }

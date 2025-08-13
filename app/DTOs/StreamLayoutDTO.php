@@ -6,7 +6,7 @@ class StreamLayoutDTO
 {
     public function __construct(
         public readonly ?int $id,
-        public readonly string $streamName,
+        public readonly int $streamId,
         public readonly array $nodesLayout,
         public readonly array $edgesLayout,
         public readonly array $streamConfig,
@@ -21,7 +21,7 @@ class StreamLayoutDTO
     {
         return new self(
             id: $streamLayout->id,
-            streamName: $streamLayout->stream_name,
+            streamId: $streamLayout->stream_id,
             nodesLayout: $streamLayout->nodes_layout ?? [],
             edgesLayout: $streamLayout->edges_layout ?? [],
             streamConfig: $streamLayout->stream_config ?? [],
@@ -34,14 +34,14 @@ class StreamLayoutDTO
      * Create DTO with only essential data for creating/updating
      */
     public static function forSave(
-        string $streamName,
+        int $streamId,
         array $nodesLayout,
         array $edgesLayout,
         array $streamConfig
     ): self {
         return new self(
             id: null,
-            streamName: $streamName,
+            streamId: $streamId,
             nodesLayout: $nodesLayout,
             edgesLayout: $edgesLayout,
             streamConfig: $streamConfig
@@ -54,7 +54,7 @@ class StreamLayoutDTO
     public function toArray(): array
     {
         return [
-            'stream_name' => $this->streamName,
+            'stream_id' => $this->streamId,
             'nodes_layout' => $this->nodesLayout,
             'edges_layout' => $this->edgesLayout,
             'stream_config' => $this->streamConfig,

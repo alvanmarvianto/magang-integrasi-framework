@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\StreamService;
 use App\Services\StreamConfigurationService;
+use App\Services\StreamLayoutService;
+use App\Services\DiagramCleanupService;
 use App\Models\Stream;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,7 +19,9 @@ class StreamController extends Controller
 {
     public function __construct(
         private StreamService $streamService,
-        private StreamConfigurationService $streamConfigService
+        private StreamConfigurationService $streamConfigService,
+        private StreamLayoutService $streamLayoutService,
+        private DiagramCleanupService $cleanupService
     ) {}
 
     /**
@@ -67,9 +72,12 @@ class StreamController extends Controller
         try {
             $this->streamService->createStream($validated);
 
+            // Refresh diagram layouts for all streams to synchronize stream colors
+            $this->refreshDiagramLayouts();
+
             return redirect()
                 ->route('admin.streams.index')
-                ->with('success', 'Stream created successfully.');
+                ->with('success', 'Stream created successfully and diagram layouts refreshed.');
         } catch (\Exception $e) {
             return redirect()
                 ->back()
@@ -111,9 +119,12 @@ class StreamController extends Controller
         try {
             $this->streamService->updateStream($stream, $validated);
 
+            // Refresh diagram layouts for all streams to synchronize stream colors
+            $this->refreshDiagramLayouts();
+
             return redirect()
                 ->route('admin.streams.index')
-                ->with('success', 'Stream updated successfully.');
+                ->with('success', 'Stream updated successfully and diagram layouts refreshed.');
         } catch (\Exception $e) {
             return redirect()
                 ->back()
@@ -187,6 +198,48 @@ class StreamController extends Controller
             return redirect()
                 ->back()
                 ->with('error', 'Failed to update sort order: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Refresh diagram layouts for all streams to synchronize stream colors
+     * Similar to the implementation in ConnectionTypeService
+     */
+    private function refreshDiagramLayouts(): void
+    {
+        try {
+            // Get all available streams from stream configuration service
+            $streams = $this->streamConfigService->getAllowedDiagramStreams();
+            
+            // First, clean up any invalid data globally
+            $this->cleanupService->removeDuplicateIntegrations();
+            $this->cleanupService->removeInvalidIntegrations();
+ 
+            $totalColorsSynced = 0;
+            $totalStreamColorsSynced = 0;
+            $totalEdgesSynced = 0;
+            
+            foreach ($streams as $streamName) {
+                // Clean up stream layout nodes for this specific stream
+                $this->cleanupService->cleanupStreamLayout($streamName);
+                
+                // Synchronize edges layout with current AppIntegration data
+                $edgesSynced = $this->streamLayoutService->synchronizeStreamLayoutEdges($streamName);
+                $totalEdgesSynced += $edgesSynced;
+                
+                // Synchronize connection type colors in the layout
+                $colorsSynced = $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
+                $totalColorsSynced += $colorsSynced;
+                
+                // Synchronize stream colors for app nodes in the layout
+                $streamColorsSynced = $this->streamLayoutService->synchronizeStreamColors($streamName);
+                $totalStreamColorsSynced += $streamColorsSynced;
+            }
+            
+            Log::info("Refreshed diagram layouts after stream change: {$totalEdgesSynced} edges, {$totalColorsSynced} connection colors, {$totalStreamColorsSynced} stream colors synchronized.");
+        } catch (\Exception $e) {
+            // Log error but don't fail the main operation
+            Log::error('Failed to refresh diagram layouts after stream update: ' . $e->getMessage());
         }
     }
 }

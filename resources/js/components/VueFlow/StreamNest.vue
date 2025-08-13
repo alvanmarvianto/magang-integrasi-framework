@@ -86,35 +86,54 @@ const dragStartNodePos = ref({ x: 0, y: 0 })
 const nestStyle = computed(() => {
   const currentStyle = props.style || {}
   
+  // Base style
+  const baseStyle = {
+    border: '2px dashed #3b82f6',
+    borderRadius: '12px',
+    background: 'rgba(59, 130, 246, 0.05)',
+    position: 'relative' as const,
+    boxSizing: 'border-box' as const,
+    // Ensure the component fills the Vue Flow node container completely
+    width: '100%',
+    height: '100%',
+    minWidth: '300px',
+    minHeight: '200px',
+    // In admin mode, make the border solid and slightly more visible
+    ...(props.adminMode && {
+      borderStyle: 'solid',
+      background: 'rgba(59, 130, 246, 0.08)',
+    })
+  }
+  
   // During resize, use the current size for immediate visual feedback
   if (isResizing.value) {
     return {
+      ...baseStyle,
       width: `${currentSize.value.width}px`,
       height: `${currentSize.value.height}px`,
       border: '2px dashed #3b82f6',
-      borderRadius: '12px',
-      background: 'rgba(59, 130, 246, 0.05)',
-      position: 'relative' as const,
-      cursor: props.adminMode ? 'move' : 'drag',
-      boxSizing: 'border-box' as const,
+      cursor: 'move',
       // Apply any custom style from Vue Flow
       ...currentStyle
     }
   }
   
-  // Normal state - use Vue Flow dimensions
-  return {
-    width: '100%',
-    height: '100%',
-    border: '2px dashed #3b82f6',
-    borderRadius: '12px',
-    background: 'rgba(59, 130, 246, 0.05)',
-    position: 'relative' as const,
+  // Normal state - let Vue Flow handle the sizing through its style prop
+  const finalStyle = {
+    ...baseStyle,
     cursor: props.adminMode ? 'move' : 'drag',
-    boxSizing: 'border-box' as const,
-    // Apply any custom style from Vue Flow
-    ...currentStyle
+    // Apply Vue Flow styles (from saved layout) if they exist
+    ...currentStyle,
   }
+  
+  // Debug logging
+  if (props.adminMode) {
+    console.log(`StreamNest ${props.id} (admin) - Final style:`, finalStyle);
+    console.log(`StreamNest ${props.id} (admin) - Props dimensions:`, props.dimensions);
+    console.log(`StreamNest ${props.id} (admin) - Props style:`, currentStyle);
+  }
+  
+  return finalStyle;
 })
 
 function startResize(direction: string, event: MouseEvent) {
@@ -302,6 +321,10 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
   padding-top: 20px;
+  /* Ensure it fills the Vue Flow node container */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .stream-nest.user-mode {
@@ -313,16 +336,24 @@ onUnmounted(() => {
 }
 
 .stream-nest.admin-mode {
-  /* In admin mode, set lower z-index so nodes inside are clickable */
-  z-index: -10 !important;
-  /* Enable right-click panning in admin mode */
-  pointer-events: none !important;
+  /* In admin mode, make the entire nest draggable with Vue Flow */
+  z-index: 1;
+  /* Allow all pointer events for Vue Flow dragging */
+  pointer-events: all;
+  cursor: move;
+  /* Add a subtle indication this is in admin mode */
+  border-style: solid;
+  background: rgba(59, 130, 246, 0.08);
 }
 
 .stream-nest.admin-mode .stream-label {
-  /* Make label clickable for dragging the stream */
-  pointer-events: all;
-  z-index: -9;
+  /* Label is now just for display, the whole nest handles dragging */
+  pointer-events: none;
+  z-index: 2;
+  /* Subtle styling since whole nest is draggable */
+  background: rgba(59, 130, 246, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 /* User mode drag areas - specific border strips only */
@@ -413,7 +444,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: -8;
+  z-index: 20;
 }
 
 .resize-handle {
@@ -422,7 +453,7 @@ onUnmounted(() => {
   border: 2px solid white;
   border-radius: 3px;
   pointer-events: all;
-  z-index: -8;
+  z-index: 21;
   opacity: 0;
   transition: opacity 0.2s ease;
 }

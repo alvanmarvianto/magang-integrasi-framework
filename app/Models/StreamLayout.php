@@ -10,7 +10,7 @@ class StreamLayout extends Model
     use HasFactory;
 
     protected $fillable = [
-        'stream_name',
+        'stream_id',
         'nodes_layout',
         'edges_layout',
         'stream_config',
@@ -23,11 +23,19 @@ class StreamLayout extends Model
     ];
 
     /**
+     * Get the stream that owns the layout
+     */
+    public function stream()
+    {
+        return $this->belongsTo(Stream::class, 'stream_id', 'stream_id');
+    }
+
+    /**
      * Get layout for a specific stream
      */
-    public static function getLayout(string $streamName): ?array
+    public static function getLayout(int $streamId): ?array
     {
-        $layout = self::where('stream_name', $streamName)->first();
+        $layout = self::where('stream_id', $streamId)->first();
         return $layout ? [
             'nodes_layout' => $layout->nodes_layout,
             'edges_layout' => $layout->edges_layout,
@@ -38,10 +46,10 @@ class StreamLayout extends Model
     /**
      * Save layout for a specific stream
      */
-    public static function saveLayout(string $streamName, array $nodesLayout, array $streamConfig, array $edgesLayout = []): void
+    public static function saveLayout(int $streamId, array $nodesLayout, array $streamConfig, array $edgesLayout = []): void
     {
         self::updateOrCreate(
-            ['stream_name' => $streamName],
+            ['stream_id' => $streamId],
             [
                 'nodes_layout' => $nodesLayout,
                 'edges_layout' => $edgesLayout,

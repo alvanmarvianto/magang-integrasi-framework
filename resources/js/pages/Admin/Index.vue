@@ -31,7 +31,12 @@
         <p class="admin-menu-description">Kelola kontrak aplikasi dan periode pembayaran</p>
       </a>
 
-      <a :href="getRoute('admin.diagrams.show', { streamName: 'sp' })" class="admin-menu-card">
+      <a
+        :href="firstAllowedStream ? getRoute('admin.diagrams.show', { streamName: firstAllowedStream }) : getRoute('admin.streams.index')"
+        class="admin-menu-card"
+        :class="{ disabled: !firstAllowedStream }"
+        :title="!firstAllowedStream ? 'Belum ada stream yang diizinkan untuk diagram. Atur di Manajemen Stream.' : undefined"
+      >
         <font-awesome-icon icon="fa-solid fa-project-diagram" class="admin-menu-icon" />
         <h2 class="admin-menu-title">Manajemen Diagram</h2>
         <p class="admin-menu-description">Kelola tata letak dan tampilan diagram integrasi</p>
@@ -58,6 +63,10 @@ import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import { useRoutes } from '@/composables/useRoutes';
 
 const { getRoute } = useRoutes();
+
+// Receive first allowed stream from server (sorted by priority)
+const props = defineProps<{ firstAllowedStream?: string | null }>();
+const firstAllowedStream = props.firstAllowedStream ?? null;
 </script>
 
 <style scoped>

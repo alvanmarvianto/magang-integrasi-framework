@@ -23,7 +23,7 @@
         <h3>Overview Koneksi</h3>
         <div class="connection-flow">
           <div class="app-info">
-            <div class="app-name">{{ edgeData.sourceApp?.app_name || edgeData.source_app_name || 'Unknown App' }}</div>
+            <div class="app-name">{{ getSourceAppName(edgeData) }}</div>
           </div>
           
           <div class="connection-arrow">
@@ -31,7 +31,7 @@
           </div>
           
           <div class="app-info">
-            <div class="app-name">{{ edgeData.targetApp?.app_name || edgeData.target_app_name || 'Unknown App' }}</div>
+            <div class="app-name">{{ getTargetAppName(edgeData) }}</div>
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@
             :class="getConnectionBadgeClass(edgeData.connection_type)"
             :style="getConnectionBadgeStyle(edgeData)"
           >
-            {{ (edgeData.connection_type || 'direct').toUpperCase() }}
+            {{ getConnectionTypeLabel(edgeData.connection_type) }}
           </div>
         </div>
       </div>
@@ -192,6 +192,27 @@ const sidebarTitle = computed(() => {
   }
   return 'Detail';
 });
+
+function getSourceAppName(edgeData: EdgeData): string {
+  console.log('getSourceAppName called with:', edgeData);
+  const result = edgeData.sourceApp?.app_name || edgeData.source_app_name || 'Unknown App';
+  console.log('Source app name result:', result);
+  return result;
+}
+
+function getTargetAppName(edgeData: EdgeData): string {
+  console.log('getTargetAppName called with:', edgeData);
+  const result = edgeData.targetApp?.app_name || edgeData.target_app_name || 'Unknown App';
+  console.log('Target app name result:', result);
+  return result;
+}
+
+function getConnectionTypeLabel(connectionType: string): string {
+  console.log('getConnectionTypeLabel called with:', connectionType);
+  const result = (connectionType || 'direct').toUpperCase();
+  console.log('Connection type result:', result);
+  return result;
+}
 
 function getConnectionBadgeClass(type: string): string {
   // Return a generic class since we'll use dynamic styles

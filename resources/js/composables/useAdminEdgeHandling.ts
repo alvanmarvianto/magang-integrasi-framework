@@ -109,9 +109,12 @@ export function useAdminEdgeHandling() {
               ...freshEdge.data, // Keep all backend data
               // Override only layout-specific properties if they exist in saved data
               ...(savedEdge.data && {
-                connection_type: savedEdge.data.connection_type || freshEdge.data?.connection_type,
-                direction: savedEdge.data.direction || freshEdge.data?.direction,
-                label: savedEdge.data.label || freshEdge.data?.label,
+                // Prefer backend (fresh) connection metadata; fall back to saved only if backend missing
+                connection_type: freshEdge.data?.connection_type || savedEdge.data.connection_type || 'direct',
+                direction: freshEdge.data?.direction || savedEdge.data.direction || 'one_way',
+                // Keep saved label/source/target names if they exist, but prefer backend names
+                source_app_name: freshEdge.data?.sourceApp?.app_name || freshEdge.data?.source_app_name || savedEdge.data.source_app_name,
+                target_app_name: freshEdge.data?.targetApp?.app_name || freshEdge.data?.target_app_name || savedEdge.data.target_app_name,
               })
             }
           };
@@ -123,9 +126,8 @@ export function useAdminEdgeHandling() {
             ...savedEdge.data,
             connection_type: savedEdge.data?.connection_type || 'direct',
             direction: savedEdge.data?.direction || 'one_way',
-            label: savedEdge.data?.label || (savedEdge.data?.connection_type || 'direct'),
-            source_app_name: savedEdge.data?.source_app_name || `App ${savedEdge.source}`,
-            target_app_name: savedEdge.data?.target_app_name || `App ${savedEdge.target}`,
+            source_app_name: savedEdge.data?.source_app_name || 'Unknown App',
+            target_app_name: savedEdge.data?.target_app_name || 'Unknown App',
           }
         };
       });
@@ -169,7 +171,6 @@ export function useAdminEdgeHandling() {
           // Then override with defaults only if missing
           connection_type: edge.data?.connection_type || 'direct',
           direction: edge.data?.direction || 'one_way',
-          label: edge.data?.label || (edge.data?.connection_type || 'direct'),
         }
       }
 

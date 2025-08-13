@@ -13,7 +13,8 @@ class EdgeTransformer
      */
     public function transformForAdmin(Collection $integrations, ?array $savedLayout = null): Collection
     {
-        $edgesLayout = $savedLayout['edges'] ?? [];
+    // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
+    $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
             $connectionType = $integration->connectionType?->type_name ?? 'direct';
@@ -34,7 +35,6 @@ class EdgeTransformer
                     'strokeWidth' => 2
                 ],
                 'data' => [
-                    'label' => $connectionType,
                     'connection_type' => strtolower($connectionType),
                     'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
@@ -78,7 +78,8 @@ class EdgeTransformer
      */
     public function transformForUser(Collection $integrations, ?array $savedLayout = null): Collection
     {
-        $edgesLayout = $savedLayout['edges'] ?? [];
+    // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
+    $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
             $connectionType = $integration->connectionType?->type_name ?? 'direct';
@@ -99,7 +100,6 @@ class EdgeTransformer
                     'strokeWidth' => 2
                 ],
                 'data' => [
-                    'label' => $connectionType,
                     'connection_type' => strtolower($connectionType),
                     'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),

@@ -25,25 +25,41 @@ class DiagramController extends Controller
             abort(404, 'Stream not found');
         }
 
+        // Debug: Log the request
+        \Log::info("DiagramController - Showing stream: {$streamName}");
+
         try {
             $diagramData = $this->diagramService->getVueFlowData($streamName, true);
             $diagramArray = $diagramData->toArray();
+            
+            // Removed debug dump; use logs instead
+            
+
+            // Debug: Log the layout data being passed to frontend
+            \Log::info("DiagramController - Layout data: ", [
+                'has_layout' => isset($diagramArray['layout']),
+                'layout_is_null' => $diagramArray['layout'] === null,
+                'layout_content' => $diagramArray['layout']
+            ]);
 
             return Inertia::render('Integration/Stream', [
                 'streamName' => $streamName,
                 'nodes' => $diagramArray['nodes'] ?? [],
                 'edges' => $diagramArray['edges'] ?? [],
                 'savedLayout' => $diagramArray['layout'] ?? null,
+                'config' => $diagramArray['config'] ?? null,
                 'streams' => $this->diagramService->getAllowedStreams(),
                 'allowedStreams' => $this->diagramService->getAllowedStreams(),
                 'error' => $diagramArray['error'] ?? null,
             ]);
         } catch (\Exception $e) {
+            \Log::error("DiagramController - Error loading diagram: " . $e->getMessage());
             return Inertia::render('Integration/Stream', [
                 'streamName' => $streamName,
                 'nodes' => [],
                 'edges' => [],
                 'savedLayout' => null,
+                'config' => null,
                 'streams' => $this->diagramService->getAllowedStreams(),
                 'allowedStreams' => $this->diagramService->getAllowedStreams(),
                 'error' => 'Failed to load diagram data',
