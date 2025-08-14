@@ -36,18 +36,61 @@
         </div>
       </div>
 
-      <!-- Connection Type -->
+      <!-- Connection Types (new: cards per type with per-app details) -->
       <div class="detail-section">
         <h3>Tipe Koneksi</h3>
-        <div class="badges-content">
-          <div 
-            class="detail-badge" 
-            :class="getConnectionBadgeClass(edgeData.connection_type)"
-            :style="getConnectionBadgeStyle(edgeData)"
-          >
-            {{ getConnectionTypeLabel(edgeData.connection_type) }}
+        <!-- New layout when detailed connections are available -->
+        <template v-if="edgeData && Array.isArray((edgeData as any).connections) && (edgeData as any).connections.length > 0">
+          <div class="connection-cards">
+            <div 
+              v-for="(conn, idx) in (edgeData as any).connections" 
+              :key="idx" 
+              class="connection-card"
+              :style="getConnectionCardStyle(conn)"
+            >
+              <div class="connection-card-header">
+                <span class="connection-type-label">{{ (conn.connection_type_name || 'DIRECT').toUpperCase() }}</span>
+              </div>
+              <div class="connection-card-body">
+                <!-- APP 1 / Source -->
+                <div class="app-section">
+                  <div class="app-section-title">{{ (conn.source?.app_name || getSourceAppName(edgeData) || 'APP 1').toUpperCase() }}</div>
+                  <div class="io-stack">
+                    <div class="io-label">Outbound</div>
+                    <div class="io-box">{{ conn.source?.outbound || '-' }}</div>
+                    <div class="io-label">Inbound</div>
+                    <div class="io-box">{{ conn.source?.inbound || '-' }}</div>
+                  </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <!-- APP 2 / Target -->
+                <div class="app-section">
+                  <div class="app-section-title">{{ (conn.target?.app_name || getTargetAppName(edgeData) || 'APP 2').toUpperCase() }}</div>
+                  <div class="io-stack">
+                    <div class="io-label">Outbound</div>
+                    <div class="io-box">{{ conn.target?.outbound || '-' }}</div>
+                    <div class="io-label">Inbound</div>
+                    <div class="io-box">{{ conn.target?.inbound || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </template>
+        <!-- Fallback to legacy single badge -->
+        <template v-else>
+          <div class="badges-content">
+            <div 
+              class="detail-badge" 
+              :class="getConnectionBadgeClass(edgeData.connection_type)"
+              :style="getConnectionBadgeStyle(edgeData)"
+            >
+              {{ getConnectionTypeLabel(edgeData.connection_type) }}
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Admin Actions for Edge -->
@@ -65,21 +108,22 @@
         </div>
       </div>
 
-      <!-- Inbound -->
-      <div class="detail-section" v-if="edgeData.inbound">
-        <h3>Inbound</h3>
-        <div class="description-content">
-          {{ edgeData.inbound }}
+      <!-- Legacy inbound/outbound (only show when no per-connection details) -->
+      <template v-if="!(edgeData as any).connections || (edgeData as any).connections.length === 0">
+        <div class="detail-section" v-if="(edgeData as any).inbound">
+          <h3>Inbound</h3>
+          <div class="description-content">
+            {{ (edgeData as any).inbound }}
+          </div>
         </div>
-      </div>
 
-      <!-- Outbound -->
-      <div class="detail-section" v-if="edgeData.outbound">
-        <h3>Outbound</h3>
-        <div class="description-content">
-          {{ edgeData.outbound }}
+        <div class="detail-section" v-if="(edgeData as any).outbound">
+          <h3>Outbound</h3>
+          <div class="description-content">
+            {{ (edgeData as any).outbound }}
+          </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <!-- Node Details -->
@@ -144,6 +188,21 @@ interface AppInfo {
   app_name: string;
 }
 
+interface EdgeConnectionAppInfo {
+  app_id?: number | null;
+  app_name?: string | null;
+  inbound?: string | null;
+  outbound?: string | null;
+}
+
+interface EdgeConnectionItem {
+  connection_type_id?: number | null;
+  connection_type_name?: string | null;
+  connection_color?: string | null;
+  source?: EdgeConnectionAppInfo;
+  target?: EdgeConnectionAppInfo;
+}
+
 interface EdgeData {
   integration_id: number;
   sourceApp?: AppInfo;
@@ -152,7 +211,10 @@ interface EdgeData {
   target_app_name?: string;
   connection_type: string;
   color?: string;
-  direction: string;
+  // New detailed connections array
+  connections?: EdgeConnectionItem[];
+  // Legacy fields may still exist for old edges
+  direction?: string;
   inbound?: string;
   outbound?: string;
   connection_endpoint?: string;
@@ -240,6 +302,24 @@ function getConnectionBadgeStyle(edgeData: EdgeData): any {
     borderColor: 'rgba(255, 255, 255, 0.2)',
     color: '#000000'
   };
+}
+
+function getConnectionCardStyle(conn: EdgeConnectionItem): any {
+  const color = conn.connection_color || '#000000'
+  // Convert hex to rgba
+  if (color && color.startsWith('#') && (color.length === 7 || color.length === 4)) {
+    const hex = color.length === 4
+      ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
+      : color
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return {
+      borderColor: `rgba(${r}, ${g}, ${b}, 0.35)`,
+      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.06)`
+    }
+  }
+  return {}
 }
 
 function editIntegration() {
@@ -446,41 +526,75 @@ function editApp() {
   text-align: center;
 }
 
-.badge-dynamic {
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* New: connection type cards */
+.connection-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.connection-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.connection-card-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.connection-type-label {
+  font-weight: 600;
+  font-size: 0.8rem;
   color: var(--text-color);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  text-align: center;
 }
 
-.badge-direct {
-  background: rgba(255, 255, 255, 0.4);
+.connection-card-body {
+  padding: 0.75rem;
+}
+
+/* App section and IO stack to match mockup */
+.app-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.app-section-title {
+  font-weight: 700;
+  font-size: 0.9rem;
   color: var(--text-color);
 }
 
-.badge-soa {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: rgb(21, 128, 61);
+.section-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0.25rem 0 0.5rem 0;
 }
 
-.badge-sftp {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: rgb(29, 78, 216);
+.io-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.badge-soa-sftp {
-  background: rgba(107, 114, 128, 0.2);
-  border-color: rgba(107, 114, 128, 0.3);
-  color: rgb(75, 85, 99);
-}
-
-.badge-default {
-  background: rgba(255, 255, 255, 0.4);
+.io-label {
+  font-size: 0.75rem;
   color: var(--text-color);
+  opacity: 0.9;
+}
+
+.io-box {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  white-space: pre-wrap;
 }
 
 /* Edit buttons */

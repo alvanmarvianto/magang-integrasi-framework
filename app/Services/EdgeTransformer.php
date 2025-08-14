@@ -16,7 +16,7 @@ class EdgeTransformer
         // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
         $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
-        return $integrations->map(function ($integration) use ($edgesLayout) {
+    return $integrations->map(function ($integration) use ($edgesLayout) {
             $types = $integration->relationLoaded('connections')
                 ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
                 : [];
@@ -41,6 +41,28 @@ class EdgeTransformer
                 'data' => [
                     'connection_type' => strtolower($connectionType),
                     'connection_types' => array_map(fn($n) => ['name' => $n], $types),
+                    // New: detailed connections payload for sidebar rendering
+                    'connections' => $integration->relationLoaded('connections')
+                        ? $integration->connections->map(function ($conn) use ($integration) {
+                            return [
+                                'connection_type_id' => $conn->connection_type_id,
+                                'connection_type_name' => $conn->connectionType?->type_name,
+                                'connection_color' => $conn->connectionType->color ?? null,
+                                'source' => [
+                                    'app_id' => $integration->sourceApp?->app_id ?? null,
+                                    'app_name' => $integration->sourceApp?->app_name ?? null,
+                                    'inbound' => $conn->source_inbound,
+                                    'outbound' => $conn->source_outbound,
+                                ],
+                                'target' => [
+                                    'app_id' => $integration->targetApp?->app_id ?? null,
+                                    'app_name' => $integration->targetApp?->app_name ?? null,
+                                    'inbound' => $conn->target_inbound,
+                                    'outbound' => $conn->target_outbound,
+                                ],
+                            ];
+                        })->toArray()
+                        : [],
                     'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
@@ -88,7 +110,7 @@ class EdgeTransformer
         // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
         $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
-        return $integrations->map(function ($integration) use ($edgesLayout) {
+    return $integrations->map(function ($integration) use ($edgesLayout) {
             $types = $integration->relationLoaded('connections')
                 ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
                 : [];
@@ -113,6 +135,28 @@ class EdgeTransformer
                 'data' => [
                     'connection_type' => strtolower($connectionType),
                     'connection_types' => array_map(fn($n) => ['name' => $n], $types),
+                    // New: detailed connections payload for sidebar rendering
+                    'connections' => $integration->relationLoaded('connections')
+                        ? $integration->connections->map(function ($conn) use ($integration) {
+                            return [
+                                'connection_type_id' => $conn->connection_type_id,
+                                'connection_type_name' => $conn->connectionType?->type_name,
+                                'connection_color' => $conn->connectionType->color ?? null,
+                                'source' => [
+                                    'app_id' => $integration->sourceApp?->app_id ?? null,
+                                    'app_name' => $integration->sourceApp?->app_name ?? null,
+                                    'inbound' => $conn->source_inbound,
+                                    'outbound' => $conn->source_outbound,
+                                ],
+                                'target' => [
+                                    'app_id' => $integration->targetApp?->app_id ?? null,
+                                    'app_name' => $integration->targetApp?->app_name ?? null,
+                                    'inbound' => $conn->target_inbound,
+                                    'outbound' => $conn->target_outbound,
+                                ],
+                            ];
+                        })->toArray()
+                        : [],
                     'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
