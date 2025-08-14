@@ -263,7 +263,7 @@ class DiagramService
                 
                 // Map stream names to readable labels and CSS classes
                 $nodeTypes[] = [
-                    'label' => $this->getStreamDisplayName($streamName),
+                    'label' => $streamName,
                     'type' => 'circle',
                     'class' => $this->getStreamCssClass($streamName),
                     'stream_name' => $streamName,
@@ -278,28 +278,6 @@ class DiagramService
             'home_apps' => $streamApps->count(),
             'external_apps' => $externalApps->count(),
         ];
-    }
-
-    /**
-     * Get display name for stream
-     */
-    private function getStreamDisplayName(string $streamName): string
-    {
-        $displayNames = [
-            'sp' => 'Aplikasi SP',
-            'mi' => 'Aplikasi MI',
-            'ssk' => 'Aplikasi SSK & Moneter',
-            'ssk-mon' => 'Aplikasi SSK & Moneter', 
-            'moneter' => 'Aplikasi SSK & Moneter',
-            'market' => 'Aplikasi Market',
-            'internal bi' => 'Aplikasi Internal BI di luar DLDS',
-            'external bi' => 'Aplikasi External BI',
-            'middleware' => 'Middleware',
-            'external' => 'Aplikasi External',
-        ];
-        
-        $key = strtolower($streamName);
-        return $displayNames[$key] ?? "Aplikasi " . strtoupper($streamName);
     }
 
     /**

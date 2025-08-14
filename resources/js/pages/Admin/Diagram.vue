@@ -24,7 +24,7 @@
 
     <!-- Normal Content -->
     <template v-else>
-      <AdminNavbar :title="`Admin - ${streamName.toUpperCase()} Stream Layout`" :showBackButton="true">
+      <AdminNavbar :title="`Admin - ${streamName} Layout`" :showBackButton="true">
         <template #controls>
           <!-- Layout changed indicator -->
           <div v-if="layoutChanged" class="status-indicator unsaved">
@@ -40,7 +40,7 @@
           
           <select v-model="selectedStream" @change="switchStream" class="stream-selector">
             <option v-for="stream in allowedStreams" :key="stream" :value="stream">
-              {{ stream.toUpperCase() }}
+              {{ stream }}
             </option>
           </select>
           <button @click="saveLayout" :disabled="saving" class="save-btn">

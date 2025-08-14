@@ -20,7 +20,7 @@
     <!-- Normal Content -->
     <template v-else>
       <Sidebar 
-        :title="`Diagram - ${streamName.toUpperCase()} Stream`" 
+        :title="streamName" 
         icon="fa-solid fa-bezier-curve"
         :show-close-button="true"
         @close="closeSidebar"
@@ -33,13 +33,8 @@
         />
 
         <SidebarLegend
-          title="Tipe Node"
+          title="Tipe Aplikasi"
           :items="nodeTypeLegend"
-        />
-
-        <SidebarLegend
-          title="Tipe Koneksi"
-          :items="connectionTypeLegend"
         />
       </Sidebar>
 
@@ -227,11 +222,17 @@ const controls = [
   },
 ];
 
+// Helper to strip leading 'Aplikasi ' from labels (case-insensitive)
+function stripAplikasi(label: string): string {
+  return (label || '').replace(/^Aplikasi\s+/i, '').trim();
+}
+
 const nodeTypeLegend = computed(() => {
   // Use backend-provided node types if available
   if (props.config?.node_types && props.config.node_types.length > 0) {
     return props.config.node_types.map(nodeType => ({
-      label: nodeType.label,
+      // Remove 'Aplikasi' prefix and keep original casing
+      label: stripAplikasi(nodeType.label),
       type: 'circle' as const,
       class: nodeType.class,
       color: nodeType.color // Include color from backend
@@ -248,13 +249,15 @@ const nodeTypeLegend = computed(() => {
   
   props.nodes.forEach((node: any) => {
     if (node.data && node.data.lingkup && !node.data.is_parent_node) {
-      const lingkup = node.data.lingkup.toLowerCase();
+      const rawLingkup: string = node.data.lingkup;
+      const lingkupKey = rawLingkup.toLowerCase();
       
-      if (!uniqueLingkupTypes.has(lingkup)) {
-        uniqueLingkupTypes.set(lingkup, {
-          label: `Aplikasi ${lingkup.toUpperCase()}`,
+      if (!uniqueLingkupTypes.has(lingkupKey)) {
+        uniqueLingkupTypes.set(lingkupKey, {
+          // Show only the stream name, keep original casing
+          label: stripAplikasi(rawLingkup),
           type: 'circle' as const,
-          class: lingkup.replace(/\s+/g, '-'), // Convert spaces to hyphens for CSS class
+          class: lingkupKey.replace(/\s+/g, '-'), // Convert spaces to hyphens for CSS class
         });
       }
     }
@@ -263,41 +266,6 @@ const nodeTypeLegend = computed(() => {
   return Array.from(uniqueLingkupTypes.values());
 });
 
-const connectionTypeLegend = computed(() => {
-  if (!props.edges || props.edges.length === 0) {
-    return [
-      { label: 'DIRECT', type: 'line' as const, class: 'direct' },
-      { label: 'SOA', type: 'line' as const, class: 'soa' },
-      { label: 'SFTP', type: 'line' as const, class: 'sftp' },
-    ];
-  }
-  
-  // Extract unique connection types from edges data
-  const uniqueConnectionTypes = new Map();
-  
-  props.edges.forEach((edge: any) => {
-    if (edge.data && edge.data.connection_type && edge.data.color) {
-      const connectionType = edge.data.connection_type;
-      uniqueConnectionTypes.set(connectionType, {
-        label: connectionType.toUpperCase(),
-        type: 'line' as const,
-        class: connectionType.toLowerCase(),
-        color: edge.data.color
-      });
-    }
-  });
-  
-  // Fallback to default if no connection types found
-  if (uniqueConnectionTypes.size === 0) {
-    return [
-      { label: 'DIRECT', type: 'line' as const, class: 'direct' },
-      { label: 'SOA', type: 'line' as const, class: 'soa' },
-      { label: 'SFTP', type: 'line' as const, class: 'sftp' },
-    ];
-  }
-  
-  return Array.from(uniqueConnectionTypes.values());
-});
 
 // Refs
 const vueFlowRef = ref()

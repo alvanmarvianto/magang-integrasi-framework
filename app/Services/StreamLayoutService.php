@@ -232,6 +232,69 @@ class StreamLayoutService
     }
 
     /**
+     * Ensure the stream parent node in the saved layout uses DB-cased stream name in its data fields
+     */
+    public function synchronizeStreamParentNodeLabel(string $streamName): int
+    {
+        $layoutDto = $this->streamLayoutRepository->findByStreamName($streamName);
+        if (!$layoutDto) {
+            return 0;
+        }
+
+        // Resolve the stream by exact name (DB casing)
+        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
+        if (!$stream) {
+            return 0;
+        }
+
+        $dbName = $stream->stream_name;
+        $nodesLayout = $layoutDto->nodesLayout;
+        $updated = 0;
+
+        // Parent node id is normalized (lowercase without optional "Stream " prefix)
+        $cleanName = strtolower(trim($dbName));
+        if (str_starts_with($cleanName, 'stream ')) {
+            $cleanName = substr($cleanName, 7);
+        }
+
+        foreach ($nodesLayout as $key => &$node) {
+            $nodeId = (string)($node['id'] ?? $key);
+            $isParent = ($nodeId === $dbName) || ($nodeId === $cleanName);
+            if (!$isParent) {
+                continue;
+            }
+
+            if (!isset($node['data']) || !is_array($node['data'])) {
+                $node['data'] = [];
+            }
+
+            $before = json_encode($node['data']);
+            $node['data']['label'] = $dbName;
+            $node['data']['app_name'] = $dbName;
+            $node['data']['stream_name'] = $dbName;
+            $node['data']['lingkup'] = $dbName;
+            $after = json_encode($node['data']);
+
+            if ($before !== $after) {
+                $updated++;
+            }
+        }
+        unset($node);
+
+        if ($updated > 0) {
+            $updatedDto = StreamLayoutDTO::forSave(
+                $layoutDto->streamId,
+                $nodesLayout,
+                $layoutDto->edgesLayout,
+                $layoutDto->streamConfig
+            );
+            $this->streamLayoutRepository->update($layoutDto->id, $updatedDto);
+        }
+
+        return $updated;
+    }
+
+    /**
      * Remove integration edges from all stream layouts
      */
     public function removeIntegrationFromLayouts(AppIntegration $integration): void

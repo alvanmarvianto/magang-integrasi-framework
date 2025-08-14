@@ -26,8 +26,8 @@
             <div class="app-name">{{ getSourceAppName(edgeData) }}</div>
           </div>
           
-          <div class="connection-arrow">
-            <font-awesome-icon :icon="edgeData.direction === 'one_way' ? 'fa-solid fa-arrow-right' : 'fa-solid fa-exchange-alt'" />
+          <div class="connection-arrow" aria-hidden="true">
+            <font-awesome-icon icon="fa-solid fa-minus" class="connection-icon" />
           </div>
           
           <div class="app-info">
@@ -415,6 +415,16 @@ function editApp() {
 
 .app-name {
   font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+.connection-arrow {
+  width: 24px;
+  text-align: center;
+}
+
+.connection-icon {
   color: var(--text-color);
   font-size: 0.875rem;
 }

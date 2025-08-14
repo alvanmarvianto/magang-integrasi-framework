@@ -364,10 +364,7 @@ export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
       strokeWidth: isSelected ? 4 : 2, 
       stroke: edgeColor,
     },
-    markerEnd: {
-      type: 'arrowclosed',
-      color: edgeColor,
-    } as any,
+    // No arrow markers in user mode by default
     sourceHandle: edge.sourceHandle || undefined,
     targetHandle: edge.targetHandle || undefined,
     data: {
@@ -376,12 +373,7 @@ export function createStyledEdge(edge: any, selectedEdgeId?: string): Edge {
   };
 
   // Add arrow at the start for bidirectional connections
-  if (isBothWays) {
-    styledEdge.markerStart = {
-      type: 'arrowclosed',
-      color: edgeColor,
-    } as any;
-  }
+  // User mode: no markers
 
   return styledEdge;
 }
@@ -405,19 +397,11 @@ export function updateEdgeStyles(edges: Edge[], selectedEdgeId?: string): Edge[]
         stroke: edgeColor, // Use preserved color
         strokeWidth: isSelected ? 4 : 2,
       },
-      markerEnd: {
-        type: 'arrowclosed',
-        color: edgeColor,
-      } as any,
+      // User mode: no markers
     };
 
     // Add arrow at the start for bidirectional connections
-    if (isBothWays) {
-      updatedEdge.markerStart = {
-        type: 'arrowclosed',
-        color: edgeColor,
-      } as any;
-    }
+    // User mode: no markers
 
     return updatedEdge;
   });
@@ -646,7 +630,8 @@ export function initializeEdgesWithLayout(
   selectedEdgeId: string | null = null,
   isAdminMode: boolean = false
 ): Edge[] {
-  const disableMarkers = !!(savedLayout?.stream_config?.forceEdgeBlackNoArrow)
+  // In user mode, always disable markers; in admin, respect server flag
+  const disableMarkers = !isAdminMode || !!(savedLayout?.stream_config?.forceEdgeBlackNoArrow)
   // Build quick lookup maps
   const freshEdgeMap = new Map<string, Edge>();
   inputEdges.forEach(e => freshEdgeMap.set(e.id, e));

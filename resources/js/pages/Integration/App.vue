@@ -9,7 +9,7 @@
       <SidebarNavigation :links="navigationLinks" />
       
       <SidebarLegend
-        title="Tipe Node"
+        title="Tipe Aplikasi"
         :items="nodeTypeLegend"
       />
 

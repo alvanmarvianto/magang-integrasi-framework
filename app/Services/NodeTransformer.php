@@ -25,13 +25,15 @@ class NodeTransformer
         $effectiveBorderColor = $streamColor ?: '#3b82f6';
         
         $nodeData = [
-            'id' => $cleanStreamName, // Use clean stream name as ID to match database
+            'id' => $cleanStreamName, // Keep normalized ID for stability
             'data' => [
-                'label' => strtoupper($cleanStreamName) . ' Stream',
+                // Display label should use DB casing exactly without extra prefixes/suffixes
+                'label' => $streamName,
                 'app_id' => -1,
-                'app_name' => strtoupper($cleanStreamName) . ' Stream',
-                'stream_name' => $cleanStreamName,
-                'lingkup' => $cleanStreamName,
+                'app_name' => $streamName,
+                // Keep data fields using DB value for downstream exact matches
+                'stream_name' => $streamName,
+                'lingkup' => $streamName,
                 'is_home_stream' => true,
                 'is_parent_node' => true,
             ]
