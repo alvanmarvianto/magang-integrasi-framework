@@ -192,6 +192,9 @@ const {
   updateEdgeStylesWithSelection,
   handleEdgeClick,
   handlePaneClick,
+  handleAppNodeClick,
+  clearNodeHighlight,
+  applyEdgeHighlightById,
 } = useVueFlowUserView();
 
 // Get VueFlow instance and functions for custom controls
@@ -343,11 +346,40 @@ function initializeLayout() {
   setTimeout(() => {
     fitView();
     isLayouted.value = true;
+    // Reset any highlight state after initial layout
+  clearNodeHighlight(nodes, edges);
   }, 100);
 }
 
 function onNodeClick(event: any) {
-  handleNodeClick(event.node, false, props.allowedStreams); // User mode with allowed streams restriction
+  const node = event?.node;
+  if (!node) return;
+
+  // If an edge is selected (animated) or details sidebar is open, clear them first
+  if (showEdgeDetails.value) {
+    closeEdgeDetails();
+  }
+  if (selectedEdgeId.value) {
+    handlePaneClick();
+    edges.value = updateEdgeStylesWithSelection(edges.value);
+  // Hard reset to ensure no lingering animations
+  edges.value = edges.value.map((e: any) => ({ ...e, animated: false }));
+  }
+
+  // Non-app nodes: clear highlight and keep default behavior
+  if (node.type !== 'app') {
+    clearNodeHighlight(nodes, edges);
+    handleNodeClick(node, false, props.allowedStreams);
+    return;
+  }
+
+  // App nodes: delegate to composable
+  handleAppNodeClick(node, nodes, edges);
+  // Ensure edges remain non-animated after applying node highlight
+  edges.value = edges.value.map((e: any) => ({ ...e, animated: false }));
+
+  // Preserve any other user-mode click behavior
+  // Intentionally do not redirect for app clicks per requirement
 }
 
 function onEdgeClick(event: any) {
@@ -359,13 +391,14 @@ function onEdgeClick(event: any) {
   // Find the edge data
   const edge = edges.value.find(e => e.id === clickedEdgeId);
   if (edge && edge.data) {
-    console.log('Edge data being passed to DetailsSidebar:', edge.data);
-    console.log('Edge full object:', edge);
     selectedEdgeData.value = edge.data;
     showEdgeDetails.value = true;
   }
   
   handleEdgeClick(clickedEdgeId);
+  // Highlight only the edge and its source/target apps
+  applyEdgeHighlightById(clickedEdgeId, nodes, edges);
+  // Keep selection styles (e.g., animation/thickness)
   edges.value = updateEdgeStylesWithSelection(edges.value);
 }
 
@@ -376,6 +409,8 @@ function onPaneClick(event: any) {
   if (showEdgeDetails.value) {
     closeEdgeDetails();
   }
+  // Clear node-based highlight when clicking on empty pane
+  clearNodeHighlight(nodes, edges);
 }
 
 function closeEdgeDetails() {
@@ -398,6 +433,8 @@ function centerView() {
 function resetLayout() {
   initializeLayout();
 }
+
+// Highlight state/logic moved into useVueFlowUserView()
 </script>
 
 <style scoped>

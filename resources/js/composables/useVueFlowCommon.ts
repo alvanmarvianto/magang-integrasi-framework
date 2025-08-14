@@ -581,7 +581,7 @@ export function initializeNodesWithLayout(
     } else {
       // App node - prioritize saved style colors over computed colors
       const baseAppStyle = {
-        cursor: isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed'),
+        cursor: isAdminMode ? 'grab' : 'pointer',
   width: `${LAYOUT_CONSTANTS.NODE_WIDTH}px`,
   height: `${LAYOUT_CONSTANTS.NODE_HEIGHT}px`,
         borderRadius: '8px',
@@ -620,7 +620,7 @@ export function initializeNodesWithLayout(
           }
 
           // Keep cursor consistent with mode/clickability
-          newNode.style.cursor = isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed');
+          newNode.style.cursor = isAdminMode ? 'grab' : 'pointer';
         }
 
       } else {
