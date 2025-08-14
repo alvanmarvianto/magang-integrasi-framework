@@ -38,9 +38,9 @@
 
       <!-- Connection Types (new: cards per type with per-app details) -->
       <div class="detail-section">
+        <template v-if="edgeData && Array.isArray((edgeData as any).connections) && (edgeData as any).connections.length > 0">
         <h3>Tipe Koneksi</h3>
         <!-- New layout when detailed connections are available -->
-        <template v-if="edgeData && Array.isArray((edgeData as any).connections) && (edgeData as any).connections.length > 0">
           <div class="connection-cards">
             <div 
               v-for="(conn, idx) in (edgeData as any).connections" 
@@ -76,18 +76,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </template>
-        <!-- Fallback to legacy single badge -->
-        <template v-else>
-          <div class="badges-content">
-            <div 
-              class="detail-badge" 
-              :class="getConnectionBadgeClass(edgeData.connection_type)"
-              :style="getConnectionBadgeStyle(edgeData)"
-            >
-              {{ getConnectionTypeLabel(edgeData.connection_type) }}
             </div>
           </div>
         </template>
@@ -276,34 +264,6 @@ function getConnectionTypeLabel(connectionType: string): string {
   return result;
 }
 
-function getConnectionBadgeClass(type: string): string {
-  // Return a generic class since we'll use dynamic styles
-  return 'badge-dynamic';
-}
-
-function getConnectionBadgeStyle(edgeData: EdgeData): any {
-  if (edgeData.color) {
-    // Convert hex color to rgba for background with opacity
-    const hexColor = edgeData.color;
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-    
-    return {
-      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.2)`,
-      borderColor: `rgba(${r}, ${g}, ${b}, 0.3)`,
-      color: '#000000'
-    };
-  }
-  
-  // Fallback style
-  return {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    color: '#000000'
-  };
-}
-
 function getConnectionCardStyle(conn: EdgeConnectionItem): any {
   const color = conn.connection_color || '#000000'
   // Convert hex to rgba
@@ -434,12 +394,6 @@ function editApp() {
   line-height: 1.5;
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.badges-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .buttons-content {

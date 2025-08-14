@@ -141,7 +141,8 @@ class IntegrationRepository implements IntegrationRepositoryInterface
             if ($updated) {
                 $this->clearIntegrationCache($oldSourceAppId, $oldTargetAppId);
                 $this->clearIntegrationCache($integrationData->sourceAppId, $integrationData->targetAppId);
-                Cache::forget("integration.{$integration->integration_id}.with_relations");
+                // Clear the specific integration cache using the same key builder as retrieval
+                Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $integration->integration_id));
             }
 
             return $updated;
@@ -161,7 +162,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
 
             if ($deleted) {
                 $this->clearIntegrationCache($sourceAppId, $targetAppId);
-                Cache::forget("integration.{$integrationId}.with_relations");
+                Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $integrationId));
             }
 
             return $deleted;
@@ -346,7 +347,6 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         Cache::forget(CacheConfig::buildKey('app', 'connected_apps', $targetAppId));
         Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $sourceAppId, $targetAppId));
         Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $targetAppId, $sourceAppId));
-        Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $sourceAppId));
-        Cache::forget(CacheConfig::buildKey('integration', 'with_relations', $targetAppId));
+        // Do NOT attempt to clear integration-with-relations by app IDs; that cache is keyed by integration_id
     }
 }
