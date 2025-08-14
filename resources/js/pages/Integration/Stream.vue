@@ -221,18 +221,11 @@ const controls = [
     onClick: resetLayout,
   },
 ];
-
-// Helper to strip leading 'Aplikasi ' from labels (case-insensitive)
-function stripAplikasi(label: string): string {
-  return (label || '').replace(/^Aplikasi\s+/i, '').trim();
-}
-
 const nodeTypeLegend = computed(() => {
   // Use backend-provided node types if available
   if (props.config?.node_types && props.config.node_types.length > 0) {
     return props.config.node_types.map(nodeType => ({
-      // Remove 'Aplikasi' prefix and keep original casing
-      label: stripAplikasi(nodeType.label),
+      label: (nodeType as any).stream_description || nodeType.label,
       type: 'circle' as const,
       class: nodeType.class,
       color: nodeType.color // Include color from backend
@@ -255,7 +248,7 @@ const nodeTypeLegend = computed(() => {
       if (!uniqueLingkupTypes.has(lingkupKey)) {
         uniqueLingkupTypes.set(lingkupKey, {
           // Show only the stream name, keep original casing
-          label: stripAplikasi(rawLingkup),
+          label: rawLingkup,
           type: 'circle' as const,
           class: lingkupKey.replace(/\s+/g, '-'), // Convert spaces to hyphens for CSS class
         });

@@ -248,8 +248,9 @@ class DiagramService
         $nodeTypes = [];
         $processedStreams = new \stdClass(); // Use object to track processed streams
         
-        // Get all stream colors from database in one query
-        $streamColors = Stream::pluck('color', 'stream_name')->toArray();
+    // Get all stream colors and descriptions from database in one query
+    $streamColors = Stream::pluck('color', 'stream_name')->toArray();
+    $streamDescriptions = Stream::pluck('description', 'stream_name')->toArray();
         
         foreach ($allApps as $app) {
             $streamName = $app->stream?->stream_name ?? 'external';
@@ -260,13 +261,17 @@ class DiagramService
                 
                 // Get color from database, default to gray if not found
                 $streamColor = $streamColors[$streamName] ?? '#6b7280';
+        // Get description if available
+        $streamDescription = $streamDescriptions[$streamName] ?? null;
                 
                 // Map stream names to readable labels and CSS classes
                 $nodeTypes[] = [
-                    'label' => $streamName,
+            // Prefer description for legend label; fallback to stream name
+            'label' => $streamDescription ?: $streamName,
                     'type' => 'circle',
                     'class' => $this->getStreamCssClass($streamName),
                     'stream_name' => $streamName,
+            'stream_description' => $streamDescription,
                     'color' => $streamColor
                 ];
             }
