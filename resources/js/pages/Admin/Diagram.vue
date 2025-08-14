@@ -200,8 +200,12 @@ const edges = ref<Edge[]>([])
 const layoutChanged = ref(false)
 const vueFlowKey = ref(0) // Key to force VueFlow re-render
 const isInitializing = ref(false) // Flag to prevent marking changes during initialization
-// Use admin-specific edge handling
-const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, updateAdminEdgeStylesWithSelection, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling()
+// Use admin-specific edge handling; respect server flag to force black/no arrows
+const forceNoArrow = !!(props.savedLayout as any)?.stream_config?.forceEdgeBlackNoArrow
+const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, updateAdminEdgeStylesWithSelection, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling({
+  disableMarkers: forceNoArrow,
+  forceBlack: forceNoArrow,
+})
 
 // Get VueFlow instance and functions
 const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow()

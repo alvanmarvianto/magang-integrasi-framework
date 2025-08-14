@@ -6,8 +6,10 @@ import { getEdgeColor } from './useVueFlowCommon'
  * Admin-specific edge handling composable
  * Handles edge selection, dragging endpoints, and admin-specific edge operations
  */
-export function useAdminEdgeHandling() {
+export function useAdminEdgeHandling(options?: { disableMarkers?: boolean; forceBlack?: boolean }) {
   const selectedEdgeId = ref<string | null>(null)
+  const disableMarkers = !!options?.disableMarkers
+  const forceBlack = !!options?.forceBlack
 
   /**
    * Handle edge click for admin mode - toggles selection
@@ -36,7 +38,8 @@ export function useAdminEdgeHandling() {
     return edges.map(edge => {
       // Preserve original color from backend or fall back to calculated color
       const originalColor = edge.style?.stroke
-      const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, true)
+      const computed = getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, true)
+      const edgeColor = forceBlack ? '#000000' : (originalColor || computed)
       const isSelected = selectedEdgeId.value === edge.id
       const isBothWays = edge.data?.direction === 'both_ways'
       
@@ -47,19 +50,21 @@ export function useAdminEdgeHandling() {
         animated: isSelected,
         style: {
           ...edge.style,
-          stroke: edgeColor, // Use preserved color
+          stroke: edgeColor, // Use preserved or forced color
           strokeWidth: isSelected ? 4 : 2,
           strokeDasharray: isSelected ? undefined : edge.style?.strokeDasharray,
         },
-        markerEnd: {
-          type: 'arrowclosed',
-          color: edgeColor,
-        } as any,
+        ...(disableMarkers ? {} : {
+          markerEnd: {
+            type: 'arrowclosed',
+            color: edgeColor,
+          } as any,
+        }),
       }
 
       // Add arrow at the start for bidirectional connections
-      if (isBothWays) {
-        styledEdge.markerStart = {
+      if (isBothWays && !disableMarkers) {
+        (styledEdge as any).markerStart = {
           type: 'arrowclosed',
           color: edgeColor,
         } as any
@@ -144,7 +149,8 @@ export function useAdminEdgeHandling() {
     return removeDuplicateEdges(edgesData).map(edge => {
       // Preserve original color from backend or fall back to calculated color
       const originalColor = edge.style?.stroke
-      const edgeColor = originalColor || getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, true)
+      const computed = getEdgeColor(edge.data?.connection_type || 'direct', edge.data?.color, true)
+      const edgeColor = forceBlack ? '#000000' : (originalColor || computed)
       const isSelected = selectedEdgeId.value === edge.id
       const isBothWays = edge.data?.direction === 'both_ways'
       
@@ -154,14 +160,16 @@ export function useAdminEdgeHandling() {
         updatable: true, // Enable endpoint dragging
         animated: isSelected,
         style: {
-          stroke: edgeColor, // Use preserved color
+          stroke: edgeColor, // Use preserved or forced color
           strokeWidth: 2, // Keep consistent stroke width
           ...(edge.style || {})
         },
-        markerEnd: {
-          type: 'arrowclosed',
-          color: edgeColor,
-        } as any,
+        ...(disableMarkers ? {} : {
+          markerEnd: {
+            type: 'arrowclosed',
+            color: edgeColor,
+          } as any,
+        }),
         // Preserve saved handle information and ensure proper data
         sourceHandle: edge.sourceHandle || undefined,
         targetHandle: edge.targetHandle || undefined,
@@ -175,8 +183,8 @@ export function useAdminEdgeHandling() {
       }
 
       // Add arrow at the start for bidirectional connections
-      if (isBothWays) {
-        styledEdge.markerStart = {
+      if (isBothWays && !disableMarkers) {
+        (styledEdge as any).markerStart = {
           type: 'arrowclosed',
           color: edgeColor,
         } as any

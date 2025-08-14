@@ -646,6 +646,7 @@ export function initializeEdgesWithLayout(
   selectedEdgeId: string | null = null,
   isAdminMode: boolean = false
 ): Edge[] {
+  const disableMarkers = !!(savedLayout?.stream_config?.forceEdgeBlackNoArrow)
   // Build quick lookup maps
   const freshEdgeMap = new Map<string, Edge>();
   inputEdges.forEach(e => freshEdgeMap.set(e.id, e));
@@ -715,10 +716,12 @@ export function initializeEdgesWithLayout(
         strokeWidth: isSelected ? 4 : 2,
         ...(edge.style || {})
       },
-      markerEnd: {
-        type: 'arrowclosed',
-        color: edgeColor,
-      } as any,
+      ...(disableMarkers ? {} : {
+        markerEnd: {
+          type: 'arrowclosed',
+          color: edgeColor,
+        } as any,
+      }),
       data: {
         connection_type: edge.data?.connection_type || 'direct',
         direction: edge.data?.direction || 'one_way',
@@ -727,8 +730,8 @@ export function initializeEdgesWithLayout(
     };
 
     // Add arrow at the start for bidirectional connections
-    if (isBothWays) {
-      baseEdge.markerStart = {
+    if (isBothWays && !disableMarkers) {
+      (baseEdge as any).markerStart = {
         type: 'arrowclosed',
         color: edgeColor,
       } as any;

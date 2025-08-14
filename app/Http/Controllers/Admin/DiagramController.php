@@ -47,11 +47,9 @@ class DiagramController extends Controller
             $this->cleanupService->removeDuplicateIntegrations();
             $this->cleanupService->removeInvalidIntegrations();
 
-            // Ensure saved layout colors are synced to DB values on every view
-            // - edge colors from connection types
+            // Ensure saved layout colors are synced for nodes on every view
             // - node border colors from stream colors
             try {
-                $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
                 $this->streamLayoutService->synchronizeStreamColors($streamName);
             } catch (\Throwable $syncEx) {
                 \Log::warning('Admin DiagramController sync on view failed: ' . $syncEx->getMessage());
@@ -60,7 +58,7 @@ class DiagramController extends Controller
             // Use DTO-based DiagramService
             $diagramData = $this->diagramService->getVueFlowData($streamName, false);
             $diagramArray = $diagramData->toArray();
-            
+
             return inertia('Admin/Diagram', [
                 'streamName' => $streamName,
                 'nodes' => $diagramArray['nodes'] ?? [],
@@ -139,8 +137,8 @@ class DiagramController extends Controller
             // Synchronize edges layout with current AppIntegration data using StreamLayoutService
             $edgesSynced = $this->streamLayoutService->synchronizeStreamLayoutEdges($streamName);
             
-            // Synchronize connection type colors in the layout
-            $colorsSynced = $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
+            // Skip connection type color sync on refresh to keep edges black
+            $colorsSynced = 0;
             
             // Synchronize stream colors for app nodes in the layout
             $streamColorsSynced = $this->streamLayoutService->synchronizeStreamColors($streamName);

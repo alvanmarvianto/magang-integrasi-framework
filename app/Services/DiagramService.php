@@ -153,7 +153,7 @@ class DiagramService
     $streamNode = $nodeTransformer->createStreamNode($streamName, !$isUserView, $stream->color ?? null);
         $nodes[] = $streamNode->toArray();
 
-        if ($streamApps->isNotEmpty()) {
+    if ($streamApps->isNotEmpty()) {
             // Add stream apps - pass stream color to ensure app nodes get proper border colors
             $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView, $stream->color);
             $nodes = array_merge($nodes, $streamNodeApps->toArray());
@@ -186,8 +186,45 @@ class DiagramService
                 \Log::error("DiagramService - Debug error: " . $e->getMessage());
             }
 
+            // If admin view, sanitize savedLayout edges to black/no-arrow so UI doesn't pick colored legacy data
+            if (!$isUserView && is_array($savedLayout)) {
+                // Handle both keys: edges_layout and legacy edges
+                foreach (['edges_layout', 'edges'] as $edgeListKey) {
+                    if (isset($savedLayout[$edgeListKey]) && is_array($savedLayout[$edgeListKey])) {
+                        foreach ($savedLayout[$edgeListKey] as $idx => $edge) {
+                            if (!is_array($savedLayout[$edgeListKey][$idx])) continue;
+                            // Ensure style exists
+                            if (!isset($savedLayout[$edgeListKey][$idx]['style']) || !is_array($savedLayout[$edgeListKey][$idx]['style'])) {
+                                $savedLayout[$edgeListKey][$idx]['style'] = [];
+                            }
+                            $savedLayout[$edgeListKey][$idx]['style']['stroke'] = '#000000';
+                            $savedLayout[$edgeListKey][$idx]['style']['strokeWidth'] = $savedLayout[$edgeListKey][$idx]['style']['strokeWidth'] ?? 2;
+                            // Remove arrows/markers
+                            unset($savedLayout[$edgeListKey][$idx]['markerEnd'], $savedLayout[$edgeListKey][$idx]['markerStart']);
+                            // Normalize color fields to black
+                            $savedLayout[$edgeListKey][$idx]['color'] = '#000000';
+                            if (!isset($savedLayout[$edgeListKey][$idx]['data']) || !is_array($savedLayout[$edgeListKey][$idx]['data'])) {
+                                $savedLayout[$edgeListKey][$idx]['data'] = [];
+                            }
+                            $savedLayout[$edgeListKey][$idx]['data']['color'] = '#000000';
+                            // Ensure type remains smoothstep for consistency
+                            $savedLayout[$edgeListKey][$idx]['type'] = $savedLayout[$edgeListKey][$idx]['type'] ?? 'smoothstep';
+                            // Disable animation if present
+                            if (isset($savedLayout[$edgeListKey][$idx]['animated'])) {
+                                $savedLayout[$edgeListKey][$idx]['animated'] = false;
+                            }
+                        }
+                    }
+                }
+                // Set a config flag to tell the frontend to disable markers and force black
+                if (!isset($savedLayout['stream_config']) || !is_array($savedLayout['stream_config'])) {
+                    $savedLayout['stream_config'] = [];
+                }
+                $savedLayout['stream_config']['forceEdgeBlackNoArrow'] = true;
+            }
+
             // Transform edges using EdgeTransformer with saved layout
-            $edges = $isUserView 
+            $edges = $isUserView
                 ? $edgeTransformer->transformForUser($integrations, $savedLayout)
                 : $edgeTransformer->transformForAdmin($integrations, $savedLayout);
         }

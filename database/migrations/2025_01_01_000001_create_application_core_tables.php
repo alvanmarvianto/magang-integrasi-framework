@@ -44,9 +44,9 @@ return new class extends Migration
             $table->integer('source_app_id')->nullable();
             $table->integer('target_app_id')->nullable()->index('target_app_id');
             $table->integer('connection_type_id')->nullable()->index('connection_type_id');
-            $table->text('inbound_description')->nullable();
-            $table->text('outbound_description')->nullable();
-            $table->text('endpoint')->nullable();
+            $table->text('inbound')->nullable();
+            $table->text('outbound')->nullable();
+            $table->text('connection_endpoint')->nullable();
             $table->enum('direction', ['one_way', 'both_ways']);
 
             $table->unique(['source_app_id', 'target_app_id', 'connection_type_id'], 'source_app_id');

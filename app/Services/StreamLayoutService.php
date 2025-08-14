@@ -85,7 +85,14 @@ class StreamLayoutService
             // If no existing edge was found, add a new edge for this integration
             if (!$foundExistingEdge) {
                 $newEdgeDto = $this->createNewEdgeFromIntegration($integration);
-                $edgesLayout[] = $newEdgeDto->toArray();
+                $edge = $newEdgeDto->toArray();
+                if (!isset($edge['style']) || !is_array($edge['style'])) {
+                    $edge['style'] = [];
+                }
+                $edge['style']['stroke'] = '#000000';
+                $edge['style']['strokeWidth'] = 2;
+                unset($edge['markerEnd'], $edge['markerStart']);
+                $edgesLayout[] = $edge;
                 $updated = true;
             }
             
@@ -153,7 +160,7 @@ class StreamLayoutService
             $existingEdgesMap[$edgeId] = $edge;
         }
 
-        // Build new edges layout based on current integrations
+    // Build new edges layout based on current integrations
         $newEdgesLayout = [];
         foreach ($integrations as $integration) {
             // Only include edges where at least one end is a home stream app
@@ -168,6 +175,15 @@ class StreamLayoutService
                 $newEdgeDto = $this->createNewEdgeFromIntegration($integration);
                 $newEdge = $newEdgeDto->toArray();
                 
+                // Force black color and remove arrows for refreshed layout
+                if (!isset($newEdge['style']) || !is_array($newEdge['style'])) {
+                    $newEdge['style'] = [];
+                }
+                $newEdge['style']['stroke'] = '#000000';
+                $newEdge['style']['strokeWidth'] = 2;
+                unset($newEdge['markerEnd'], $newEdge['markerStart']);
+                // Keep type smoothstep but no markers means no arrows
+                
                 // Preserve handle positions if they exist
                 if ($existingEdge) {
                     $newEdge['sourceHandle'] = $existingEdge['sourceHandle'] ?? null;
@@ -180,8 +196,10 @@ class StreamLayoutService
 
         // Update stream config
         $streamConfig = $layoutDto->streamConfig;
-        $streamConfig['totalEdges'] = count($newEdgesLayout);
+    $streamConfig['totalEdges'] = count($newEdgesLayout);
         $streamConfig['lastUpdated'] = now()->toISOString();
+    // Set override flag so renderers/transformers honor black/no-arrow style
+    $streamConfig['forceEdgeBlackNoArrow'] = true;
 
         // Count of valid nodes (excluding stream parent node)
         $nodesLayout = $layoutDto->nodesLayout;
@@ -287,16 +305,19 @@ class StreamLayoutService
             'targetApp' => [
                 'app_id' => $integration->getAttribute('target_app_id'),
                 'app_name' => $integration->targetApp->app_name ?? ''
-            ]
+            ],
+            // Persist black color in data so UI doesn't reuse old colors
+            'color' => '#000000'
         ];
         
-        // Update the edge style based on connection type
-        $connectionType = $integration->connectionType->type_name ?? 'direct';
-        $edgeColor = $integration->connectionType->color ?? '#000000';
+        // Force black color and no arrows
         $edge['style'] = [
-            'stroke' => $edgeColor,
+            'stroke' => '#000000',
             'strokeWidth' => 2
         ];
+        // Legacy root-level color for some consumers
+        $edge['color'] = '#000000';
+        unset($edge['markerEnd'], $edge['markerStart']);
         $edge['type'] = 'smoothstep';
     }
     
@@ -305,8 +326,9 @@ class StreamLayoutService
      */
     private function createNewEdgeFromIntegration(AppIntegration $integration): DiagramEdgeDTO
     {
-        $connectionType = $integration->connectionType->type_name ?? 'direct';
-        $edgeColor = $integration->connectionType->color ?? '#000000';
+    $connectionType = $integration->connectionType->type_name ?? 'direct';
+    // Admin saved layout should not store connection-type color
+    $edgeColor = '#000000';
         
         $edgeData = [
             'id' => $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
@@ -339,7 +361,8 @@ class StreamLayoutService
                 'targetApp' => [
                     'app_id' => $integration->getAttribute('target_app_id'),
                     'app_name' => $integration->targetApp->app_name ?? ''
-                ]
+        ],
+        'color' => '#000000'
             ],
             'label' => $connectionType,
             'connection_type' => $connectionType,
@@ -542,27 +565,46 @@ class StreamLayoutService
             $cleanStreamName = substr($cleanStreamName, 7);
         }
 
-        foreach ($nodesLayout as $nodeId => $node) {
+        foreach ($nodesLayout as $key => $node) {
+            // Determine node id regardless of shape (keyed map or indexed array)
+            $nodeIdStr = (string)($node['id'] ?? $key);
+
             $nodeStreamName = null;
             $isParentNode = false;
 
-            // Detect parent node by key match
-            if ((string)$nodeId === $streamName || (string)$nodeId === $cleanStreamName) {
+            // Detect parent node by either raw or cleaned stream name
+            if ($nodeIdStr === $streamName || $nodeIdStr === $cleanStreamName) {
                 $nodeStreamName = $streamName;
                 $isParentNode = true;
             }
 
-            // If we didn't detect a parent and nodeId is an app id, resolve via App
-            if (!$nodeStreamName && is_numeric((string)$nodeId)) {
-                $app = \App\Models\App::with('stream')->find((int)$nodeId);
+            // Prefer data.stream_name if present
+            if (!$nodeStreamName && isset($node['data']['stream_name'])) {
+                $nodeStreamName = (string)$node['data']['stream_name'];
+            }
+
+            // If still unknown and node id looks like numeric app id, resolve via DB
+            if (!$nodeStreamName && is_numeric($nodeIdStr)) {
+                $app = \App\Models\App::with('stream')->find((int)$nodeIdStr);
                 if ($app && $app->stream) {
                     $nodeStreamName = $app->stream->stream_name;
                 }
             }
 
-            // Fallback: try data.stream_name if present
-            if (!$nodeStreamName && isset($node['data']['stream_name'])) {
-                $nodeStreamName = $node['data']['stream_name'];
+            // Legacy fallback: try to resolve by data.app_name
+            if (!$nodeStreamName && isset($node['data']['app_name']) && is_string($node['data']['app_name'])) {
+                $byName = \App\Models\App::with('stream')->where('app_name', $node['data']['app_name'])->first();
+                if ($byName && $byName->stream) {
+                    $nodeStreamName = $byName->stream->stream_name;
+                }
+            }
+
+            // Legacy fallback: try to resolve by node id as app_name
+            if (!$nodeStreamName && !is_numeric($nodeIdStr)) {
+                $byIdName = \App\Models\App::with('stream')->where('app_name', $nodeIdStr)->first();
+                if ($byIdName && $byIdName->stream) {
+                    $nodeStreamName = $byIdName->stream->stream_name;
+                }
             }
 
             if (!$nodeStreamName) {
@@ -585,36 +627,55 @@ class StreamLayoutService
 
             $currentColor = $streamModel->color;
 
+            // Pick a writable key; if map is keyed by id, update that; else update current index
+            $writeKey = array_key_exists($nodeIdStr, $nodesLayout) ? $nodeIdStr : $key;
+
             // Ensure style array exists
-            if (!isset($nodesLayout[$nodeId]['style']) || !is_array($nodesLayout[$nodeId]['style'])) {
-                $nodesLayout[$nodeId]['style'] = [];
+            if (!isset($nodesLayout[$writeKey]['style']) || !is_array($nodesLayout[$writeKey]['style'])) {
+                $nodesLayout[$writeKey]['style'] = [];
             }
 
-            $borderStr = $nodesLayout[$nodeId]['style']['border'] ?? null;
-            $savedBorderColor = $nodesLayout[$nodeId]['style']['borderColor'] ?? null;
+            $borderStr = $nodesLayout[$writeKey]['style']['border'] ?? null;
+            $savedBorderColor = $nodesLayout[$writeKey]['style']['borderColor'] ?? null;
 
             $colorNeedsUpdate = false;
 
             // Always enforce shorthand border color to DB value
             $desiredBorderStr = "2px solid {$currentColor}";
             if ($borderStr !== $desiredBorderStr) {
-                $nodesLayout[$nodeId]['style']['border'] = $desiredBorderStr;
+                $nodesLayout[$writeKey]['style']['border'] = $desiredBorderStr;
                 $colorNeedsUpdate = true;
             }
 
             // Also set/align explicit borderColor for robustness
             if ($savedBorderColor !== $currentColor) {
-                $nodesLayout[$nodeId]['style']['borderColor'] = $currentColor;
+                $nodesLayout[$writeKey]['style']['borderColor'] = $currentColor;
                 $colorNeedsUpdate = true;
             }
 
             // Also update any data color field if it exists (non-parent nodes only)
-            if (!$isParentNode && isset($nodesLayout[$nodeId]['data']) && is_array($nodesLayout[$nodeId]['data'])) {
-                $dataColor = $nodesLayout[$nodeId]['data']['color'] ?? null;
+            if (!$isParentNode && isset($nodesLayout[$writeKey]['data']) && is_array($nodesLayout[$writeKey]['data'])) {
+                $dataColor = $nodesLayout[$writeKey]['data']['color'] ?? null;
                 if ($dataColor !== $currentColor) {
-                    $nodesLayout[$nodeId]['data']['color'] = $currentColor;
+                    $nodesLayout[$writeKey]['data']['color'] = $currentColor;
                     $colorNeedsUpdate = true;
                 }
+            }
+
+            // If structure also contains a separate entry indexed by id, mirror updates
+            if ($writeKey !== $nodeIdStr && isset($nodesLayout[$nodeIdStr]) && is_array($nodesLayout[$nodeIdStr])) {
+                if (!isset($nodesLayout[$nodeIdStr]['style']) || !is_array($nodesLayout[$nodeIdStr]['style'])) {
+                    $nodesLayout[$nodeIdStr]['style'] = [];
+                }
+                $nodesLayout[$nodeIdStr]['style']['border'] = $desiredBorderStr;
+                $nodesLayout[$nodeIdStr]['style']['borderColor'] = $currentColor;
+                if (!$isParentNode) {
+                    if (!isset($nodesLayout[$nodeIdStr]['data']) || !is_array($nodesLayout[$nodeIdStr]['data'])) {
+                        $nodesLayout[$nodeIdStr]['data'] = [];
+                    }
+                    $nodesLayout[$nodeIdStr]['data']['color'] = $currentColor;
+                }
+                $colorNeedsUpdate = true;
             }
 
             if ($colorNeedsUpdate) {
@@ -625,9 +686,9 @@ class StreamLayoutService
         if ($colorsSynced > 0) {
             // Save the updated layout using the repository
             $this->streamLayoutRepository->saveLayoutById(
-                $layoutDTO->streamId, 
-                $nodesLayout, 
-                $layoutDTO->edgesLayout, 
+                $layoutDTO->streamId,
+                $nodesLayout,
+                $layoutDTO->edgesLayout,
                 $layoutDTO->streamConfig
             );
         }

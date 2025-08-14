@@ -13,12 +13,13 @@ class EdgeTransformer
      */
     public function transformForAdmin(Collection $integrations, ?array $savedLayout = null): Collection
     {
-    // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
-    $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
+        // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
+        $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
             $connectionType = $integration->connectionType?->type_name ?? 'direct';
-            $edgeColor = $integration->connectionType?->color ?? '#000000';
+            // Admin view: always render edges black, ignore connection-type colors
+            $edgeColor = '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
             
@@ -63,13 +64,17 @@ class EdgeTransformer
                 if (isset($savedEdge['targetHandle'])) {
                     $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
-                // Merge saved style but enforce DB color for stroke
+                // Merge saved style but enforce black stroke for admin
                 if (isset($savedEdge['style']) && is_array($savedEdge['style'])) {
                     $mergedStyle = array_merge($edgeData['style'], $savedEdge['style']);
-                    $mergedStyle['stroke'] = $edgeColor; // enforce sync with connection type color
                     $edgeData['style'] = $mergedStyle;
                 }
             }
+
+            // Always enforce black stroke and remove arrows in admin
+            $edgeData['style']['stroke'] = '#000000';
+            $edgeData['style']['strokeWidth'] = $edgeData['style']['strokeWidth'] ?? 2;
+            unset($edgeData['markerEnd'], $edgeData['markerStart']);
 
             return $edgeData;
         });
@@ -80,11 +85,12 @@ class EdgeTransformer
      */
     public function transformForUser(Collection $integrations, ?array $savedLayout = null): Collection
     {
-    // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
-    $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
+        // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
+        $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
             $connectionType = $integration->connectionType?->type_name ?? 'direct';
+            // User view: use connection type color from DB
             $edgeColor = $integration->connectionType?->color ?? '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
@@ -130,13 +136,14 @@ class EdgeTransformer
                 if (isset($savedEdge['targetHandle'])) {
                     $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
-                // Merge saved style but enforce DB color for stroke
+                // Merge saved style but do not enforce saved color
                 if (isset($savedEdge['style']) && is_array($savedEdge['style'])) {
                     $mergedStyle = array_merge($edgeData['style'], $savedEdge['style']);
-                    $mergedStyle['stroke'] = $edgeColor; // enforce sync with connection type color
                     $edgeData['style'] = $mergedStyle;
                 }
             }
+
+            // Keep whatever markers/layout the saved layout has; do not force black in user view
 
             return $edgeData;
         });

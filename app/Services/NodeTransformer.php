@@ -71,7 +71,7 @@ class NodeTransformer
             // Use provided stream color or get from app's stream
             $appStreamColor = $streamColor ?: ($app->stream?->color ?? '#999999');
             
-            $baseData = [
+        $baseData = [
                 'id' => (string)$app->getAttribute('app_id'),
                 'data' => [
                     'label' => $app->getAttribute('app_name') ?? 'Unknown App',
@@ -81,12 +81,15 @@ class NodeTransformer
                     'app_type' => $app->getAttribute('app_type'),
                     'stream_name' => $appStreamName,
                     'lingkup' => $appStreamName,
+            // Provide explicit color hint for UI
+            'color' => $appStreamColor,
                     'is_home_stream' => true,
                     'is_external' => false,
                     'is_parent_node' => false,
                 ],
                 'style' => [
-                    'border' => '2px solid ' . $appStreamColor,
+            'border' => '2px solid ' . $appStreamColor,
+            'borderColor' => $appStreamColor,
                     'borderRadius' => '8px',
                     'width' => self::APP_WIDTH,
                     'height' => self::APP_HEIGHT,
@@ -94,10 +97,15 @@ class NodeTransformer
             ];
 
             if ($isAdmin) {
+                // Ensure parentNode matches the stream parent node id, which is the cleaned stream name
+                $cleanParentId = strtolower(trim($streamName));
+                if (str_starts_with($cleanParentId, 'stream ')) {
+                    $cleanParentId = substr($cleanParentId, 7);
+                }
                 $baseData['data']['label'] .= "\nID: " . $app->getAttribute('app_id') . "\nStream: " . strtoupper($streamName);
                 $baseData['type'] = 'appNode';
                 $baseData['position'] = ['x' => 100, 'y' => 100];
-                $baseData['parentNode'] = $streamName;
+                $baseData['parentNode'] = $cleanParentId; // match createStreamNode id
                 $baseData['extent'] = 'parent';
             } else {
                 $baseData['type'] = 'app';
@@ -120,7 +128,7 @@ class NodeTransformer
             // Use stream color from app's stream if available
             $appStreamColor = $app->stream?->color ?? '#999999';
             
-            $baseData = [
+        $baseData = [
                 'id' => (string)$app->getAttribute('app_id'),
                 'data' => [
                     'label' => $app->getAttribute('app_name') ?? 'Unknown App',
@@ -130,12 +138,15 @@ class NodeTransformer
                     'app_type' => $app->getAttribute('app_type'),
                     'stream_name' => $appStreamName,
                     'lingkup' => $appStreamName,
+            // Provide explicit color hint for UI
+            'color' => $appStreamColor,
                     'is_home_stream' => false,
                     'is_external' => true,
                     'is_parent_node' => false,
                 ],
                 'style' => [
-                    'border' => '2px solid ' . $appStreamColor,
+            'border' => '2px solid ' . $appStreamColor,
+            'borderColor' => $appStreamColor,
                     'borderRadius' => '8px',
                     'width' => self::APP_WIDTH,
                     'height' => self::APP_HEIGHT,

@@ -120,7 +120,13 @@ class DiagramCleanupService
         $layoutDto = $this->streamLayoutRepository->findByStreamName($streamName);
         if ($layoutDto && $layoutDto->nodesLayout) {
             $validNodeIds = collect($allValidAppIds)->map(fn($id) => (string)$id)->toArray();
-            $validNodeIds[] = $streamName; // Include stream parent node
+            // Include stream parent node id variants (raw and cleaned)
+            $validNodeIds[] = $streamName;
+            $cleanStreamName = strtolower(trim($streamName));
+            if (str_starts_with($cleanStreamName, 'stream ')) {
+                $cleanStreamName = substr($cleanStreamName, 7);
+            }
+            $validNodeIds[] = $cleanStreamName;
 
             $cleanedLayout = array_filter(
                 $layoutDto->nodesLayout,
@@ -129,10 +135,8 @@ class DiagramCleanupService
             );
 
             if (count($cleanedLayout) !== count($layoutDto->nodesLayout)) {
-                count($layoutDto->nodesLayout) - count($cleanedLayout);
-                
                 $updatedDto = StreamLayoutDTO::forSave(
-                    $layoutDto->streamName,
+                    $layoutDto->streamId,
                     $cleanedLayout,
                     $layoutDto->edgesLayout,
                     $layoutDto->streamConfig
