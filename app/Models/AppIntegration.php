@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class AppIntegration extends Pivot
@@ -50,11 +51,6 @@ class AppIntegration extends Pivot
     protected $fillable = [
         'source_app_id',
         'target_app_id',
-        'connection_type_id',
-        'inbound',
-        'outbound',
-        'connection_endpoint',
-        'direction',
     ];
 
     /**
@@ -62,13 +58,12 @@ class AppIntegration extends Pivot
      *
      * @var array<string, string>
      */
-    protected $casts = [
-        'direction' => 'string',
-    ];
+    protected $casts = [];
 
-    public function connectionType(): BelongsTo
+    // New relation: one integration can have many connection types with per-app payloads
+    public function connections(): HasMany
     {
-        return $this->belongsTo(ConnectionType::class, 'connection_type_id', 'connection_type_id');
+        return $this->hasMany(AppIntegrationConnection::class, 'integration_id', 'integration_id');
     }
 
     public function sourceApp(): BelongsTo
@@ -150,14 +145,9 @@ class AppIntegration extends Pivot
     {
         $originalSourceId = $this->getAttribute('source_app_id');
         $originalTargetId = $this->getAttribute('target_app_id');
-        $originalInbound = $this->getAttribute('inbound');
-        $originalOutbound = $this->getAttribute('outbound');
-
-        $result = $this->update([
+    $result = $this->update([
             'source_app_id' => $originalTargetId,
             'target_app_id' => $originalSourceId,
-            'inbound' => $originalOutbound, // Swap inbound and outbound
-            'outbound' => $originalInbound,
         ]);
 
         // Update stream layouts after switching
@@ -199,13 +189,11 @@ class AppIntegration extends Pivot
                     $edge['id'] = $this->getAttribute('source_app_id') . '-' . $this->getAttribute('target_app_id');
                     
                     // Update the edge data with fresh integration data
-                    $this->load(['sourceApp', 'targetApp', 'connectionType']);
+                    $this->load(['sourceApp', 'targetApp']);
                     
                     $edge['data'] = array_merge($edge['data'], [
                         'source_app_id' => $this->getAttribute('source_app_id'),
                         'target_app_id' => $this->getAttribute('target_app_id'),
-                        'inbound' => $this->getAttribute('inbound'),
-                        'outbound' => $this->getAttribute('outbound'),
                         'source_app_name' => $this->sourceApp->app_name ?? '',
                         'target_app_name' => $this->targetApp->app_name ?? '',
                         'sourceApp' => [
