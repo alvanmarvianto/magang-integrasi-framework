@@ -50,17 +50,6 @@ export function useSidebar() {
     sidebar?.classList.remove('visible');
   }
 
-  function handleClickOutside(event: Event) {
-    const sidebar = document.getElementById('sidebar');
-    const menuToggle = document.getElementById('menu-toggle');
-
-    if (sidebar && menuToggle && !sidebar.contains(event.target as Node) && !menuToggle.contains(event.target as Node)) {
-      visible.value = false;
-      cacheSidebarState(false);
-      sidebar.classList.remove('visible');
-    }
-  }
-
   function handleEscapeKey(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       visible.value = false;
@@ -86,7 +75,6 @@ export function useSidebar() {
     checkScreenSize();
     applyCachedState(); // Apply cached sidebar state to DOM
     window.addEventListener('resize', checkScreenSize);
-    document.addEventListener('click', handleClickOutside);
     document.addEventListener('keydown', handleEscapeKey);
   });
 
@@ -107,7 +95,6 @@ export function useSidebar() {
 
   onUnmounted(() => {
     window.removeEventListener('resize', checkScreenSize);
-    document.removeEventListener('click', handleClickOutside);
     document.removeEventListener('keydown', handleEscapeKey);
   });
 

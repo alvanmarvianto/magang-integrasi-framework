@@ -433,8 +433,6 @@ function centerView() {
 function resetLayout() {
   initializeLayout();
 }
-
-// Highlight state/logic moved into useVueFlowUserView()
 </script>
 
 <style scoped>
