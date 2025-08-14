@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\App;
 use App\DTOs\AppDTO;
 use App\Repositories\Interfaces\AppRepositoryInterface;
+use App\Repositories\Interfaces\IntegrationRepositoryInterface;
+use Illuminate\Support\Facades\DB;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
 use Illuminate\Support\Facades\Log;
@@ -16,19 +18,22 @@ class AppService
     protected StreamService $streamService;
     protected TechnologyRepositoryInterface $technologyRepository;
     protected StreamLayoutRepositoryInterface $streamLayoutRepository;
+    protected IntegrationRepositoryInterface $integrationRepository;
 
     public function __construct(
         AppRepositoryInterface $appRepository,
         TechnologyService $technologyService,
         StreamService $streamService,
         TechnologyRepositoryInterface $technologyRepository,
-        StreamLayoutRepositoryInterface $streamLayoutRepository
+    StreamLayoutRepositoryInterface $streamLayoutRepository,
+    IntegrationRepositoryInterface $integrationRepository
     ) {
         $this->appRepository = $appRepository;
         $this->technologyService = $technologyService;
         $this->streamService = $streamService;
         $this->technologyRepository = $technologyRepository;
         $this->streamLayoutRepository = $streamLayoutRepository;
+    $this->integrationRepository = $integrationRepository;
     }
 
     /**
@@ -76,12 +81,53 @@ class AppService
         $appDTO = $appId ? $this->appRepository->findAsDTOFresh($appId) : null;
         
         $technologyOptions = $this->getTechnologyOptions();
+        $integrationOptions = $this->integrationRepository->getIntegrationOptions();
+
+        // Prepare app payload, and enrich with integration_functions for edit mode
+        $appPayload = $appDTO ? $appDTO->toArray() : null;
+        if ($appId && $appPayload !== null) {
+            // Fetch functions and group integration_ids per function_name
+            $rows = DB::table('appintegration_functions')
+                ->where('app_id', $appId)
+                ->select('function_name', 'integration_id')
+                ->orderBy('function_name')
+                ->get();
+
+            if ($rows->isNotEmpty()) {
+                $grouped = $rows
+                    ->groupBy('function_name')
+                    ->map(function ($items, $fname) {
+                        return [
+                            'function_name' => $fname,
+                            'integration_ids' => $items->pluck('integration_id')->unique()->values()->all(),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
+                $appPayload['integration_functions'] = $grouped;
+            } else {
+                $appPayload['integration_functions'] = [];
+            }
+        }
 
         return [
-            'app' => $appDTO ? $appDTO->toArray() : null,
-            'streams' => $this->streamService->getAllStreams()->map(fn($streamDto) => [
-                'data' => $streamDto->toArray()
-            ]),
+            'app' => $appPayload,
+            'streams' => $this->streamService->getAllStreams()->map(function ($streamDto) {
+                if (is_object($streamDto) && method_exists($streamDto, 'toArray')) {
+                    $data = $streamDto->toArray();
+                } elseif (is_array($streamDto)) {
+                    $data = $streamDto;
+                } else {
+                    // Fallback for stdClass or other objects
+                    $data = [
+                        'stream_id' => $streamDto->stream_id ?? null,
+                        'stream_name' => $streamDto->stream_name ?? null,
+                        'description' => $streamDto->description ?? null,
+                    ];
+                }
+                return ['data' => $data];
+            }),
             'appTypes' => $this->getAppTypes(),
             'stratifications' => $this->getStratifications(),
             'technologyOptions' => $technologyOptions,
@@ -94,6 +140,8 @@ class AppService
             'middlewares' => $technologyOptions['middlewares'] ?? [],
             'thirdParties' => $technologyOptions['third_parties'] ?? [],
             'platforms' => $technologyOptions['platforms'] ?? [],
+            // Integration options for Informasi Fungsi section
+            'integrationOptions' => $integrationOptions,
         ];
     }
 
@@ -104,6 +152,11 @@ class AppService
     {
         $appDTO = $this->buildAppDTOFromValidatedData($validatedData);
         $app = $this->appRepository->createWithTechnology($appDTO);
+
+        // Persist function mappings if provided
+        if (!empty($validatedData['functions']) && is_array($validatedData['functions'])) {
+            $this->saveAppIntegrationFunctions($app->app_id, $validatedData['functions']);
+        }
         
         return AppDTO::fromModel($app);
     }
@@ -115,11 +168,54 @@ class AppService
     {
         $appDTO = $this->buildAppDTOFromValidatedData($validatedData, $app->app_id);
         $updateResult = $this->appRepository->updateWithTechnology($app, $appDTO);
+
+        // Persist function mappings if provided (replace existing)
+        if (array_key_exists('functions', $validatedData)) {
+            $this->saveAppIntegrationFunctions($app->app_id, $validatedData['functions'] ?? []);
+        }
         
         // Reload the app with fresh data (bypassing cache)
         $updatedApp = $this->appRepository->findWithRelationsFresh($app->app_id);
         
         return AppDTO::fromModel($updatedApp);
+    }
+
+    private function saveAppIntegrationFunctions(int $appId, array $functions): void
+    {
+        // Expected function item: { function_name: string, integration_ids: number[] } or legacy { integration_id }
+        DB::transaction(function () use ($appId, $functions) {
+            DB::table('appintegration_functions')->where('app_id', $appId)->delete();
+
+            $rows = [];
+            foreach ($functions as $f) {
+                $name = trim((string)($f['function_name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                // Normalize integrations to an array
+                $ids = [];
+                if (isset($f['integration_ids']) && is_array($f['integration_ids'])) {
+                    $ids = array_values(array_unique(array_map('intval', $f['integration_ids'])));
+                } elseif (!empty($f['integration_id'])) { // legacy single
+                    $ids = [intval($f['integration_id'])];
+                }
+
+                foreach ($ids as $integrationId) {
+                    if (!$integrationId) continue;
+                    $rows[] = [
+                        'app_id' => $appId,
+                        'integration_id' => $integrationId,
+                        'function_name' => $name,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+            if (!empty($rows)) {
+                DB::table('appintegration_functions')->insert($rows);
+            }
+        });
     }
 
     /**
@@ -274,6 +370,7 @@ class AppService
             streamId: $validatedData['stream_id'],
             appType: $validatedData['app_type'],
             stratification: $validatedData['stratification'],
+            isFunction: (bool)($validatedData['is_function'] ?? false),
             technologyComponents: $technologyComponents
         );
     }

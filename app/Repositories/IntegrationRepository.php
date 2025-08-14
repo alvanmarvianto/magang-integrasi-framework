@@ -13,6 +13,43 @@ use Illuminate\Support\Facades\Cache;
 
 class IntegrationRepository implements IntegrationRepositoryInterface
 {
+    public function getIntegrationOptions(): array
+    {
+        $cacheKey = CacheConfig::buildKey('integrations', 'options');
+        $ttl = CacheConfig::getTTL('default');
+
+        return Cache::remember($cacheKey, $ttl, function () {
+            // Join with apps to build a human-friendly label
+            $rows = AppIntegration::query()
+                ->leftJoin('apps as s', 'appintegrations.source_app_id', '=', 's.app_id')
+                ->leftJoin('apps as t', 'appintegrations.target_app_id', '=', 't.app_id')
+                ->orderBy('s.app_name')
+                ->orderBy('t.app_name')
+                ->get([
+                    'appintegrations.integration_id',
+                    'appintegrations.source_app_id',
+                    'appintegrations.target_app_id',
+                    's.app_name as source_name',
+                    't.app_name as target_name'
+                ]);
+
+            $options = $rows->map(function ($r) {
+                $label = trim(($r->source_name ?? 'Unknown') . ' → ' . ($r->target_name ?? 'Unknown'));
+                return [
+                    'integration_id' => (int) $r->integration_id,
+                    'label' => $label,
+                    'source_app_id' => (int) $r->source_app_id,
+                    'target_app_id' => (int) $r->target_app_id,
+                    'source_name' => (string) ($r->source_name ?? ''),
+                    'target_name' => (string) ($r->target_name ?? ''),
+                ];
+            })->toArray();
+
+            // Ensure alphabetical ordering by label
+            usort($options, fn($a, $b) => strcmp($a['label'], $b['label']));
+            return $options;
+        });
+    }
     public function getPaginatedIntegrations(
         ?string $search = null,
         int $perPage = 10,
@@ -347,6 +384,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         Cache::forget(CacheConfig::buildKey('app', 'connected_apps', $targetAppId));
         Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $sourceAppId, $targetAppId));
         Cache::forget(CacheConfig::buildKey('integrations', 'between_apps', $targetAppId, $sourceAppId));
+    Cache::forget(CacheConfig::buildKey('integrations', 'options'));
         // Do NOT attempt to clear integration-with-relations by app IDs; that cache is keyed by integration_id
     }
 }

@@ -37,6 +37,68 @@
               class="admin-form-textarea"
             ></textarea>
           </AdminFormField>
+
+          <AdminFormField label="Apakah memiliki modul?" id="is_function" class="col-span-2">
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-2">
+                <input type="radio" name="is_function" value="1" :checked="form.is_function === true" @change="form.is_function = true" />
+                <span>Ya</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="radio" name="is_function" value="0" :checked="form.is_function === false" @change="form.is_function = false" />
+                <span>Tidak</span>
+              </label>
+            </div>
+          </AdminFormField>
+        </div>
+      </AdminFormSection>
+
+      <AdminFormSection v-if="form.is_function" title="Informasi Fungsi">
+        <div class="tech-section">
+          <div class="tech-section-header">
+            <h3 class="tech-section-title">Daftar Modul dan Integrasi</h3>
+            <button type="button" class="tech-section-add" @click="addFunction()">
+              <font-awesome-icon icon="fa-solid fa-plus" /> Tambah Modul
+            </button>
+          </div>
+
+          <div v-if="form.functions?.length === 0" class="tech-section-empty">
+            Tidak ada modul yang ditambahkan
+          </div>
+
+          <div v-else class="tech-section-items">
+            <div v-for="(fn, idx) in form.functions" :key="idx" class="tech-section-item">
+              <input
+                v-model="fn.function_name"
+                type="text"
+                placeholder="Nama Modul/Fungsi"
+                class="tech-section-input"
+                required
+              />
+
+              <div class="integration-multi">
+                <div class="integration-row" v-for="(intId, j) in (fn.integration_ids || [])" :key="j">
+                  <select v-model.number="fn.integration_ids[j]" class="tech-section-select" required>
+                    <option value="">Pilih Integrasi</option>
+                    <option v-for="opt in filteredIntegrationOptions" :key="opt.integration_id" :value="opt.integration_id">
+                      {{ partnerAppName(opt) }}
+                    </option>
+                  </select>
+                  <button type="button" class="tech-section-remove" @click="removeFnIntegration(idx, j)">
+                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  </button>
+                </div>
+
+                <button type="button" class="tech-section-add" @click="addFnIntegration(idx)">
+                  <font-awesome-icon icon="fa-solid fa-plus" /> Tambah Integrasi
+                </button>
+              </div>
+
+              <button type="button" class="tech-section-remove" @click="removeFunction(idx)">
+                <font-awesome-icon icon="fa-solid fa-trash" />
+              </button>
+            </div>
+          </div>
         </div>
       </AdminFormSection>
 
@@ -47,7 +109,6 @@
               id="app_type"
               v-model="form.app_type"
               class="admin-form-select"
-              required
             >
               <option value="">Pilih Tipe</option>
               <option v-for="type in appTypes" :key="type" :value="type">
@@ -61,7 +122,6 @@
               id="stratification"
               v-model="form.stratification"
               class="admin-form-select"
-              required
             >
               <option value="">Pilih Stratifikasi</option>
               <option v-for="strat in stratifications" :key="strat" :value="strat">
@@ -147,13 +207,14 @@
 
 <script setup lang="ts">
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminForm from '@/components/Admin/AdminForm.vue';
 import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
 import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import TechnologySection from '@/components/Admin/TechnologySection.vue';
 import { useNotification } from '@/composables/useNotification';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const { showSuccess, showError } = useNotification();
 
@@ -174,6 +235,7 @@ interface FormData {
   stream_id: number | null;
   app_type: string | null;
   stratification: string | null;
+  is_function: boolean;
   vendors: TechItem[];
   operating_systems: TechItem[];
   databases: TechItem[];
@@ -193,6 +255,7 @@ interface Props {
     stream_id: number;
     app_type: string | null;
     stratification: string | null;
+  is_function?: boolean;
     stream_name: string;
     technology_components: {
       vendors: RawTechItem[];
@@ -232,6 +295,7 @@ interface Props {
   middlewares: string[];
   thirdParties: string[];
   platforms: string[];
+  integrationOptions: Array<{ integration_id: number; label: string; source_app_id: number; target_app_id: number; source_name: string; target_name: string }>
 }
 
 const props = defineProps<Props>();
@@ -242,6 +306,7 @@ const form = ref<FormData>({
   stream_id: null,
   app_type: null,
   stratification: null,
+  is_function: false,
   vendors: [],
   operating_systems: [],
   databases: [],
@@ -250,6 +315,7 @@ const form = ref<FormData>({
   middlewares: [],
   third_parties: [],
   platforms: [],
+  functions: [],
 });
 
 onMounted(() => {
@@ -265,6 +331,7 @@ onMounted(() => {
         stream_id: appData.stream_id,
         app_type: appData.app_type,
         stratification: appData.stratification,
+  is_function: (appData as any).is_function === true,
         vendors: (techComponents.vendors || []).map((v: RawTechItem) => ({ 
           name: v.name || '', 
           version: v.version || undefined 
@@ -297,6 +364,8 @@ onMounted(() => {
           name: p.name || '', 
           version: p.version || undefined 
         })),
+  // Preload functions if provided by BE in future (not present in DTO yet)
+  functions: (appData as any).integration_functions || [],
       };
     }
   } catch (error) {
@@ -333,8 +402,193 @@ function submit() {
     });
   }
 }
+
+function addFunction() {
+  if (!form.value.functions) form.value.functions = [];
+  form.value.functions.push({ function_name: '', integration_ids: [undefined] });
+}
+
+function removeFunction(index: number) {
+  form.value.functions.splice(index, 1);
+}
+
+function addFnIntegration(fnIndex: number) {
+  const fn = form.value.functions[fnIndex];
+  if (!fn.integration_ids) fn.integration_ids = [];
+  fn.integration_ids.push(undefined);
+}
+
+function removeFnIntegration(fnIndex: number, intIndex: number) {
+  const fn = form.value.functions[fnIndex];
+  if (!fn?.integration_ids) return;
+  fn.integration_ids.splice(intIndex, 1);
+}
+
+// Filter integration options to only those involving this app (edit mode). In create mode, show none.
+const filteredIntegrationOptions = computed(() => {
+  const appId = props.app?.app_id;
+  if (!appId) return [] as typeof props.integrationOptions;
+  const list = props.integrationOptions.filter(opt => opt.source_app_id === appId || opt.target_app_id === appId);
+  return [...list].sort((a, b) => partnerAppName(a).localeCompare(partnerAppName(b)));
+});
+
+function partnerAppName(opt: { source_app_id: number; target_app_id: number; source_name: string; target_name: string }) {
+  const appId = props.app?.app_id;
+  if (!appId) return '';
+  return opt.source_app_id === appId ? opt.target_name : opt.source_name;
+}
 </script>
 
 <style scoped>
 @import '../../../css/admin.css';
+@import '../../../css/components.css';
+.tech-section {
+  margin-top: 2rem;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Required for Firefox */
+}
+
+.tech-section:last-child {
+  margin-bottom: 0;
+}
+
+.tech-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: var(--z-10);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tech-section-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.tech-section-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+  color: var(--primary-color);
+  border-radius: var(--radius);
+  background-color: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+}
+
+.tech-section-add:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  opacity: 0.9;
+}
+.tech-section-add i {
+  font-size: 0.75rem;
+}
+
+.tech-section-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  background-color: var(--bg-alt);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  padding: 2rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tech-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  padding: 0.5rem;
+  margin: -0.5rem;
+}
+
+.tech-section-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  background-color: var(--bg-alt);
+  border-radius: var(--radius);
+  transition: background-color var(--transition-fast);
+}
+
+.tech-section-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.tech-section-select,
+.tech-section-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background-color: white;
+  transition: all var(--transition-fast);
+}
+
+.tech-section-select:focus,
+.tech-section-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-light);
+}
+
+.tech-section-select::placeholder,
+.tech-section-input::placeholder {
+  color: var(--text-muted);
+}
+
+.tech-section-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--danger-color);
+  background-color: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+}
+
+.tech-section-remove:hover {
+  background-color: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+.tech-section-remove i {
+  font-size: 0.875rem;
+}
 </style> 

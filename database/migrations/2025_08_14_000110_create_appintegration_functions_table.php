@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('appintegration_functions')) {
+            return; // table already exists
+        }
+
         Schema::create('appintegration_functions', function (Blueprint $table) {
             $table->id();
             // Match parent column signedness (both are signed INT in core migration)

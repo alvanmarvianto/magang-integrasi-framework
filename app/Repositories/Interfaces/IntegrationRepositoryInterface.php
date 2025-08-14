@@ -73,4 +73,10 @@ interface IntegrationRepositoryInterface
      * Get apps integrated with apps in specific stream
      */
     public function getExternalAppsConnectedToStream(array $streamAppIds): Collection;
+
+    /**
+     * Get all integration options for forms (cached), sorted alphabetically by label.
+     * Each item: [integration_id:int, label:string]
+     */
+    public function getIntegrationOptions(): array;
 }
