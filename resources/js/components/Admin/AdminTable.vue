@@ -23,7 +23,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in items" :key="item.id || item.app_id || item.stream_id">
+  <tr v-for="item in items" :key="item.integration_id || item.id || item.app_id || item.stream_id">
           <td 
             v-for="column in columns" 
             :key="column.key"

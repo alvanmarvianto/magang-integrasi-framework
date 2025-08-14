@@ -31,7 +31,7 @@ class IntegrationController extends Controller
             sortDesc: $request->boolean('sort_desc', false)
         );
 
-        return Inertia::render('Admin/Integrations', $paginationData);
+    return Inertia::render('Admin/Integrations', $paginationData);
     }
 
     /**
@@ -52,11 +52,12 @@ class IntegrationController extends Controller
         $validated = $request->validate([
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
-            'connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
-            'inbound' => 'nullable|string|max:1000',
-            'outbound' => 'nullable|string|max:1000',
-            'connection_endpoint' => 'nullable|url|max:255',
-            'direction' => 'required|in:one_way,both_ways',
+            'connections' => 'required|array|min:1',
+            'connections.*.connection_type_id' => 'nullable|distinct|exists:connectiontypes,connection_type_id',
+            'connections.*.source_inbound' => 'nullable|string|max:1000',
+            'connections.*.source_outbound' => 'nullable|string|max:1000',
+            'connections.*.target_inbound' => 'nullable|string|max:1000',
+            'connections.*.target_outbound' => 'nullable|string|max:1000',
         ]);
 
         try {
@@ -98,11 +99,12 @@ class IntegrationController extends Controller
         $validated = $request->validate([
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
-            'connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
-            'inbound' => 'nullable|string|max:1000',
-            'outbound' => 'nullable|string|max:1000',
-            'connection_endpoint' => 'nullable|url|max:255',
-            'direction' => 'required|in:one_way,both_ways',
+            'connections' => 'required|array|min:1',
+            'connections.*.connection_type_id' => 'nullable|distinct|exists:connectiontypes,connection_type_id',
+            'connections.*.source_inbound' => 'nullable|string|max:1000',
+            'connections.*.source_outbound' => 'nullable|string|max:1000',
+            'connections.*.target_inbound' => 'nullable|string|max:1000',
+            'connections.*.target_outbound' => 'nullable|string|max:1000',
         ]);
 
         $integration = AppIntegration::findOrFail($id);
@@ -139,32 +141,6 @@ class IntegrationController extends Controller
             return back()->with('success', 'Integration deleted successfully');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to delete integration: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Switch source and target applications
-     */
-    public function switchSourceTarget(int $id): RedirectResponse
-    {
-        $integration = AppIntegration::findOrFail($id);
-        
-        try {
-            $switchedData = [
-                'source_app_id' => $integration->target_app_id,
-                'target_app_id' => $integration->source_app_id,
-                'connection_type_id' => $integration->connection_type_id,
-                'inbound' => $integration->outbound, // Swap inbound/outbound
-                'outbound' => $integration->inbound,
-                'connection_endpoint' => $integration->connection_endpoint,
-                'direction' => $integration->direction,
-            ];
-            
-            $this->integrationService->updateIntegration($integration, $switchedData);
-            
-            return back()->with('success', 'Source and target switched successfully');
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to switch source and target: ' . $e->getMessage()]);
         }
     }
 

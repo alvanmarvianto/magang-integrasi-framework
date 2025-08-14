@@ -162,7 +162,7 @@ class DiagramCleanupService
         $validAppIds = App::pluck('app_id')->map(fn($id) => (string)$id)->toArray();
         
         // Get all valid integrations from the database (after cleanup)
-        $validIntegrations = AppIntegration::with(['sourceApp', 'targetApp', 'connectionType'])
+    $validIntegrations = AppIntegration::with(['sourceApp', 'targetApp', 'connections.connectionType'])
             ->get()
             ->keyBy(function($integration) {
                 return $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
@@ -211,14 +211,20 @@ class DiagramCleanupService
             $seenConnections[] = $connectionKey;
 
             // Use the integration data to ensure edge data is correct
+            // Build label from connections
+            $types = $integration->relationLoaded('connections')
+                ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
+                : [];
+            $connectionLabel = empty($types) ? 'Connection' : implode(' / ', $types);
+
             $edgeData = [
                 'id' => 'edge-' . $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id'),
                 'source' => (string)$integration->getAttribute('source_app_id'),
                 'target' => (string)$integration->getAttribute('target_app_id'),
                 'type' => 'smoothstep',
                 'data' => [
-                    'label' => $integration->connectionType?->type_name ?? 'Connection',
-                    'connection_type' => strtolower($integration->connectionType?->type_name ?? 'direct'),
+                    'label' => $connectionLabel,
+                    'connection_type' => strtolower($connectionLabel),
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
                         'app_id' => $integration->sourceApp->app_id,
@@ -228,10 +234,7 @@ class DiagramCleanupService
                         'app_id' => $integration->targetApp->app_id,
                         'app_name' => $integration->targetApp->app_name,
                     ],
-                    'direction' => $integration->getAttribute('direction'),
-                    'inbound' => $integration->getAttribute('inbound'),
-                    'outbound' => $integration->getAttribute('outbound'),
-                    'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
+                    // direction and per-app IO removed in new model
                 ],
             ];
 

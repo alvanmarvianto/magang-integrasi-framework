@@ -43,55 +43,64 @@
               </option>
             </select>
           </AdminFormField>
+          </div>
 
-          <AdminFormField label="Connection Type" id="connection_type_id">
-            <select
-              id="connection_type_id"
-              v-model="form.connection_type_id"
-              class="admin-form-select"
-              required
-            >
-              <option value="">Select Connection Type</option>
-              <option
-                v-for="type in connectionTypes"
-                :key="type.connection_type_id"
-                :value="type.connection_type_id"
+          <!-- Connection Types Section -->
+          <div class="connections-section">
+            <div class="connections-header">
+              <h3 class="connections-title">Connection Types</h3>
+              <button type="button" class="connections-add" @click="addConnection">
+                + Add Connection Type
+              </button>
+            </div>
+
+            <div v-if="form.connections.length === 0" class="connections-empty">
+              Tidak ada connection type yang ditambahkan
+            </div>
+
+            <div v-else class="connections-items">
+              <div
+                v-for="(conn, index) in form.connections"
+                :key="index"
+                class="connections-item"
               >
-                {{ type.type_name }}
-              </option>
-            </select>
-          </AdminFormField>
+                <div class="connections-row">
+                  <label class="admin-form-label">Connection Type</label>
+                  <select v-model="conn.connection_type_id" class="admin-form-select" required style="width:100%">
+                    <option value="">Pilih Connection Type</option>
+                    <option
+                      v-for="type in filteredConnectionTypes(index)"
+                      :key="type.connection_type_id"
+                      :value="type.connection_type_id"
+                    >
+                      {{ type.type_name }}
+                    </option>
+                  </select>
+                  <button type="button" class="connections-remove" @click="removeConnection(index)">
+                    Hapus
+                  </button>
+                </div>
 
-          <AdminFormField label="Direction" id="direction">
-            <select
-              id="direction"
-              v-model="form.direction"
-              class="admin-form-select"
-              required
-            >
-              <option value="">Select Direction</option>
-              <option value="one_way">One Way (Unidirectional)</option>
-              <option value="both_ways">Both Ways (Bidirectional)</option>
-            </select>
-          </AdminFormField>
+                <div class="connections-grid">
+                  <div class="connections-col">
+                    <div class="connections-subtitle">{{ sourceAppName }}</div>
+                    <label class="admin-form-label" :for="`si-${index}`">Inbound</label>
+                    <textarea :id="`si-${index}`" v-model="conn.source_inbound" rows="3" class="admin-form-textarea"></textarea>
+                    <label class="admin-form-label" :for="`so-${index}`">Outbound</label>
+                    <textarea :id="`so-${index}`" v-model="conn.source_outbound" rows="3" class="admin-form-textarea"></textarea>
+                  </div>
 
-          <AdminFormField label="Inbound Description" id="inbound">
-            <textarea
-              id="inbound"
-              v-model="form.inbound"
-              class="admin-form-textarea description-textarea"
-              rows="3"
-            ></textarea>
-          </AdminFormField>
-
-          <AdminFormField label="Outbound Description" id="outbound">
-            <textarea
-              id="outbound"
-              v-model="form.outbound"
-              class="admin-form-textarea description-textarea"
-              rows="3"
-            ></textarea>
-          </AdminFormField>
+                  <div class="connections-col">
+                    <div class="connections-subtitle">{{ targetAppName }}</div>
+                    <label class="admin-form-label" :for="`ti-${index}`">Inbound</label>
+                    <textarea :id="`ti-${index}`" v-model="conn.target_inbound" rows="3" class="admin-form-textarea"></textarea>
+                    <label class="admin-form-label" :for="`to-${index}`">Outbound</label>
+                    <textarea :id="`to-${index}`" v-model="conn.target_outbound" rows="3" class="admin-form-textarea"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          
 
           <!-- <AdminFormField label="Connection Endpoint" id="connection_endpoint">
             <input
@@ -101,20 +110,6 @@
               class="admin-form-input"
             />
           </AdminFormField> -->
-
-          <!-- Switch Source & Target (Edit mode only) -->
-          <div v-if="isEditing" class="admin-form-field switch-field">
-            <label class="admin-form-label">Quick Actions</label>
-            <button 
-              type="button"
-              @click="switchSourceTarget"
-              class="switch-source-target-btn"
-              title="Switch Source and Target Applications"
-            >
-              <font-awesome-icon icon="fa-solid fa-exchange-alt" />
-              Switch Source & Target
-            </button>
-          </div>
         </div>
       </AdminFormSection>
       <div class="flex justify-end">
@@ -136,7 +131,7 @@ import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
 
-const { showSuccess, showError, showConfirm } = useNotification();
+const { showSuccess, showError } = useNotification();
 
 const props = defineProps({
   apps: {
@@ -159,56 +154,75 @@ const isEditing = computed(() => !!props.integration);
 const form = useForm({
   source_app_id: props.integration?.source_app_id || '',
   target_app_id: props.integration?.target_app_id || '',
-  connection_type_id: props.integration?.connection_type_id || '',
-  inbound: props.integration?.inbound || '',
-  outbound: props.integration?.outbound || '',
-  connection_endpoint: props.integration?.connection_endpoint || '',
-  direction: props.integration?.direction || 'one_way'
+  connections: (props.integration?.connections || []).map(c => ({
+    connection_type_id: c.connection_type_id || '',
+    source_inbound: c.source_inbound || '',
+    source_outbound: c.source_outbound || '',
+    target_inbound: c.target_inbound || '',
+    target_outbound: c.target_outbound || '',
+  })),
 });
 
-// No need to watch direction anymore since starting_point is removed
+// Dynamic app names for labels
+const sourceAppName = computed(() => {
+  const id = form.source_app_id;
+  const app = props.apps.find(a => String(a.app_id) === String(id));
+  return app?.app_name || 'Source App';
+});
 
-function getAppName(appId) {
-  if (!appId) return null;
-  const app = props.apps.find(app => app.app_id == appId);
-  return app ? app.app_name : null;
+const targetAppName = computed(() => {
+  const id = form.target_app_id;
+  const app = props.apps.find(a => String(a.app_id) === String(id));
+  return app?.app_name || 'Target App';
+});
+
+function filteredConnectionTypes(currentIndex) {
+  const selectedIds = form.connections
+    .filter((_, idx) => idx !== currentIndex)
+    .map(c => String(c.connection_type_id))
+    .filter(Boolean);
+  return props.connectionTypes.filter(t => !selectedIds.includes(String(t.connection_type_id)));
 }
 
-function switchSourceTarget() {
-  if (!isEditing.value || !props.integration?.integration_id) return;
-  
-  showConfirm(`Apakah anda yakin ingin menukar source dan target antara ${getAppName(form.source_app_id)} dan ${getAppName(form.target_app_id)}?`)
-    .then((confirmed) => {
-      if (confirmed) {
-        router.patch(`/admin/integrations/${props.integration.integration_id}/switch`, {}, {
-          onSuccess: () => {
-            showSuccess('Source dan target berhasil ditukar');
-            // Update the form data to reflect the switch
-            const tempSourceId = form.source_app_id;
-            const tempInbound = form.inbound;
-            
-            // Switch source and target apps
-            form.source_app_id = form.target_app_id;
-            form.target_app_id = tempSourceId;
-            
-            // Switch inbound and outbound descriptions
-            form.inbound = form.outbound;
-            form.outbound = tempInbound;
-          },
-          onError: (errors) => {
-            const errorMessage = typeof errors === 'object' && errors !== null 
-              ? Object.values(errors).flat().join(', ')
-              : 'Gagal menukar source dan target';
-            showError(errorMessage);
-          },
-        });
-      }
-    });
+function addConnection() {
+  form.connections.push({
+    connection_type_id: '',
+    source_inbound: '',
+    source_outbound: '',
+    target_inbound: '',
+    target_outbound: '',
+  });
+}
+
+function removeConnection(index) {
+  form.connections.splice(index, 1);
+}
+
+function validateConnections() {
+  // Ensure no duplicate connection types and all selected
+  const ids = form.connections.map(c => c.connection_type_id).filter(Boolean);
+  if (ids.length !== new Set(ids).size) {
+    showError('Connection type tidak boleh duplikat dalam satu integrasi');
+    return false;
+  }
+  if (form.connections.some(c => !c.connection_type_id)) {
+    showError('Pilih connection type untuk setiap item');
+    return false;
+  }
+  return true;
 }
 
 function submit() {
+  if (!validateConnections()) return;
+
+  const payload = {
+    source_app_id: form.source_app_id,
+    target_app_id: form.target_app_id,
+    connections: form.connections,
+  };
+
   if (isEditing.value) {
-    router.put(`/admin/integrations/${props.integration.integration_id}`, form, {
+    router.put(`/admin/integrations/${props.integration.integration_id}`, payload, {
       onSuccess: () => {
         showSuccess('Koneksi berhasil diperbarui');
       },
@@ -220,7 +234,7 @@ function submit() {
       },
     });
   } else {
-    router.post('/admin/integrations', form, {
+    router.post('/admin/integrations', payload, {
       onSuccess: () => {
         showSuccess('Koneksi berhasil dibuat');
       },
@@ -243,34 +257,92 @@ function submit() {
   resize: vertical;
 }
 
-.switch-field {
-  grid-column: 1 / -1;
+/* Connections Section Styles */
+.connections-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
 }
-
-.switch-source-target-btn {
+.connections-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.connections-title {
+  font-size: 1rem;
+  font-weight: 500;
+}
+.connections-add {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: rgb(29, 78, 216);
-  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
-  font-weight: 500;
+  color: var(--primary-color);
+  border-radius: var(--radius);
+  background-color: var(--bg-alt);
+  border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
 }
-
-.switch-source-target-btn:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+.connections-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  background-color: var(--bg-alt);
+  border-radius: var(--radius);
 }
-
-.switch-source-target-btn:active {
-  transform: translateY(0);
+.connections-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.connections-item {
+  padding: 0.75rem;
+  background-color: var(--bg-alt);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+.connections-row {
+  display: grid;
+  grid-template-columns: 160px 1fr auto; /* label | select grows | remove */
+  gap: 0.5rem;
+  align-items: center;
+}
+.connections-remove {
+  justify-self: end;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--danger-color);
+  background-color: var(--bg-alt);
+  border: 1px solid var(--danger-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.connections-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* left: source, right: target */
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+@media (max-width: 768px) {
+  .connections-row {
+    grid-template-columns: 1fr; /* stack on small screens */
+  }
+  .connections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.connections-subtitle {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.admin-form-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background-color: white;
 }
 </style>

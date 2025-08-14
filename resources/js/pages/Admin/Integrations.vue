@@ -46,7 +46,7 @@
         </template>
         
         <template #column:connection_type_name="{ item }">
-          {{ item.connection_type.type_name }}
+          {{ formatConnectionTypes(item.connections || []) }}
         </template>
         
         <template #column:actions="{ item }">
@@ -83,20 +83,20 @@ import { useNotification } from '@/composables/useNotification';
 const { getRoute } = useRoutes();
 const { showSuccess, showError, showConfirm } = useNotification();
 
+interface IntegrationConnectionDTO {
+  connection_type_id: number;
+  source_inbound?: string | null;
+  source_outbound?: string | null;
+  target_inbound?: string | null;
+  target_outbound?: string | null;
+  connection_type?: { connection_type_id: number; type_name: string; color?: string } | null;
+}
+
 interface Integration {
   integration_id: number;
-  source_app: {
-    app_id: number;
-    app_name: string;
-  };
-  target_app: {
-    app_id: number;
-    app_name: string;
-  };
-  connection_type: {
-    connection_type_id: number;
-    type_name: string;
-  };
+  source_app: { app_id: number; app_name: string };
+  target_app: { app_id: number; app_name: string };
+  connections: IntegrationConnectionDTO[];
 }
 
 interface PaginationLink {
@@ -122,6 +122,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
+function formatConnectionTypes(connections: IntegrationConnectionDTO[]): string {
+  const names = connections
+    .map((c: IntegrationConnectionDTO) => c.connection_type?.type_name)
+    .filter((n): n is string => Boolean(n));
+  return names.length ? names.join(', ') : '-';
+}
+
 // Use the admin table composable
 const { searchQuery, sortBy, sortDesc, debouncedSearch, handleSearch, navigateToPage } = useAdminTable({
   defaultSortBy: 'source_app_name'
@@ -135,7 +142,7 @@ const columns = [
 ];
 
 function confirmDelete(integration: Integration) {
-  showConfirm(`Apakah anda yakin ingin menghapus koneksi antara ${integration.source_app.app_name} dan ${integration.target_app.app_name}?`)
+  showConfirm(`Apakah anda yakin ingin menghapus semua koneksi antara ${integration.source_app.app_name} dan ${integration.target_app.app_name}?`)
     .then((confirmed) => {
       if (confirmed) {
         router.delete(`/admin/integrations/${integration.integration_id}`, {

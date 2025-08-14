@@ -24,7 +24,7 @@ class StreamLayoutService
     public function updateStreamLayoutsForIntegration(AppIntegration $integration): void
     {
         // Load relationships including the stream for each app
-        $integration->load(['sourceApp.stream', 'targetApp.stream', 'connectionType']);
+    $integration->load(['sourceApp.stream', 'targetApp.stream', 'connections.connectionType']);
         
         // Get all stream layouts
         $layouts = $this->streamLayoutRepository->getAll();
@@ -149,7 +149,7 @@ class StreamLayoutService
         // Get current integrations involving these apps
         $integrations = AppIntegration::whereIn('source_app_id', $allValidAppIds)
             ->whereIn('target_app_id', $allValidAppIds)
-            ->with(['connectionType', 'sourceApp', 'targetApp'])
+            ->with(['connections.connectionType', 'sourceApp', 'targetApp'])
             ->get();
 
         // Get existing edges layout to preserve handle positions
@@ -346,21 +346,28 @@ class StreamLayoutService
         $edge['target'] = (string)$integration->getAttribute('target_app_id');
         $edge['id'] = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
         
+        // Build connection types summary from new connections relation
+        $types = $integration->relationLoaded('connections')
+            ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray()
+            : [];
+        $connectionLabel = empty($types) ? 'direct' : implode(' / ', $types);
+
         // Update the data object with the new standardized format
         $edge['data'] = [
             'integration_id' => $integration->getKey(),
             'source_app_id' => $integration->getAttribute('source_app_id'),
             'target_app_id' => $integration->getAttribute('target_app_id'),
-            'connection_type' => $integration->connectionType->type_name ?? 'direct',
-            'connection_type_id' => $integration->getAttribute('connection_type_id'),
-            'inbound' => $integration->getAttribute('inbound'),
-            'outbound' => $integration->getAttribute('outbound'),
-            'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
-            'direction' => $integration->getAttribute('direction'),
+            // Backward-compatible single label, plus full list
+            'connection_type' => $connectionLabel,
+            'connection_types' => array_map(fn($name) => ['name' => $name], $types),
             'source_app_name' => $integration->sourceApp->app_name ?? '',
             'target_app_name' => $integration->targetApp->app_name ?? '',
             // Keep legacy format for backward compatibility
-            'label' => $integration->connectionType->type_name ?? 'direct',
+            'label' => $connectionLabel,
             'sourceApp' => [
                 'app_id' => $integration->getAttribute('source_app_id'),
                 'app_name' => $integration->sourceApp->app_name ?? ''
@@ -389,7 +396,14 @@ class StreamLayoutService
      */
     private function createNewEdgeFromIntegration(AppIntegration $integration): DiagramEdgeDTO
     {
-    $connectionType = $integration->connectionType->type_name ?? 'direct';
+    $types = $integration->relationLoaded('connections')
+        ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray()
+        : [];
+    $connectionType = empty($types) ? 'direct' : implode(' / ', $types);
     // Admin saved layout should not store connection-type color
     $edgeColor = '#000000';
         
@@ -408,11 +422,7 @@ class StreamLayoutService
                 'source_app_id' => $integration->getAttribute('source_app_id'),
                 'target_app_id' => $integration->getAttribute('target_app_id'),
                 'connection_type' => $connectionType,
-                'connection_type_id' => $integration->getAttribute('connection_type_id'),
-                'inbound' => $integration->getAttribute('inbound'),
-                'outbound' => $integration->getAttribute('outbound'),
-                'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
-                'direction' => $integration->getAttribute('direction'),
+                'connection_types' => array_map(fn($name) => ['name' => $name], $types),
                 'source_app_name' => $integration->sourceApp->app_name ?? '',
                 'target_app_name' => $integration->targetApp->app_name ?? '',
                 // Keep legacy format for backward compatibility
@@ -429,7 +439,7 @@ class StreamLayoutService
             ],
             'label' => $connectionType,
             'connection_type' => $connectionType,
-            'direction' => $integration->getAttribute('direction') ?? 'one_way'
+            // no direction in new model
         ];
 
         return DiagramEdgeDTO::fromArray($edgeData);
@@ -471,7 +481,7 @@ class StreamLayoutService
         $colorsSynced = 0;
         
         // Get all connection types with their current colors
-        $connectionTypes = \App\Models\ConnectionType::all();
+    $connectionTypes = \App\Models\ConnectionType::all();
         // Build lookup maps: by ID and by lowercase name (to handle casing differences)
         $connectionTypesById = $connectionTypes->keyBy('connection_type_id');
         $connectionTypesByName = $connectionTypes->mapWithKeys(function ($ct) {
@@ -504,11 +514,11 @@ class StreamLayoutService
                 $edgeIntegrationId = $edge['data']['integration_id'] ?? null;
 
                 if ($edgeIntegrationId) {
-                    $integration = \App\Models\AppIntegration::with('connectionType')
+                    $integration = \App\Models\AppIntegration::with('connections.connectionType')
                         ->find($edgeIntegrationId);
                 } elseif ($edgeSource && $edgeTarget) {
                     // Try both directions
-                    $integration = \App\Models\AppIntegration::with('connectionType')
+                    $integration = \App\Models\AppIntegration::with('connections.connectionType')
                         ->where(function($q) use ($edgeSource, $edgeTarget) {
                             $q->where(function($q2) use ($edgeSource, $edgeTarget) {
                                 $q2->where('source_app_id', $edgeSource)
@@ -520,10 +530,13 @@ class StreamLayoutService
                         })->orderByDesc('integration_id')->first();
                 }
 
-                if ($integration && $integration->connectionType) {
-                    $connectionTypeModel = $integration->connectionType;
-                    // Also set ctId to be used below
-                    $ctId = $integration->getAttribute('connection_type_id');
+                if ($integration && $integration->relationLoaded('connections') && $integration->connections->isNotEmpty()) {
+                    $first = $integration->connections->firstWhere('connectionType', '!=', null) ?? $integration->connections->first();
+                    if ($first && $first->connectionType) {
+                        $connectionTypeModel = $first->connectionType;
+                        // Also set ctId to be used below
+                        $ctId = $first->connection_type_id;
+                    }
                 } else {
                     // Still nothing to sync
                     continue;

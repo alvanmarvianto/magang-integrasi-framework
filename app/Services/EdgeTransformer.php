@@ -17,7 +17,10 @@ class EdgeTransformer
         $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
-            $connectionType = $integration->connectionType?->type_name ?? 'direct';
+            $types = $integration->relationLoaded('connections')
+                ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
+                : [];
+            $connectionType = empty($types) ? 'direct' : implode(' / ', $types);
             // Admin view: always render edges black, ignore connection-type colors
             $edgeColor = '#000000';
 
@@ -37,6 +40,7 @@ class EdgeTransformer
                 ],
                 'data' => [
                     'connection_type' => strtolower($connectionType),
+                    'connection_types' => array_map(fn($n) => ['name' => $n], $types),
                     'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
@@ -47,10 +51,6 @@ class EdgeTransformer
                         'app_id' => $integration->targetApp?->app_id ?? 0,
                         'app_name' => $integration->targetApp?->app_name ?? 'Unknown App',
                     ],
-                    'direction' => $integration->getAttribute('direction'),
-                    'inbound' => $integration->getAttribute('inbound'),
-                    'outbound' => $integration->getAttribute('outbound'),
-                    'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
                     'source_app_name' => $integration->sourceApp?->app_name ?? 'Unknown App',
                     'target_app_name' => $integration->targetApp?->app_name ?? 'Unknown App',
                 ]
@@ -89,9 +89,12 @@ class EdgeTransformer
         $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
         return $integrations->map(function ($integration) use ($edgesLayout) {
-            $connectionType = $integration->connectionType?->type_name ?? 'direct';
-            // User view: use connection type color from DB
-            $edgeColor = $integration->connectionType?->color ?? '#000000';
+            $types = $integration->relationLoaded('connections')
+                ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
+                : [];
+            $connectionType = empty($types) ? 'direct' : implode(' / ', $types);
+            // User view: color not enforced here; keep black if no saved style
+            $edgeColor = '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
             
@@ -109,6 +112,7 @@ class EdgeTransformer
                 ],
                 'data' => [
                     'connection_type' => strtolower($connectionType),
+                    'connection_types' => array_map(fn($n) => ['name' => $n], $types),
                     'color' => $edgeColor,
                     'integration_id' => $integration->getAttribute('integration_id'),
                     'sourceApp' => [
@@ -119,10 +123,6 @@ class EdgeTransformer
                         'app_id' => $integration->targetApp?->app_id ?? 0,
                         'app_name' => $integration->targetApp?->app_name ?? 'Unknown App',
                     ],
-                    'direction' => $integration->getAttribute('direction'),
-                    'inbound' => $integration->getAttribute('inbound'),
-                    'outbound' => $integration->getAttribute('outbound'),
-                    'connection_endpoint' => $integration->getAttribute('connection_endpoint'),
                     'source_app_name' => $integration->sourceApp?->app_name ?? 'Unknown App',
                     'target_app_name' => $integration->targetApp?->app_name ?? 'Unknown App',
                 ],

@@ -55,9 +55,9 @@ class IntegrationService
 
         return [
             'integrations' => [
-                'data' => $transformedData->toArray(),
+                'data' => $transformedData->values()->toArray(),
                 'meta' => $this->extractPaginationMeta($paginator),
-            ]
+            ],
         ];
     }
 
@@ -77,7 +77,6 @@ class IntegrationService
             'integration' => $integrationDTO?->toArray(),
             'apps' => $this->getAppsForSelection(),
             'connectionTypes' => $this->getConnectionTypesForSelection(),
-            'directionOptions' => $this->getDirectionOptions(),
         ];
     }
 
@@ -208,17 +207,14 @@ class IntegrationService
      */
     public function getIntegrationStatistics(): array
     {
-        // Get all integrations for statistics
-        $allIntegrations = AppIntegration::with('connectionType')->get();
+    // Get all integrations for statistics
+    $allIntegrations = AppIntegration::with('connections.connectionType')->get();
         
         return [
             'total_integrations' => $allIntegrations->count(),
-            'bidirectional_integrations' => $allIntegrations->where('direction', 'both_ways')->count(),
-            'unidirectional_integrations' => $allIntegrations->where('direction', 'one_way')->count(),
-            'integrations_by_connection_type' => $allIntegrations
-                ->groupBy('connectionType.type_name')
-                ->map(fn($group) => $group->count())
-                ->toArray(),
+            'integrations_by_connection_type' => $allIntegrations->flatMap(function ($i) {
+                return $i->connections->pluck('connection_type_id');
+            })->filter()->countBy()->toArray(),
             'most_connected_apps' => $this->getMostConnectedApps(),
         ];
     }
@@ -274,16 +270,7 @@ class IntegrationService
             ->toArray();
     }
 
-    /**
-     * Get direction options
-     */
-    private function getDirectionOptions(): array
-    {
-        return [
-            ['value' => 'one_way', 'label' => 'One Way'],
-            ['value' => 'both_ways', 'label' => 'Both Ways'],
-        ];
-    }
+    // Direction options removed in new model
 
     /**
      * Extract pagination metadata
@@ -356,8 +343,8 @@ class IntegrationService
      */
     private function getAppIntegrationsForDisplay(App $app): Collection
     {
-        // Load relationships if not already loaded
-        $app->loadMissing(['integrations.stream', 'integrations.pivot.connectionType', 'integratedBy.stream', 'integratedBy.pivot.connectionType']);
+    // Load relationships if not already loaded (no pivot connectionType in new model)
+    $app->loadMissing(['integrations.stream', 'integratedBy.stream']);
 
         // Get outgoing integrations
         $integrations = $app->integrations->map(function ($integration) {
@@ -365,8 +352,8 @@ class IntegrationService
                 'app_id' => $integration->app_id,
                 'app_name' => $integration->app_name,
                 'stream_name' => $integration->stream?->stream_name,
-                'connection_type' => $integration->pivot?->connectionType?->type_name,
-                'connection_color' => $integration->pivot?->connectionType?->color ?? '#000000',
+                'connection_type' => null,
+                'connection_color' => '#000000',
             ];
         });
 
@@ -376,15 +363,15 @@ class IntegrationService
                 'app_id' => $integration->app_id,
                 'app_name' => $integration->app_name,
                 'stream_name' => $integration->stream?->stream_name,
-                'connection_type' => $integration->pivot?->connectionType?->type_name,
-                'connection_color' => $integration->pivot?->connectionType?->color ?? '#000000',
+                'connection_type' => null,
+                'connection_color' => '#000000',
             ];
         });
 
         // Combine and filter
         return $integrations
             ->concat($integratedBy)
-            ->filter(fn($i) => !is_null($i['connection_type']))
+            // No connection type detail on this screen for new model
             ->unique('app_name')
             ->values();
     }

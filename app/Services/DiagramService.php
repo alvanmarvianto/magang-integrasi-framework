@@ -97,7 +97,7 @@ class DiagramService
                 $q->whereIn('source_app_id', $appIds)
                   ->orWhereIn('target_app_id', $appIds);
             })
-            ->with(['connectionType', 'sourceApp', 'targetApp'])
+            ->with(['connections.connectionType', 'sourceApp', 'targetApp'])
             ->get();
 
         // If homeAppIds provided, keep only integrations where at least one side is a home app

@@ -37,16 +37,14 @@ class App extends Model
 
     public function integrations(): BelongsToMany
     {
-        return $this->belongsToMany(App::class, 'appintegrations', 'source_app_id', 'target_app_id')
-                    ->using(AppIntegration::class)
-                    ->withPivot('connection_type_id');
+    return $this->belongsToMany(App::class, 'appintegrations', 'source_app_id', 'target_app_id')
+            ->using(AppIntegration::class);
     }
 
     public function integratedBy(): BelongsToMany
     {
-        return $this->belongsToMany(App::class, 'appintegrations', 'target_app_id', 'source_app_id')
-                    ->using(AppIntegration::class)
-                    ->withPivot('connection_type_id');
+    return $this->belongsToMany(App::class, 'appintegrations', 'target_app_id', 'source_app_id')
+            ->using(AppIntegration::class);
     }
 
     public function stream(): BelongsTo

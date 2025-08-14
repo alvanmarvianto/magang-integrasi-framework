@@ -24,7 +24,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         }
 
         try {
-            $query = AppIntegration::with(['connectionType', 'sourceApp', 'targetApp']);
+            $query = AppIntegration::with(['connections.connectionType', 'sourceApp', 'targetApp']);
 
             if ($search) {
                 $query->where(function ($query) use ($search) {
@@ -32,7 +32,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
                         $q->where('app_name', 'like', "%{$search}%");
                     })->orWhereHas('targetApp', function ($q) use ($search) {
                         $q->where('app_name', 'like', "%{$search}%");
-                    })->orWhereHas('connectionType', function ($q) use ($search) {
+                    })->orWhereHas('connections.connectionType', function ($q) use ($search) {
                         $q->where('type_name', 'like', "%{$search}%");
                     });
                 });
@@ -60,7 +60,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
             $cacheTTL,
             function() use ($integrationId) {
                 try {
-                    return AppIntegration::with(['connectionType', 'sourceApp.stream', 'targetApp.stream'])
+                    return AppIntegration::with(['connections.connectionType', 'sourceApp.stream', 'targetApp.stream'])
                         ->find($integrationId);
                 } catch (\Exception $e) {
                     throw RepositoryException::entityNotFound('integration', $integrationId);
@@ -75,16 +75,27 @@ class IntegrationRepository implements IntegrationRepositoryInterface
             $integration = AppIntegration::create([
                 'source_app_id' => $integrationData->sourceAppId,
                 'target_app_id' => $integrationData->targetAppId,
-                'connection_type_id' => $integrationData->connectionTypeId,
-                'inbound' => $integrationData->inbound,
-                'outbound' => $integrationData->outbound,
-                'connection_endpoint' => $integrationData->connectionEndpoint,
-                'direction' => $integrationData->direction,
             ]);
+
+            // Insert connection rows (skip null connection_type_id)
+            foreach ($integrationData->connections as $conn) {
+                $ctId = $conn['connection_type_id'] ?? null;
+                if ($ctId === null) {
+                    continue;
+                }
+                \DB::table('appintegration_connections')->insert([
+                    'integration_id' => $integration->integration_id,
+                    'connection_type_id' => $ctId,
+                    'source_inbound' => $conn['source_inbound'] ?? null,
+                    'source_outbound' => $conn['source_outbound'] ?? null,
+                    'target_inbound' => $conn['target_inbound'] ?? null,
+                    'target_outbound' => $conn['target_outbound'] ?? null,
+                ]);
+            }
 
             $this->clearIntegrationCache($integrationData->sourceAppId, $integrationData->targetAppId);
 
-            return $integration->load(['connectionType', 'sourceApp', 'targetApp']);
+            return $integration->load(['connections.connectionType', 'sourceApp', 'targetApp']);
         } catch (\Exception $e) {
             throw RepositoryException::createFailed('integration', $e->getMessage());
         }
@@ -99,12 +110,33 @@ class IntegrationRepository implements IntegrationRepositoryInterface
             $updated = $integration->update([
                 'source_app_id' => $integrationData->sourceAppId,
                 'target_app_id' => $integrationData->targetAppId,
-                'connection_type_id' => $integrationData->connectionTypeId,
-                'inbound' => $integrationData->inbound,
-                'outbound' => $integrationData->outbound,
-                'connection_endpoint' => $integrationData->connectionEndpoint,
-                'direction' => $integrationData->direction,
             ]);
+
+            // If connections provided, replace them atomically
+            if ($updated && is_array($integrationData->connections) && count($integrationData->connections) > 0) {
+                \DB::table('appintegration_connections')
+                    ->where('integration_id', $integration->integration_id)
+                    ->delete();
+
+                $rows = [];
+                foreach ($integrationData->connections as $conn) {
+                    $ctId = $conn['connection_type_id'] ?? null;
+                    if ($ctId === null) {
+                        continue;
+                    }
+                    $rows[] = [
+                        'integration_id' => $integration->integration_id,
+                        'connection_type_id' => $ctId,
+                        'source_inbound' => $conn['source_inbound'] ?? null,
+                        'source_outbound' => $conn['source_outbound'] ?? null,
+                        'target_inbound' => $conn['target_inbound'] ?? null,
+                        'target_outbound' => $conn['target_outbound'] ?? null,
+                    ];
+                }
+                if (!empty($rows)) {
+                    \DB::table('appintegration_connections')->insert($rows);
+                }
+            }
 
             if ($updated) {
                 $this->clearIntegrationCache($oldSourceAppId, $oldTargetAppId);
@@ -146,7 +178,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            fn() => AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
+            fn() => AppIntegration::with(['connections.connectionType', 'sourceApp', 'targetApp'])
                 ->where('source_app_id', $appId)
                 ->orWhere('target_app_id', $appId)
                 ->get()
@@ -161,7 +193,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            fn() => AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
+            fn() => AppIntegration::with(['connections.connectionType', 'sourceApp', 'targetApp'])
                 ->where(function ($query) use ($sourceAppId, $targetAppId) {
                     $query->where('source_app_id', $sourceAppId)
                           ->where('target_app_id', $targetAppId);
@@ -211,7 +243,7 @@ class IntegrationRepository implements IntegrationRepositoryInterface
 
     public function getIntegrationsForApps(array $appIds): Collection
     {
-        return AppIntegration::with(['connectionType', 'sourceApp', 'targetApp'])
+    return AppIntegration::with(['connections.connectionType', 'sourceApp', 'targetApp'])
             ->where(function ($query) use ($appIds) {
                 $query->whereIn('source_app_id', $appIds)
                       ->orWhereIn('target_app_id', $appIds);
@@ -284,11 +316,14 @@ class IntegrationRepository implements IntegrationRepositoryInterface
                       ->orderBy('target_apps.app_name', $sortDirection)
                       ->select('appintegrations.*');
                 break;
-            case 'connection_type_name':
-                $query->leftJoin('connectiontypes', 'appintegrations.connection_type_id', '=', 'connectiontypes.connection_type_id')
-                      ->orderBy('connectiontypes.type_name', $sortDirection)
-                      ->select('appintegrations.*');
-                break;
+        case 'connection_type_name':
+            // Join through appintegration_connections to sort by the first connection type name
+            $query->leftJoin('appintegration_connections as aic', 'appintegrations.integration_id', '=', 'aic.integration_id')
+                ->leftJoin('connectiontypes', 'aic.connection_type_id', '=', 'connectiontypes.connection_type_id')
+                ->orderBy('connectiontypes.type_name', $sortDirection)
+                ->select('appintegrations.*')
+                ->groupBy('appintegrations.integration_id');
+            break;
             default:
                 $query->orderBy('appintegrations.integration_id', $sortDirection);
                 break;
