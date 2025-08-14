@@ -321,7 +321,8 @@ function initializeLayout() {
     cleanedNodes,
     props.savedLayout,
     false, // User mode
-    props.allowedStreams // Pass allowed streams for click restriction
+    props.allowedStreams, // Pass allowed streams for click restriction
+    [] // TODO: Pass stream objects with colors from backend
   );
   
   // Apply automatic layout if no saved layout

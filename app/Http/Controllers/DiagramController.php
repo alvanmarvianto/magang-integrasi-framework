@@ -31,9 +31,6 @@ class DiagramController extends Controller
         try {
             $diagramData = $this->diagramService->getVueFlowData($streamName, true);
             $diagramArray = $diagramData->toArray();
-            
-            // Removed debug dump; use logs instead
-            
 
             // Debug: Log the layout data being passed to frontend
             \Log::info("DiagramController - Layout data: ", [

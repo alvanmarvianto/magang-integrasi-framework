@@ -44,7 +44,6 @@
 
 :deep(.vue-flow__node-app) {
   background: transparent !important;
-  border: none !important;
   padding: 0 !important;
 }
 

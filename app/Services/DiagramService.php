@@ -149,13 +149,13 @@ class DiagramService
     $edges = collect(); // Use Collection to simplify toArray() later
     $savedLayout = null;
 
-        // Add the parent stream node
-        $streamNode = $nodeTransformer->createStreamNode($streamName, !$isUserView);
+    // Add the parent stream node (use DB color for border)
+    $streamNode = $nodeTransformer->createStreamNode($streamName, !$isUserView, $stream->color ?? null);
         $nodes[] = $streamNode->toArray();
 
         if ($streamApps->isNotEmpty()) {
-            // Add stream apps
-            $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView);
+            // Add stream apps - pass stream color to ensure app nodes get proper border colors
+            $streamNodeApps = $nodeTransformer->transformHomeStreamApps($streamApps, $streamName, !$isUserView, $stream->color);
             $nodes = array_merge($nodes, $streamNodeApps->toArray());
             
             // Add external apps

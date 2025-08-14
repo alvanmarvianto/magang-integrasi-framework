@@ -18,70 +18,101 @@ export const LAYOUT_CONSTANTS = {
   NODE_SPACING_Y: 110,
 } as const;
 
-// Color schemes
-const NODE_COLORS: { [key: string]: { background: string; border: string } } = {
-  'sp': { background: '#f5f5f5', border: '#000000' },
-  'mi': { background: '#fff5f5', border: '#ff0000' },
-  'ssk': { background: '#fffef0', border: '#fbff00' },
-  'ssk-mon': { background: '#fffef0', border: '#fbff00' },
-  'moneter': { background: '#fffef0', border: '#fbff00' },
-  'market': { background: '#fdf4ff', border: '#dd00ff' },
-  'internal bi': { background: '#f0fff4', border: '#00ff48' },
-  'external bi': { background: '#eff6ff', border: '#0a74da' },
-  'middleware': { background: '#f0fffe', border: '#00ddff' },
-};
-
 /**
  * Get node color based on lingkup/stream
+ * Now entirely database-driven with simple fallback
  */
 export function getNodeColor(lingkupOrParams: string | { lingkup: string; allStreams?: any[] }, isAdminMode: boolean = false): { background: string; border: string } {
   // Handle both old signature (string) and new signature (object)
   let lingkup: string;
+  let allStreams: any[] = [];
   
   if (typeof lingkupOrParams === 'string') {
     lingkup = lingkupOrParams;
   } else {
     lingkup = lingkupOrParams.lingkup || '';
+    allStreams = lingkupOrParams.allStreams || [];
+  }
+  
+  // Try to get color from database streams if available
+  if (allStreams.length > 0) {
+    const matchingStream = allStreams.find(stream => {
+      const streamName = stream.name || stream.stream_name;
+      return streamName && streamName.toLowerCase() === lingkup.toLowerCase();
+    });
     
-    // If allStreams is provided but empty, log the issue
-    if (lingkupOrParams.allStreams !== undefined && lingkupOrParams.allStreams.length === 0) {
+    if (matchingStream && matchingStream.color) {
+      // Use database color with appropriate background
+      const borderColor = matchingStream.color;
+      // Generate a light background based on the border color
+      const backgroundColor = generateLightBackground(borderColor);
+      
+      return { 
+        background: backgroundColor, 
+        border: borderColor 
+      };
     }
   }
   
-  // Normalize lingkup for matching
-  const normalizedLingkup = lingkup.toLowerCase().replace(/^stream\s+/, '');
-  
-  const colorMap = NODE_COLORS;
-  
-  // Try exact match first
-  if (colorMap[lingkup]) {
-    return colorMap[lingkup];
-  }
-  
-  // Try normalized match
-  if (colorMap[normalizedLingkup]) {
-    return colorMap[normalizedLingkup];
-  }
-  
-  // Try some common mappings
-  const mappings: { [key: string]: string } = {
-    'stream sp': 'sp',
-    'stream mi': 'mi', 
-    'stream ssk': 'ssk',
-    'stream moneter': 'moneter',
-    'stream market': 'market',
-    'stream internal': 'internal bi',
-    'stream eksternal': 'external bi',
-    'middleware': 'middleware'
-  };
-  
-  const mappedKey = mappings[lingkup.toLowerCase()];
-  if (mappedKey && colorMap[mappedKey]) {
-    return colorMap[mappedKey];
-  }
-  
-  // Default fallback
+  // Simple fallback for when no database color is found
   return { background: '#ffffff', border: '#6b7280' };
+}
+
+/**
+ * Generate a light background color based on a border color
+ */
+function generateLightBackground(borderColor: string): string {
+  // Remove # if present
+  const hex = borderColor.replace('#', '');
+  
+  // Parse RGB values
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  
+  // Create a very light version (add transparency effect)
+  const lightR = Math.min(255, r + (255 - r) * 0.9);
+  const lightG = Math.min(255, g + (255 - g) * 0.9);
+  const lightB = Math.min(255, b + (255 - b) * 0.9);
+  
+  // Convert back to hex
+  const toHex = (n: number) => Math.round(n).toString(16).padStart(2, '0');
+  
+  return `#${toHex(lightR)}${toHex(lightG)}${toHex(lightB)}`;
+}
+
+/**
+ * Derive a readable border color from a given background color.
+ * Accepts hex (#RRGGBB) or rgba/ rgb strings.
+ */
+function deriveBorderFromBackground(background: string): string {
+  if (!background) return '#6b7280';
+
+  // Normalize to RGB
+  let r = 107, g = 114, b = 128; // default slate-500
+  const hexMatch = background.trim().match(/^#([0-9a-fA-F]{6})$/);
+  const rgbMatch = background.trim().match(/^rgba?\(([^)]+)\)$/);
+
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    r = parseInt(hex.slice(0, 2), 16);
+    g = parseInt(hex.slice(2, 4), 16);
+    b = parseInt(hex.slice(4, 6), 16);
+  } else if (rgbMatch) {
+    const parts = rgbMatch[1].split(',').map(p => parseFloat(p.trim()));
+    r = Math.max(0, Math.min(255, parts[0] || r));
+    g = Math.max(0, Math.min(255, parts[1] || g));
+    b = Math.max(0, Math.min(255, parts[2] || b));
+  }
+
+  // Darken by 60%
+  const factor = 0.4;
+  const dr = Math.round(r * factor);
+  const dg = Math.round(g * factor);
+  const db = Math.round(b * factor);
+
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(dr)}${toHex(dg)}${toHex(db)}`;
 }
 
 /**
@@ -477,14 +508,15 @@ export function initializeNodesWithLayout(
   inputNodes: Node[],
   savedLayout: any,
   isAdminMode: boolean = false,
-  allowedStreams: string[] = []
+  allowedStreams: string[] = [],
+  allStreams: any[] = []
 ): Node[] {
   const uniqueNodes = validateAndCleanNodes(inputNodes);
   const hasSavedLayout = savedLayout?.nodes_layout && Object.keys(savedLayout.nodes_layout).length > 0;
 
   return uniqueNodes.map(node => {
     const savedNode = savedLayout?.nodes_layout?.[node.id];
-    const nodeColors = getNodeColor(node.data?.lingkup || '', isAdminMode);
+    const nodeColors = getNodeColor({ lingkup: node.data?.lingkup || '', allStreams }, isAdminMode);
     
     // Check if node is clickable based on allowed streams
     const nodeStream = node.data?.lingkup || node.data?.stream_name;
@@ -550,8 +582,8 @@ export function initializeNodesWithLayout(
       // App node - prioritize saved style colors over computed colors
       const baseAppStyle = {
         cursor: isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed'),
-        width: '120px',
-        height: '80px',
+  width: `${LAYOUT_CONSTANTS.NODE_WIDTH}px`,
+  height: `${LAYOUT_CONSTANTS.NODE_HEIGHT}px`,
         borderRadius: '8px',
       };
       
@@ -561,16 +593,38 @@ export function initializeNodesWithLayout(
         // Build the style object by merging base style with saved properties
         newNode.style = {
           ...baseAppStyle,
-          ...savedNode.style, // This will include all saved style properties
+          ...savedNode.style, // This will include all saved style properties including borderColor
         };
         
-        // Override cursor based on mode (always use computed cursor)
+        // Ensure border is present and correctly formatted
         if (newNode.style) {
+          // Always enforce fixed app node dimensions
+          newNode.style.width = `${LAYOUT_CONSTANTS.NODE_WIDTH}px`;
+          newNode.style.height = `${LAYOUT_CONSTANTS.NODE_HEIGHT}px`;
+          const hasBorder = !!newNode.style.border;
+          const hasBorderColor = !!(savedNode.style as any).borderColor;
+          const hasBackground = !!(savedNode.style as any).background || !!(savedNode.style as any).backgroundColor;
+
+          // 1) If only borderColor provided, synthesize border
+          if (!hasBorder && hasBorderColor) {
+            const borderColor = (savedNode.style as any).borderColor;
+            newNode.style.border = `2px solid ${borderColor}`;
+          }
+
+          // 2) If no border info at all but we have DB-driven color, synthesize border from nodeColors
+          if (!newNode.style.border && !hasBorderColor) {
+            // Prefer deriving from saved background if provided, else use DB-driven color
+            const bg = (savedNode.style as any).backgroundColor || (savedNode.style as any).background;
+            const computedBorder = bg ? deriveBorderFromBackground(bg) : nodeColors.border;
+            newNode.style.border = `2px solid ${computedBorder}`;
+          }
+
+          // Keep cursor consistent with mode/clickability
           newNode.style.cursor = isAdminMode ? 'grab' : (isClickable ? 'pointer' : 'not-allowed');
         }
-        
+
       } else {
-        // No saved style, use computed colors
+        // No saved style, use database-driven colors
         newNode.style = {
           ...baseAppStyle,
           backgroundColor: nodeColors.background,
@@ -749,3 +803,5 @@ export function createCustomContextMenuHandler() {
     return true;
   };
 }
+
+// Removed stray snippet that referenced undefined rawNodes

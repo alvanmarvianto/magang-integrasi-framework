@@ -525,51 +525,100 @@ class StreamLayoutService
         $colorsSynced = 0;
         
         // Get all streams with their current colors
-        $streams = \App\Models\Stream::all()->keyBy('stream_name');
+        $streams = \App\Models\Stream::all();
+        // Build maps: exact by name and normalized (lowercase + without 'stream ' prefix)
+        $streamsByExact = $streams->keyBy('stream_name');
+        $streamsByNormalized = $streams->mapWithKeys(function ($s) {
+            $name = $s->stream_name;
+            $norm = strtolower(trim($name));
+            if (str_starts_with($norm, 'stream ')) {
+                $norm = substr($norm, 7);
+            }
+            return [$norm => $s];
+        });
         
+        $cleanStreamName = strtolower(trim($streamName));
+        if (str_starts_with($cleanStreamName, 'stream ')) {
+            $cleanStreamName = substr($cleanStreamName, 7);
+        }
+
         foreach ($nodesLayout as $nodeId => $node) {
-            if (!isset($node['data']['stream_name'])) {
+            $nodeStreamName = null;
+            $isParentNode = false;
+
+            // Detect parent node by key match
+            if ((string)$nodeId === $streamName || (string)$nodeId === $cleanStreamName) {
+                $nodeStreamName = $streamName;
+                $isParentNode = true;
+            }
+
+            // If we didn't detect a parent and nodeId is an app id, resolve via App
+            if (!$nodeStreamName && is_numeric((string)$nodeId)) {
+                $app = \App\Models\App::with('stream')->find((int)$nodeId);
+                if ($app && $app->stream) {
+                    $nodeStreamName = $app->stream->stream_name;
+                }
+            }
+
+            // Fallback: try data.stream_name if present
+            if (!$nodeStreamName && isset($node['data']['stream_name'])) {
+                $nodeStreamName = $node['data']['stream_name'];
+            }
+
+            if (!$nodeStreamName) {
                 continue;
             }
-            
-            $nodeStreamName = $node['data']['stream_name'];
-            $stream = $streams->get($nodeStreamName);
-            
-            if (!$stream || !$stream->color) {
+
+            // Resolve stream model and color
+            $streamModel = $streamsByExact->get($nodeStreamName);
+            if (!$streamModel) {
+                $norm = strtolower(trim($nodeStreamName));
+                if (str_starts_with($norm, 'stream ')) {
+                    $norm = substr($norm, 7);
+                }
+                $streamModel = $streamsByNormalized->get($norm);
+            }
+
+            if (!$streamModel || !$streamModel->color) {
                 continue;
             }
-            
-            $currentColor = $stream->color;
-            
-            // Check if node has style and backgroundColor that needs updating
-            $savedColor = $node['style']['backgroundColor'] ?? null;
-            $savedBorderColor = $node['style']['borderColor'] ?? null;
-            
-            // Update if colors don't match and this is not a parent stream node
-            if (!isset($node['data']['is_parent_node']) || !$node['data']['is_parent_node']) {
-                $colorNeedsUpdate = false;
-                
-                // Check if background color needs update
-                if ($savedColor && $savedColor !== $currentColor) {
-                    $nodesLayout[$nodeId]['style']['backgroundColor'] = $currentColor;
-                    $colorNeedsUpdate = true;
-                }
-                
-                // Check if border color needs update
-                if ($savedBorderColor && $savedBorderColor !== $currentColor) {
-                    $nodesLayout[$nodeId]['style']['borderColor'] = $currentColor;
-                    $colorNeedsUpdate = true;
-                }
-                
-                // Also update any data color field if it exists
-                if (isset($node['data']['color']) && $node['data']['color'] !== $currentColor) {
+
+            $currentColor = $streamModel->color;
+
+            // Ensure style array exists
+            if (!isset($nodesLayout[$nodeId]['style']) || !is_array($nodesLayout[$nodeId]['style'])) {
+                $nodesLayout[$nodeId]['style'] = [];
+            }
+
+            $borderStr = $nodesLayout[$nodeId]['style']['border'] ?? null;
+            $savedBorderColor = $nodesLayout[$nodeId]['style']['borderColor'] ?? null;
+
+            $colorNeedsUpdate = false;
+
+            // Always enforce shorthand border color to DB value
+            $desiredBorderStr = "2px solid {$currentColor}";
+            if ($borderStr !== $desiredBorderStr) {
+                $nodesLayout[$nodeId]['style']['border'] = $desiredBorderStr;
+                $colorNeedsUpdate = true;
+            }
+
+            // Also set/align explicit borderColor for robustness
+            if ($savedBorderColor !== $currentColor) {
+                $nodesLayout[$nodeId]['style']['borderColor'] = $currentColor;
+                $colorNeedsUpdate = true;
+            }
+
+            // Also update any data color field if it exists (non-parent nodes only)
+            if (!$isParentNode && isset($nodesLayout[$nodeId]['data']) && is_array($nodesLayout[$nodeId]['data'])) {
+                $dataColor = $nodesLayout[$nodeId]['data']['color'] ?? null;
+                if ($dataColor !== $currentColor) {
                     $nodesLayout[$nodeId]['data']['color'] = $currentColor;
                     $colorNeedsUpdate = true;
                 }
-                
-                if ($colorNeedsUpdate) {
-                    $colorsSynced++;
-                }
+            }
+
+            if ($colorNeedsUpdate) {
+                $colorsSynced++;
             }
         }
         

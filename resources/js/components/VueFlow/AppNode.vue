@@ -1,73 +1,25 @@
 <template>
-  <div 
-    class="app-node" 
-    :class="{ 
+  <div
+    class="app-node"
+    :style="appNodeStyle"
+    :class="{
       'admin-mode': adminMode,
       'home-stream': nodeData.is_home_stream,
-      'external-stream': !nodeData.is_home_stream
+      'external-stream': !nodeData.is_home_stream,
     }"
-    :style="nodeStyle"
   >
     <!-- Source Handles (for outgoing connections) - always present but hidden in user mode -->
-    <Handle
-      id="top-source"
-      type="source"
-      :position="Position.Top"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    <Handle
-      id="right-source"
-      type="source"
-      :position="Position.Right"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    <Handle
-      id="bottom-source"
-      type="source"
-      :position="Position.Bottom"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    <Handle
-      id="left-source"
-      type="source"
-      :position="Position.Left"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    
+    <Handle id="top-source" type="source" :position="Position.Top" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+    <Handle id="right-source" type="source" :position="Position.Right" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+    <Handle id="bottom-source" type="source" :position="Position.Bottom" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+    <Handle id="left-source" type="source" :position="Position.Left" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+
     <!-- Target Handles (for incoming connections) - always present but hidden in user mode -->
-    <Handle
-      id="top-target"
-      type="target"
-      :position="Position.Top"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    <Handle
-      id="right-target"
-      type="target"
-      :position="Position.Right"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    <Handle
-      id="bottom-target"
-      type="target"
-      :position="Position.Bottom"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    <Handle
-      id="left-target"
-      type="target"
-      :position="Position.Left"
-      class="custom-handle"
-      :class="{ 'user-mode-hidden': !adminMode }"
-    />
-    
+    <Handle id="top-target" type="target" :position="Position.Top" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+    <Handle id="right-target" type="target" :position="Position.Right" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+    <Handle id="bottom-target" type="target" :position="Position.Bottom" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+    <Handle id="left-target" type="target" :position="Position.Left" class="custom-handle" :class="{ 'user-mode-hidden': !adminMode }" />
+
     <!-- Node Content -->
     <div class="node-content">
       <div class="app-name">{{ nodeData.app_name || 'Unknown App' }}</div>
@@ -80,14 +32,13 @@
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { NodeProps } from '@vue-flow/core'
-import { getNodeColor } from '@/composables/useVueFlowCommon'
 
 interface Props extends NodeProps {
   adminMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  adminMode: false
+  adminMode: false,
 })
 
 // Ensure data exists and has required properties
@@ -97,63 +48,36 @@ const nodeData = computed(() => ({
   stream_name: props.data?.stream_name || props.data?.lingkup || 'Unknown Stream',
   lingkup: props.data?.lingkup || '',
   is_home_stream: props.data?.is_home_stream || false,
-  ...props.data
+  ...props.data,
 }))
 
-const nodeColors = computed(() => {
-  // Use the shared getNodeColor function from useVueFlowCommon
-  return getNodeColor(nodeData.value.lingkup, props.adminMode);
-})
-
-const nodeStyle = computed(() => {
-  // If Vue Flow has provided styles (from saved layout), use those
-  // Otherwise, fall back to computed colors from lingkup
-  if (props.style && (props.style.backgroundColor || props.style.background)) {
-    let borderColor = nodeColors.value.border; // fallback
-    
-    // Extract color from border string like "2px solid #fbff00"
-    if (props.style.border) {
-      const borderParts = props.style.border.split(' ');
-      if (borderParts.length >= 3) {
-        borderColor = borderParts[2]; // The color part
-      }
-    } else if (props.style.borderColor) {
-      borderColor = props.style.borderColor;
-    }
-    
-    return {
-      backgroundColor: props.style.backgroundColor || props.style.background,
-      borderColor: borderColor,
-    };
-  }
-  
-  // Fallback to computed colors
-  const colors = nodeColors.value;
+// Use background from node style if provided (DB-driven). Fallback to white for readability.
+const appNodeStyle = computed(() => {
+  const style = (props.data as any)?.style || {}
+  const bg = style.background || style.backgroundColor || (props.data as any)?.background || (props.data as any)?.backgroundColor
   return {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-  };
+    backgroundColor: bg || '#ffffff',
+  } as Record<string, string>
 })
 </script>
 
 <style scoped>
 .app-node {
   position: relative;
-  width: 120px;
-  height: 80px;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 0; /* Remove inner border so wrapper border is visible */
+  box-sizing: border-box;
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
 .app-node.admin-mode {
   cursor: grab;
-  border-color: #3b82f6;
 }
 
 .app-node.admin-mode:hover {
