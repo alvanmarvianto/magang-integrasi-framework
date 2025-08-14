@@ -13,8 +13,10 @@ readonly class AppDTO
         public int $streamId,
         public ?string $appType,
         public ?string $stratification,
+    public bool $isFunction = false,
         public ?string $streamName = null,
-        public array $technologyComponents = []
+    public array $technologyComponents = [],
+    public array $integrationFunctions = []
     ) {}
 
     public static function fromArray(array $data): self
@@ -26,8 +28,10 @@ readonly class AppDTO
             streamId: $data['stream_id'],
             appType: $data['app_type'] ?? null,
             stratification: $data['stratification'] ?? null,
+            isFunction: (bool)($data['is_function'] ?? false),
             streamName: $data['stream_name'] ?? null,
-            technologyComponents: $data['technology_components'] ?? []
+            technologyComponents: $data['technology_components'] ?? [],
+            integrationFunctions: $data['integration_functions'] ?? []
         );
     }
 
@@ -40,8 +44,10 @@ readonly class AppDTO
             streamId: $app->stream_id,
             appType: $app->app_type,
             stratification: $app->stratification,
+            isFunction: (bool)($app->is_function ?? false),
             streamName: $app->stream?->stream_name,
-            technologyComponents: self::extractTechnologyComponents($app)
+            technologyComponents: self::extractTechnologyComponents($app),
+            integrationFunctions: self::extractIntegrationFunctions($app)
         );
     }
 
@@ -55,7 +61,9 @@ readonly class AppDTO
             'app_type' => $this->appType,
             'stratification' => $this->stratification,
             'stream_name' => $this->streamName,
+            'is_function' => $this->isFunction,
             'technology_components' => $this->technologyComponents,
+            'integration_functions' => $this->integrationFunctions,
         ];
     }
 
@@ -87,5 +95,21 @@ readonly class AppDTO
         }
 
         return $components;
+    }
+
+    private static function extractIntegrationFunctions($app): array
+    {
+        if (!$app->relationLoaded('integrationFunctions')) {
+            return [];
+        }
+
+        return $app->integrationFunctions->map(function ($item) {
+            return [
+                'id' => $item->getKey(),
+                'app_id' => $item->app_id,
+                'integration_id' => $item->integration_id,
+                'function_name' => $item->function_name,
+            ];
+        })->toArray();
     }
 }

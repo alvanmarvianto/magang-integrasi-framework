@@ -44,12 +44,35 @@ return new class extends Migration
             $table->integer('source_app_id')->nullable();
             $table->integer('target_app_id')->nullable()->index('target_app_id');
             $table->integer('connection_type_id')->nullable()->index('connection_type_id');
-            $table->text('inbound')->nullable();
-            $table->text('outbound')->nullable();
-            $table->text('connection_endpoint')->nullable();
-            $table->enum('direction', ['one_way', 'both_ways']);
 
             $table->unique(['source_app_id', 'target_app_id', 'connection_type_id'], 'source_app_id');
+        });
+
+        // New table to hold multiple connection types per integration, with per-app inbound/outbound fields
+        Schema::create('appintegration_connections', function (Blueprint $table) {
+            $table->id();
+            $table->integer('integration_id'); // FK -> appintegrations.integration_id
+            $table->integer('connection_type_id'); // FK -> connectiontypes.connection_type_id
+
+            // Per-app payload/description fields
+            $table->text('source_inbound')->nullable();
+            $table->text('source_outbound')->nullable();
+            $table->text('target_inbound')->nullable();
+            $table->text('target_outbound')->nullable();
+
+            // Enforce no duplicate connection type within the same integration
+            $table->unique(['integration_id', 'connection_type_id'], 'integration_connectiontype_unique');
+        });
+
+        // Add foreign keys for the new table
+        Schema::table('appintegration_connections', function (Blueprint $table) {
+            $table->foreign('integration_id', 'aic_ibfk_integration')
+                ->references('integration_id')->on('appintegrations')
+                ->onUpdate('cascade')->onDelete('cascade');
+
+            $table->foreign('connection_type_id', 'aic_ibfk_connection_type')
+                ->references('connection_type_id')->on('connectiontypes')
+                ->onUpdate('cascade')->onDelete('cascade');
         });
 
         // Create stream_layouts table
@@ -88,5 +111,6 @@ return new class extends Migration
         Schema::dropIfExists('apps');
         Schema::dropIfExists('connectiontypes');
         Schema::dropIfExists('streams');
+        Schema::dropIfExists('appintegration_connections');
     }
 };

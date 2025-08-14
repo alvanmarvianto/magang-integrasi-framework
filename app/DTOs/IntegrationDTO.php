@@ -19,7 +19,8 @@ readonly class IntegrationDTO
         public int $targetAppId,
         public array $connections = [],
         public ?AppDTO $sourceApp = null,
-        public ?AppDTO $targetApp = null,
+    public ?AppDTO $targetApp = null,
+    public array $functions = [],
     ) {}
 
     public static function fromArray(array $data): self
@@ -45,12 +46,14 @@ readonly class IntegrationDTO
             connections: $connections,
             sourceApp: isset($data['source_app']) ? AppDTO::fromArray($data['source_app']) : null,
             targetApp: isset($data['target_app']) ? AppDTO::fromArray($data['target_app']) : null,
+            functions: $data['functions'] ?? [],
         );
     }
 
     public static function fromModel($integration): self
     {
         $connections = [];
+        $functions = [];
         if ($integration->relationLoaded('connections')) {
             $connections = $integration->connections->map(function ($conn) {
                 return [
@@ -66,6 +69,17 @@ readonly class IntegrationDTO
             })->toArray();
         }
 
+        if ($integration->relationLoaded('functions')) {
+            $functions = $integration->functions->map(function ($f) {
+                return [
+                    'id' => $f->getKey(),
+                    'app_id' => $f->app_id,
+                    'integration_id' => $f->integration_id,
+                    'function_name' => $f->function_name,
+                ];
+            })->toArray();
+        }
+
         return new self(
             integrationId: $integration->integration_id,
             sourceAppId: $integration->source_app_id,
@@ -75,6 +89,7 @@ readonly class IntegrationDTO
                 ? AppDTO::fromModel($integration->sourceApp) : null,
             targetApp: $integration->relationLoaded('targetApp') && $integration->targetApp
                 ? AppDTO::fromModel($integration->targetApp) : null,
+            functions: $functions,
         );
     }
 
@@ -98,6 +113,7 @@ readonly class IntegrationDTO
             }, $this->connections),
             'source_app' => $this->sourceApp?->toArray(),
             'target_app' => $this->targetApp?->toArray(),
+            'functions' => $this->functions,
         ];
     }
 }

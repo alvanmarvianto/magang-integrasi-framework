@@ -66,6 +66,11 @@ class AppIntegration extends Pivot
         return $this->hasMany(AppIntegrationConnection::class, 'integration_id', 'integration_id');
     }
 
+    public function functions(): HasMany
+    {
+        return $this->hasMany(AppIntegrationFunction::class, 'integration_id', 'integration_id');
+    }
+
     public function sourceApp(): BelongsTo
     {
         return $this->belongsTo(App::class, 'source_app_id', 'app_id');

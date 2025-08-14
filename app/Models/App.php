@@ -20,6 +20,11 @@ class App extends Model
         'stream_id',
         'app_type',
         'stratification',
+        'is_function',
+    ];
+
+    protected $casts = [
+        'is_function' => 'boolean',
     ];
 
     /**
@@ -55,6 +60,11 @@ class App extends Model
     public function appIntegrations(): HasMany
     {
         return $this->hasMany(AppIntegration::class, 'app_id', 'app_id');
+    }
+
+    public function integrationFunctions(): HasMany
+    {
+        return $this->hasMany(AppIntegrationFunction::class, 'app_id', 'app_id');
     }
 
     public function vendors(): HasMany
