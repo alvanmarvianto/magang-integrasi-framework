@@ -1,0 +1,225 @@
+/* Admin Layout Shared Styles */
+
+.admin-vue-flow-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.admin-header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+}
+
+.header-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.stream-selector {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  font-size: 0.875rem;
+}
+
+.save-btn, .refresh-btn, .reset-btn, .back-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.save-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-btn {
+  background: #10b981;
+  color: white;
+  position: relative;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.reset-btn:hover {
+  background: #4b5563;
+}
+
+.back-btn {
+  background: #10b981;
+  color: white;
+}
+
+.back-btn:hover {
+  background: #059669;
+}
+
+.vue-flow-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.vue-flow.admin-mode {
+  background: #f8fafc;
+}
+
+/* Stream parent node specific styles */
+.vue-flow.admin-mode :deep(.vue-flow__node-streamParent) {
+  cursor: move !important;
+}
+
+/* Admin mode specific overrides for stream nodes */
+.vue-flow.admin-mode :deep(.vue-flow__node-stream) {
+  z-index: -10 !important;
+}
+
+.vue-flow.admin-mode :deep(.vue-flow__node-app) {
+  z-index: 10 !important;
+}
+
+/* Admin Vue Flow controls positioning */
+.vue-flow.admin-mode :deep(.vue-flow__controls) {
+  bottom: 1rem;
+  left: 1rem;
+  right: auto;
+}
+
+.status-message {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.status-message.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-message.error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.status-message.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* Status indicators */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  margin-right: 0.75rem;
+}
+
+.status-indicator.auto-saving {
+  color: #d97706;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.status-indicator.unsaved {
+  color: #ea580c;
+  background: #fed7aa;
+  border: 1px solid #fdba74;
+}
+
+.status-indicator.saved {
+  color: #059669;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+}
+
+.status-indicator.connection-mode {
+  color: #7c3aed;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.indicator-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  background: #ea580c;
+}
+
+.indicator-dot.saved-dot {
+  background: #059669;
+}
+
+.indicator-dot.connection-dot {
+  background: #7c3aed;
+}

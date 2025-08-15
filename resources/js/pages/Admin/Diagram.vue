@@ -24,40 +24,24 @@
 
     <!-- Normal Content -->
     <template v-else>
-      <AdminNavbar :title="`Admin - ${streamName} Layout`" :showBackButton="true">
-        <template #controls>
-          <!-- Layout changed indicator -->
-          <div v-if="layoutChanged" class="status-indicator unsaved">
-            <div class="indicator-dot"></div>
-            Perubahan belum tersimpan
-          </div>
-          
-          <!-- Saved indicator -->
-          <div v-else class="status-indicator saved">
-            <div class="indicator-dot saved-dot"></div>
-            Tersimpan
-          </div>
-          
-          <select v-model="selectedStream" @change="switchStream" class="stream-selector">
-            <option v-for="stream in allowedStreams" :key="stream" :value="stream">
-              {{ stream }}
-            </option>
-          </select>
-          <button @click="saveLayout" :disabled="saving" class="save-btn">
-            {{ saving ? 'Saving...' : 'Save Layout' }}
-          </button>
-          <button 
-            @click="refreshLayout" 
-            :disabled="refreshing" 
-            class="refresh-btn"
-            :class="{ 'has-unsaved-changes': layoutChanged }"
-            :title="layoutChanged ? 'Peringatan: Ada perubahan yang belum disimpan!' : 'Refresh layout dan hapus data yang tidak valid'"
-          >
-            {{ refreshing ? 'Refreshing...' : 'Refresh Layout' }}
-          </button>
-          <button @click="resetLayout" class="reset-btn">Reset Layout</button>
-        </template>
-      </AdminNavbar>
+      <!-- Layout Navbar -->
+      <LayoutNavbar
+        :title="`Stream Diagram - ${streamName}`"
+        :layout-changed="layoutChanged"
+        :saving="saving"
+        :refreshing="refreshing"
+        :show-layout-selector="true"
+        :show-refresh-button="true"
+        :allowed-streams="allowedStreams"
+        :function-apps="props.functionApps"
+        :current-stream="selectedStream"
+        :current-app-id="selectedAppId"
+        @save="saveLayout"
+        @refresh="refreshLayout"
+        @reset="resetLayout"
+        @stream-change="onStreamChange"
+        @app-change="onAppChange"
+      />
 
       <!-- Vue Flow -->
       <div class="vue-flow-wrapper">
@@ -94,12 +78,12 @@
       >
         <!-- Custom Node Types -->
         <template #node-stream="nodeProps">
-          <StreamNest v-bind="nodeProps" :admin-mode="true" @resize="onStreamResize" />
+          <component :is="StreamNestComponent" v-bind="nodeProps" :admin-mode="true" @resize="onStreamResize" />
         </template>
 
         <!-- Custom App Node with Handles -->
         <template #node-app="nodeProps">
-          <AppNode v-bind="nodeProps" :admin-mode="true" />
+          <component :is="AppNodeComponent" v-bind="nodeProps" :admin-mode="true" />
         </template>
 
         <!-- Controls -->
@@ -133,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background, BackgroundVariant } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -141,21 +125,14 @@ import { PanOnScrollMode } from '@vue-flow/core'
 import { router, usePage } from '@inertiajs/vue3'
 import StreamNest from '@/components/VueFlow/StreamNest.vue'
 import AppNode from '@/components/VueFlow/AppNode.vue'
-import AdminNavbar from '@/components/Admin/AdminNavbar.vue'
-import EdgeDetailsSidebar from '@/components/Sidebar/EdgeDetailsSidebar.vue'
+import LayoutNavbar from '@/components/Admin/LayoutNavbar.vue'
 import DetailsSidebar from '@/components/Sidebar/DetailsSidebar.vue'
 import ErrorState from '@/components/ErrorState.vue'
-import { useStatusMessage } from '@/composables/useStatusMessage'
-import { useAdminEdgeHandling } from '@/composables/useAdminEdgeHandling'
+import { useAdminLayout } from '@/composables/useAdminLayout'
 import { 
   removeDuplicateEdges,
   moveEdgeToTop,
-  fitView as sharedFitView,
-  initializeNodesWithLayout,
   applyAutomaticLayoutWithConstraints,
-  validateAndCleanNodes,
-  createCustomWheelHandler,
-  createCustomContextMenuHandler
 } from '@/composables/useVueFlowCommon'
 import type { Node, Edge } from '@vue-flow/core'
 
@@ -175,6 +152,7 @@ interface Props {
     stream_config?: Record<string, any>
   } | null
   allowedStreams: string[]
+  functionApps?: { app_id: number; app_name: string }[]
   refreshData?: {
     nodes: Node[]
     edges: Edge[]
@@ -184,71 +162,60 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// Refs
-const vueFlowRef = ref()
-const saving = ref(false)
-const refreshing = ref(false)
-const selectedStream = ref(props.streamName)
-const showDetails = ref(false)
-const detailType = ref<'edge' | 'node'>('edge')
-const selectedEdgeData = ref(null)
-const selectedNodeData = ref(null)
-
-// Reactive data
-const nodes = ref<Node[]>([])
-const edges = ref<Edge[]>([])
-const layoutChanged = ref(false)
-const vueFlowKey = ref(0) // Key to force VueFlow re-render
-const isInitializing = ref(false) // Flag to prevent marking changes during initialization
-// Use admin-specific edge handling; respect server flag to force black/no arrows
-const forceNoArrow = !!(props.savedLayout as any)?.stream_config?.forceEdgeBlackNoArrow
-const { handleEdgeClick, handlePaneClick, updateAdminEdgeStyles, updateAdminEdgeStylesWithSelection, initializeAdminEdges, selectedEdgeId } = useAdminEdgeHandling({
-  disableMarkers: forceNoArrow,
-  forceBlack: forceNoArrow,
-})
-
-// Get VueFlow instance and functions
-const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow()
-
-// Create shared wheel handler
-const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewport)
-
-// Create context menu handler to disable popup on empty space
-const onContextMenu = createCustomContextMenuHandler()
-
-// Add event listener for beforeunload
-onMounted(() => {
-  window.addEventListener('beforeunload', handleBeforeUnload)
-})
-
-// Remove event listener on component unmount
-onUnmounted(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload)
-})
-
-// Handle beforeunload event
-function handleBeforeUnload(e: BeforeUnloadEvent) {
-  if (layoutChanged.value) {
-    e.preventDefault()
-    e.returnValue = 'Ada perubahan yang belum tersimpan. Anda yakin ingin meninggalkan halaman ini?'
-    return e.returnValue
-  }
-}
-
-// Use status messages
-const { statusMessage, statusType, showStatus } = useStatusMessage()
-
 // Get page props for flash messages
 const page = usePage()
 
-// Track original layout for reset
-const originalLayout = ref<{
-  nodes_layout?: Record<string, any>
-  edges_layout?: any[]
-  stream_config?: Record<string, any>
-} | null>(null)
+// Use the shared admin layout composable
+const {
+  vueFlowRef,
+  saving,
+  showDetails,
+  detailType,
+  selectedEdgeData,
+  selectedNodeData,
+  nodes,
+  edges,
+  layoutChanged,
+  vueFlowKey,
+  statusMessage,
+  statusType,
+  showStatus,
+  defaultEdgeOptions,
+  onWheel,
+  onContextMenu,
+  onNodeDragStop,
+  onEdgeUpdate: baseOnEdgeUpdate,
+  onEdgeClick: baseOnEdgeClick,
+  onNodeClick,
+  onPaneClick: baseOnPaneClick,
+  onNodesChange: baseOnNodesChange,
+  onEdgesChange: baseOnEdgesChange,
+  initializeLayout,
+  fitView,
+  validateConnection,
+  resetLayout,
+  closeDetails,
+} = useAdminLayout({
+  savedLayout: props.savedLayout,
+  nodes: props.nodes,
+  edges: props.edges,
+  allowedStreams: props.allowedStreams,
+  pageProps: page.props,
+})
 
-// Initialize layout
+// Refs specific to stream diagram
+const refreshing = ref(false)
+const selectedStream = ref(props.streamName)
+const selectedAppId = ref<number | ''>('')
+
+// Components for template
+const StreamNestComponent = markRaw(StreamNest)
+const AppNodeComponent = markRaw(AppNode)
+
+// Get VueFlow instance for stream-specific functionality
+const { zoomIn, zoomOut, setViewport, getViewport } = useVueFlow()
+
+// Initialize layout on mount
 onMounted(() => {
   initializeLayout()
   
@@ -271,79 +238,13 @@ watch(() => props.streamName, () => {
   initializeLayout()
 })
 
-function initializeLayout() {
-  // Set initializing flag to prevent change events from marking layout as changed
-  isInitializing.value = true
-  
-  // Reset layout changed status to show "Tersimpan" initially
-  layoutChanged.value = false
-  
-  // Store original layout
-  originalLayout.value = props.savedLayout ? JSON.parse(JSON.stringify(props.savedLayout)) : null
-  const cleanedNodes = validateAndCleanNodes(props.nodes);
-  
-  // Check if we have saved layout data
-  const hasSavedLayout = props.savedLayout?.nodes_layout && Object.keys(props.savedLayout.nodes_layout).length > 0
-  
-  // Initialize nodes with shared function
-  nodes.value = initializeNodesWithLayout(
-    cleanedNodes,
-    props.savedLayout,
-    true // Admin mode
-  )
-  
-  // Apply automatic layout if no saved layout
-  if (!hasSavedLayout) {
-    applyAutomaticLayoutWithConstraints(nodes.value)
-  }
-  
-  // Initialize edges with admin-specific function
-  edges.value = initializeAdminEdges(
-    props.edges,
-    props.savedLayout,
-    removeDuplicateEdges
-  )
+watch(() => props.functionApps, () => {
+  // reset selection when function app list changes
+  selectedAppId.value = ''
+})
 
-  // Apply layout
-  setTimeout(() => {
-    fitView()
-    // Clear initializing flag after a delay to allow all VueFlow events to settle
-    setTimeout(() => {
-      isInitializing.value = false
-      // Ensure layout is marked as not changed after initialization
-      layoutChanged.value = false
-    }, 200)
-  }, 100)
-}
-
-function fitView() {
-  if (vueFlowRef.value) {
-    vueFlowRef.value.fitView({ padding: 50 })
-  }
-}
-
-function validateConnection(connection: any) {
-  
-  // Show user feedback about blocked connection
-  showStatus('Tidak bisa membuat koneksi. Anda hanya dapat memperbarui koneksi yang ada.', 'error')
-  
-  return false // Always block new connections while allowing the drag interaction
-}
-
-function onNodeDragStop(event: any) {
-  const { node } = event
-  
-  // Update the node position in our reactive array
-  const nodeIndex = nodes.value.findIndex(n => n.id === node.id)
-  if (nodeIndex !== -1) {
-    nodes.value[nodeIndex].position = node.position
-  }
-  
-  markLayoutChanged()
-}
-
+// Enhanced edge update for stream diagrams (includes more complex logic)
 function onEdgeUpdate(params: any, newConnection?: any) {
-  
   // VueFlow passes parameters differently - extract the actual data
   let oldEdge, connection
   
@@ -366,7 +267,6 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     showStatus('Gagal memperbarui koneksi - parameter tidak valid', 'error')
     return
   }
-  
   
   // Guard against missing data
   if (!oldEdge || !connection) {
@@ -404,9 +304,6 @@ function onEdgeUpdate(params: any, newConnection?: any) {
     // Move the updated edge to the top so it's easier to manipulate
     edges.value = moveEdgeToTop(edges.value, edgeId)
 
-    // Apply proper styling
-    edges.value = updateAdminEdgeStylesWithSelection(edges.value)
-
     // Force VueFlow to re-render the edge with new handle positions
     nextTick(() => {
       if (vueFlowRef.value) {
@@ -418,13 +315,14 @@ function onEdgeUpdate(params: any, newConnection?: any) {
       }
     })
 
-    markLayoutChanged()
+    layoutChanged.value = true
   } else {
     console.error('Edge not found for update:', oldEdge.id)
     showStatus('Gagal memperbarui koneksi', 'error')
   }
 }
 
+// Enhanced edge click for stream diagrams
 function onEdgeClick(event: any) {
   const clickedEdgeId = event.edge?.id
   if (!clickedEdgeId) {
@@ -440,53 +338,22 @@ function onEdgeClick(event: any) {
     showDetails.value = true
   }
   
-  // Move the clicked edge to the top so it renders on top and is easier to manipulate
-  edges.value = moveEdgeToTop(edges.value, clickedEdgeId)
-  
-  handleEdgeClick(clickedEdgeId)
-  edges.value = updateAdminEdgeStylesWithSelection(edges.value)
-  
-  // Note: Clicking an edge does not mark layout as changed - only actual modifications do
+  // Use base functionality
+  baseOnEdgeClick(event)
 }
 
-function onNodeClick(event: any) {
-  const clickedNodeId = event.node?.id
-  if (!clickedNodeId) {
-    return
-  }
-  
-  // Find the node data for the sidebar
-  const node = nodes.value.find(n => n.id === clickedNodeId)
-  if (node && node.data && !node.data.is_parent_node) {
-    // Only show details for app nodes, not stream parent nodes
-    selectedNodeData.value = node.data
-    selectedEdgeData.value = null
-    detailType.value = 'node'
-    showDetails.value = true
-  }
-  
-  // Note: Clicking a node does not mark layout as changed - only actual modifications do
-}
-
-function closeDetails() {
-  showDetails.value = false
-  selectedEdgeData.value = null
-  selectedNodeData.value = null
-}
-
+// Enhanced pane click for stream diagrams
 function onPaneClick(event: any) {
-  handlePaneClick()
-  edges.value = updateAdminEdgeStylesWithSelection(edges.value)
+  baseOnPaneClick(event)
+  
   // Close details when clicking on pane
   if (showDetails.value) {
     closeDetails()
   }
-  
-  // Note: Clicking the pane does not mark layout as changed - only actual modifications do
 }
 
+// Enhanced nodes change for stream diagrams
 function onNodesChange(changes: any[]) {
-  
   let hasLayoutChanges = false
   
   // Update our reactive nodes array
@@ -510,14 +377,14 @@ function onNodesChange(changes: any[]) {
     // Note: 'select' type changes are ignored as they don't affect layout
   })
   
-  // Mark layout as changed only if there are actual layout changes and we're not initializing
-  if (hasLayoutChanges && !isInitializing.value) {
-    markLayoutChanged()
+  // Mark layout as changed only if there are actual layout changes
+  if (hasLayoutChanges) {
+    layoutChanged.value = true
   }
 }
 
+// Enhanced edges change for stream diagrams
 function onEdgesChange(changes: any[]) {
-  
   let hasLayoutChanges = false
   
   // Update our reactive edges array
@@ -546,14 +413,10 @@ function onEdgesChange(changes: any[]) {
     // Note: 'select' type changes are ignored as they don't affect layout
   })
   
-  // Mark layout as changed only if there are actual layout changes and we're not initializing
-  if (hasLayoutChanges && !isInitializing.value) {
-    markLayoutChanged()
+  // Mark layout as changed only if there are actual layout changes
+  if (hasLayoutChanges) {
+    layoutChanged.value = true
   }
-}
-
-function markLayoutChanged() {
-  layoutChanged.value = true
 }
 
 async function saveLayout() {
@@ -652,32 +515,47 @@ async function refreshLayout() {
   }
 }
 
-
-
-function resetLayout() {
-  if (originalLayout.value) {
-    // Reset to saved layout
-    initializeLayout()
-    showStatus('Layout kembali ke semula', 'info')
-  } else {
-    // Reset to automatic layout with constraints
-    applyAutomaticLayoutWithConstraints(nodes.value)
-    fitView()
-    showStatus('Layout kembali ke default', 'info')
-    markLayoutChanged() // Mark as changed so user can save the new layout
+async function switchApp() {
+  // Navigate to app layout admin page (separate URL)
+  if (selectedAppId.value === '') {
+    return
   }
+
+  if (layoutChanged.value) {
+    showStatus('Simpan perubahan sebelum mengganti diagram', 'error')
+    return
+  }
+
+  // Navigate to the app layout admin page
+  router.visit(`/admin/app/${selectedAppId.value}/layout/admin`)
 }
 
-function switchStream() {
-  if (selectedStream.value !== props.streamName) {
+// Event handlers for LayoutNavbar
+function onStreamChange(stream: string) {
+  if (stream !== props.streamName) {
     if (layoutChanged.value) {
       // Reset the selector to current stream and show warning
       selectedStream.value = props.streamName
       showStatus('Simpan perubahan sebelum keluar dari halaman', 'error')
     } else {
-      router.get(`/admin/stream/${selectedStream.value}`)
+      router.get(`/admin/stream/${stream}`)
     }
   }
+}
+
+function onAppChange(appId: number | string) {
+  // Navigate to app layout admin page (separate URL)
+  if (appId === '') {
+    return
+  }
+
+  if (layoutChanged.value) {
+    showStatus('Simpan perubahan sebelum mengganti diagram', 'error')
+    return
+  }
+
+  // Navigate to the app layout admin page
+  router.visit(`/admin/app/${appId}/layout/admin`)
 }
 
 function onStreamResize(event: { width: number, height: number, position?: { x: number, y: number } }) {
@@ -708,7 +586,7 @@ function onStreamResize(event: { width: number, height: number, position?: { x: 
     // Replace node to trigger reactivity
     nodes.value.splice(streamNodeIndex, 1, updatedNode)
     
-    markLayoutChanged()
+    layoutChanged.value = true
   } else {
     console.warn('Stream node not found for resize')
   }
@@ -716,222 +594,7 @@ function onStreamResize(event: { width: number, height: number, position?: { x: 
 </script>
 
 <style scoped>
-.admin-vue-flow-container {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
-}
-
-.admin-header {
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1a202c;
-  margin: 0;
-}
-
-.header-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.stream-selector {
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  background: white;
-  font-size: 0.875rem;
-}
-
-.save-btn, .refresh-btn, .reset-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.save-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.refresh-btn {
-  background: #10b981;
-  color: white;
-  border: none;
-  position: relative;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: #059669;
-}
-
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.reset-btn {
-  background: #6b7280;
-  color: white;
-  border: none;
-}
-
-.reset-btn:hover {
-  background: #4b5563;
-}
-
-.vue-flow-wrapper {
-  flex: 1;
-  position: relative;
-}
-
-.vue-flow.admin-mode {
-  background: #f8fafc;
-}
-
-/* Stream parent node specific styles */
-:deep(.vue-flow__node-streamParent) {
-  cursor: move !important;
-}
-
-/* Admin mode specific overrides for stream nodes */
-.vue-flow.admin-mode :deep(.vue-flow__node-stream) {
-  z-index: -10 !important;
-}
-
-.vue-flow.admin-mode :deep(.vue-flow__node-app) {
-  z-index: 10 !important;
-}
-
-/* Admin Vue Flow controls positioning */
-.vue-flow.admin-mode :deep(.vue-flow__controls) {
-  bottom: 1rem;
-  left: 1rem;
-  right: auto;
-}
-
-.status-message {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.status-message.success {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.status-message.error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.status-message.info {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-}
-
-/* Status indicators */
-.status-indicator {
-  display: flex;
-  align-items: center;
-  font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  margin-right: 0.75rem;
-}
-
-.status-indicator.auto-saving {
-  color: #d97706;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-}
-
-.status-indicator.unsaved {
-  color: #ea580c;
-  background: #fed7aa;
-  border: 1px solid #fdba74;
-}
-
-.status-indicator.saved {
-  color: #059669;
-  background: #d1fae5;
-  border: 1px solid #a7f3d0;
-}
-
-.status-indicator.connection-mode {
-  color: #7c3aed;
-  background: #ede9fe;
-  border: 1px solid #ddd6fe;
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.5rem;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.indicator-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-  background: #ea580c;
-}
-
-.indicator-dot.saved-dot {
-  background: #059669;
-}
-
-.indicator-dot.connection-dot {
-  background: #7c3aed;
-}
-</style>
-
-<style scoped>
+/* Import shared admin layout styles */
+@import '@/../css/admin-layout.css';
 @import '@/../css/vue-flow-integration.css';
 </style>
