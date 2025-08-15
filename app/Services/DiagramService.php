@@ -115,6 +115,9 @@ class DiagramService
             $x = 30 + ($col * 130);
             $y = 50 + ($row * 80);
             
+            // Get the stream color for consistent border color
+            $streamColor = $app->stream->color ?? '#3b82f6';
+            
             return [
                 'id' => 'f-' . $func->function_name, // Use function name as ID to avoid duplicates
                 'data' => [
@@ -124,6 +127,7 @@ class DiagramService
                     'integration_id' => $func->integration_id,
                     'stream_name' => $app->app_name ?? '',
                     'lingkup' => $app->stream->stream_name ?? '',
+                    'color' => $streamColor, // Provide explicit color hint for UI
                     'is_home_stream' => true,
                     'is_parent_node' => false,
                 ],
@@ -133,11 +137,11 @@ class DiagramService
                 'position' => ['x' => $x, 'y' => $y],
                 'style' => [
                     'backgroundColor' => '#f0f9ff',
-                    'border' => '2px solid ' . ($app->stream->color ?? '#3b82f6'),
+                    'border' => '2px solid ' . $streamColor,
                     'width' => '120px',
                     'height' => '60px',
                     'borderRadius' => '8px',
-                    'borderColor' => ($app->stream->color ?? '#3b82f6'),
+                    'borderColor' => $streamColor,
                 ],
             ];
         })->values()->all();
@@ -149,6 +153,9 @@ class DiagramService
             $centerX = 250;
             $centerY = 200;
             
+            // Get the stream color for consistent border color
+            $streamColor = $extApp->stream->color ?? '#6b7280';
+            
             return [
                 'id' => 'ext-' . $extApp->app_id,
                 'data' => [
@@ -157,6 +164,7 @@ class DiagramService
                     'app_name' => $extApp->app_name,
                     'stream_name' => $extApp->stream->stream_name ?? '',
                     'lingkup' => $extApp->stream->stream_name ?? '',
+                    'color' => $streamColor, // Provide explicit color hint for UI
                     'is_home_stream' => false,
                     'is_parent_node' => false,
                 ],
@@ -167,10 +175,11 @@ class DiagramService
                 ],
                 'style' => [
                     'backgroundColor' => '#f9fafb',
-                    'border' => '2px solid ' . ($extApp->stream->color ?? '#6b7280'),
+                    'border' => '2px solid ' . $streamColor,
                     'width' => '120px',
                     'height' => '60px',
                     'borderRadius' => '8px',
+                    'borderColor' => $streamColor,
                 ],
             ];
         })->values()->all();

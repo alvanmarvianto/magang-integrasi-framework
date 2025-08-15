@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\DiagramService;
 use App\Services\DiagramCleanupService;
 use App\Services\StreamLayoutService;
+use App\Services\AppLayoutService;
 use App\Models\App;
 use App\Repositories\Interfaces\AppLayoutRepositoryInterface;
 use Illuminate\Http\Request;
@@ -25,17 +26,20 @@ class DiagramController extends Controller
     protected DiagramCleanupService $cleanupService;
     protected StreamLayoutService $streamLayoutService;
     protected AppLayoutRepositoryInterface $appLayoutRepository;
+    protected AppLayoutService $appLayoutService;
 
     public function __construct(
         DiagramService $diagramService, 
         DiagramCleanupService $cleanupService,
         StreamLayoutService $streamLayoutService,
-        AppLayoutRepositoryInterface $appLayoutRepository
+        AppLayoutRepositoryInterface $appLayoutRepository,
+        AppLayoutService $appLayoutService
     ) {
         $this->diagramService = $diagramService;
         $this->cleanupService = $cleanupService;
         $this->streamLayoutService = $streamLayoutService;
         $this->appLayoutRepository = $appLayoutRepository;
+        $this->appLayoutService = $appLayoutService;
     }
 
     /**
@@ -290,6 +294,134 @@ class DiagramController extends Controller
     }
 
     /**
+     * Refresh app layout - clean up invalid data and synchronize with database
+     */
+    public function refreshAppLayout(int $appId): RedirectResponse
+    {
+        try {
+            // Get the app to validate it exists
+            $app = App::with('stream')->find($appId);
+            if (!$app) {
+                abort(404, 'App not found');
+            }
+
+            // Cleanup invalid data first
+            $duplicatesRemoved = $this->cleanupService->removeDuplicateIntegrations();
+            $invalidRemoved = $this->cleanupService->removeInvalidIntegrations();
+
+            // Clear the app layout cache to force fresh data
+            if (method_exists($this->appLayoutRepository, 'clearCaches')) {
+                $this->appLayoutRepository->clearCaches($appId);
+            }
+
+            // Synchronize app layout data with current database state
+            $edgesSynced = 0;
+            $colorsSynced = 0;
+            $appDataSynced = 0;
+
+            try {
+                // Sync colors for this specific app layout
+                $colorsSynced = $this->appLayoutService->syncAppLayoutColors($appId);
+                
+                // Get current saved layout
+                $savedLayout = $this->appLayoutRepository->findByAppId($appId);
+                
+                if ($savedLayout) {
+                    // Regenerate fresh diagram data to compare
+                    $freshDiagramData = $this->diagramService->getAppLayoutVueFlowData($appId, false);
+                    $freshData = $freshDiagramData->toArray();
+                    
+                    // Update saved layout with fresh data structure
+                    $updatedNodesLayout = [];
+                    $updatedEdgesLayout = [];
+                    
+                    // Preserve position data from saved layout but update everything else from fresh data
+                    if (isset($freshData['nodes'])) {
+                        foreach ($freshData['nodes'] as $freshNode) {
+                            $nodeId = $freshNode['id'];
+                            $savedNodeData = $savedLayout->nodesLayout[$nodeId] ?? [];
+                            
+                            $updatedNodesLayout[$nodeId] = [
+                                'position' => $savedNodeData['position'] ?? $freshNode['position'],
+                                'style' => $freshNode['style'] ?? [],
+                                'data' => $freshNode['data'] ?? [],
+                                'type' => $freshNode['type'] ?? 'default'
+                            ];
+                        }
+                    }
+                    
+                    // Update edges with fresh integration data but preserve saved edge endpoints (sourceHandle/targetHandle)
+                    if (isset($freshData['edges'])) {
+                        $updatedEdgesLayout = array_map(function($edge) use ($savedLayout) {
+                            $edgeId = $edge['id'];
+                            $savedEdgeData = null;
+                            
+                            // Find saved edge data by ID
+                            if (isset($savedLayout->edgesLayout) && is_array($savedLayout->edgesLayout)) {
+                                foreach ($savedLayout->edgesLayout as $savedEdge) {
+                                    if (isset($savedEdge['id']) && $savedEdge['id'] === $edgeId) {
+                                        $savedEdgeData = $savedEdge;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            return [
+                                'id' => $edge['id'],
+                                'source' => $edge['source'],
+                                'target' => $edge['target'],
+                                // Preserve saved edge endpoints if they exist, otherwise use fresh data
+                                'sourceHandle' => $savedEdgeData['sourceHandle'] ?? $edge['sourceHandle'] ?? null,
+                                'targetHandle' => $savedEdgeData['targetHandle'] ?? $edge['targetHandle'] ?? null,
+                                'type' => $edge['type'] ?? 'default',
+                                'style' => $edge['style'] ?? [],
+                                'data' => $edge['data'] ?? []
+                            ];
+                        }, $freshData['edges']);
+                        $edgesSynced = count($updatedEdgesLayout);
+                    }
+                    
+                    // Update app config with fresh metadata
+                    $updatedAppConfig = [
+                        'lastUpdated' => now()->toISOString(),
+                        'totalNodes' => count($updatedNodesLayout),
+                        'totalEdges' => count($updatedEdgesLayout),
+                        'app_id' => $appId,
+                        'app_name' => $app->app_name,
+                        'stream_name' => $app->stream->stream_name ?? '',
+                        'refreshedAt' => now()->toISOString()
+                    ];
+                    
+                    // Save the synchronized layout
+                    $this->appLayoutRepository->saveLayoutByAppId(
+                        $appId,
+                        $updatedNodesLayout,
+                        $updatedEdgesLayout,
+                        $updatedAppConfig
+                    );
+                    
+                    $appDataSynced = 1;
+                }
+            } catch (\Exception $syncEx) {
+                Log::warning('App layout sync failed during refresh: ' . $syncEx->getMessage());
+            }
+
+            $totalRemoved = $duplicatesRemoved + $invalidRemoved;
+            
+            if ($totalRemoved > 0 || $edgesSynced > 0 || $colorsSynced > 0 || $appDataSynced > 0) {
+                $message = "App layout refreshed successfully. Removed {$duplicatesRemoved} duplicates, {$invalidRemoved} invalid connections, synchronized {$edgesSynced} edges, updated {$colorsSynced} node colors, and synced {$appDataSynced} app data structure.";
+            } else {
+                $message = "App layout refreshed successfully. No invalid data found.";
+            }
+
+            return back()->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('Error refreshing app layout: ' . $e->getMessage());
+            return back()->with('error', 'Failed to refresh app layout');
+        }
+    }
+
+    /**
      * Clean up diagram data
      */
     public function cleanupDiagramData(array $data): array
@@ -306,5 +438,20 @@ class DiagramController extends Controller
     public function getAllowedStreams(): JsonResponse
     {
         return response()->json($this->diagramService->getAllowedStreams());
+    }
+
+    /**
+     * Public method to sync app layout colors (callable from other controllers)
+     * @deprecated Use AppLayoutService directly instead
+     */
+    public static function syncAppLayoutColorsForApp(int $appId): int
+    {
+        try {
+            $appLayoutService = app(\App\Services\AppLayoutService::class);
+            return $appLayoutService->syncAppLayoutColors($appId);
+        } catch (\Exception $e) {
+            Log::error('Error syncing app layout colors for app ' . $appId . ': ' . $e->getMessage());
+            return 0;
+        }
     }
 }

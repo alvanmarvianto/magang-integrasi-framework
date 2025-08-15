@@ -42,7 +42,7 @@
             :key="`app-${app.app_id}`" 
             :value="`app:${app.app_id}`"
           >
-            🔧 {{ app.app_name }}
+            {{ app.app_name }}
           </option>
         </optgroup>
       </select>

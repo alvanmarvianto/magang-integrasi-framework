@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\App;
 use App\Services\AppService;
+use App\Services\AppLayoutService;
 use App\Http\Requests\Admin\StoreAppRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,10 +15,12 @@ use Illuminate\Http\RedirectResponse;
 class AppController extends Controller
 {
     protected AppService $appService;
+    protected AppLayoutService $appLayoutService;
 
-    public function __construct(AppService $appService)
+    public function __construct(AppService $appService, AppLayoutService $appLayoutService)
     {
         $this->appService = $appService;
+        $this->appLayoutService = $appLayoutService;
     }
 
     /**
@@ -84,6 +87,9 @@ class AppController extends Controller
     {
         try {
             $appDTO = $this->appService->updateApp($app, $request->validated());
+            
+            // Auto-sync app layout colors if app has a layout (stream may have changed)
+            $this->appLayoutService->autoSyncColorsAfterAppOperation($app->app_id);
             
             return redirect()
                 ->route('admin.apps.index')
@@ -152,9 +158,19 @@ class AppController extends Controller
                 throw new \Exception('No applications were updated');
             }
             
+            // Auto-sync app layout colors for all updated apps that have layouts
+            $appsData = $request->input('apps');
+            $appIds = array_column($appsData, 'app_id');
+            $colorsSyncedTotal = $this->appLayoutService->autoSyncColorsAfterBulkOperation($appIds);
+            
+            $message = 'Applications updated successfully';
+            if ($colorsSyncedTotal > 0) {
+                $message .= " and synchronized {$colorsSyncedTotal} app layout node colors";
+            }
+            
             return redirect()
                 ->route('admin.apps.index')
-                ->with('success', 'Applications updated successfully');
+                ->with('success', $message);
         } catch (\Exception $e) {
             return back()
                 ->withInput()

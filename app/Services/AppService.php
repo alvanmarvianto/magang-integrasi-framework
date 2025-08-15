@@ -19,6 +19,7 @@ class AppService
     protected TechnologyRepositoryInterface $technologyRepository;
     protected StreamLayoutRepositoryInterface $streamLayoutRepository;
     protected IntegrationRepositoryInterface $integrationRepository;
+    protected AppLayoutService $appLayoutService;
 
     public function __construct(
         AppRepositoryInterface $appRepository,
@@ -26,7 +27,8 @@ class AppService
         StreamService $streamService,
         TechnologyRepositoryInterface $technologyRepository,
     StreamLayoutRepositoryInterface $streamLayoutRepository,
-    IntegrationRepositoryInterface $integrationRepository
+    IntegrationRepositoryInterface $integrationRepository,
+    AppLayoutService $appLayoutService
     ) {
         $this->appRepository = $appRepository;
         $this->technologyService = $technologyService;
@@ -34,6 +36,7 @@ class AppService
         $this->technologyRepository = $technologyRepository;
         $this->streamLayoutRepository = $streamLayoutRepository;
     $this->integrationRepository = $integrationRepository;
+    $this->appLayoutService = $appLayoutService;
     }
 
     /**
@@ -135,6 +138,9 @@ class AppService
         // Persist function mappings if provided
         if (!empty($validatedData['functions']) && is_array($validatedData['functions'])) {
             $this->appRepository->replaceIntegrationFunctions($app->app_id, $validatedData['functions']);
+            
+            // Auto-sync app layout colors after creating integration functions
+            $this->appLayoutService->autoSyncColorsAfterAppOperation($app->app_id);
         }
         
         return AppDTO::fromModel($app);
@@ -151,6 +157,9 @@ class AppService
         // Persist function mappings if provided (replace existing)
         if (array_key_exists('functions', $validatedData)) {
             $this->appRepository->replaceIntegrationFunctions($app->app_id, $validatedData['functions'] ?? []);
+            
+            // Auto-sync app layout colors after updating integration functions
+            $this->appLayoutService->autoSyncColorsAfterAppOperation($app->app_id);
         }
         
         // Reload the app with fresh data (bypassing cache)

@@ -21,11 +21,14 @@
         :title="`App Diagram - ${appName}`"
         :layout-changed="layoutChanged"
         :saving="saving"
+        :refreshing="refreshing"
         :show-layout-selector="true"
+        :show-refresh-button="true"
         :allowed-streams="allowedStreams"
         :function-apps="functionApps"
         :current-app-id="appId"
         @save="saveLayout"
+        @refresh="refreshLayout"
         @reset="resetLayout"
         @stream-change="onStreamChange"
         @app-change="onAppChange"
@@ -166,6 +169,9 @@ const {
   disableArrowMarkers: true, // Disable arrow markers for app layout
 })
 
+// Additional refs for app layout
+const refreshing = ref(false)
+
 // Initialize layout on mount
 onMounted(() => {
   initializeLayout()
@@ -230,6 +236,36 @@ async function saveLayout() {
     console.error('Save error:', error)
     showStatus('Gagal menyimpan layout', 'error')
     saving.value = false
+  }
+}
+
+async function refreshLayout() {
+  if (refreshing.value) {
+    return
+  }
+
+  refreshing.value = true
+  
+  try {
+    // Use Inertia router to refresh the app layout
+    router.visit(`/admin/app/${props.appId}/layout/refresh`, {
+      method: 'get',
+      onSuccess: () => {
+        // Reload the current page to get fresh data
+        router.reload()
+      },
+      onError: (errors) => {
+        console.error('Refresh errors:', errors)
+        showStatus('Gagal refresh layout', 'error')
+      },
+      onFinish: () => {
+        refreshing.value = false
+      }
+    })
+  } catch (error) {
+    console.error('Refresh error:', error)
+    showStatus('Gagal refresh layout', 'error')
+    refreshing.value = false
   }
 }
 

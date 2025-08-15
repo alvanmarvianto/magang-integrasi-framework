@@ -64,7 +64,7 @@ class AppLayoutRepository implements AppLayoutRepositoryInterface
     public function create(AppLayoutDTO $dto): AppLayoutDTO
     {
         $layout = $this->model->create($dto->toArray());
-        $this->clearCaches($layout->app_id ?? null);
+        $this->clearAppLayoutCaches($layout->app_id ?? null);
         return AppLayoutDTO::fromModel($layout);
     }
 
@@ -73,7 +73,7 @@ class AppLayoutRepository implements AppLayoutRepositoryInterface
         $layout = $this->model->find($id);
         if (!$layout) { return null; }
         $layout->update($dto->toArray());
-        $this->clearCaches($layout->app_id ?? null);
+        $this->clearAppLayoutCaches($layout->app_id ?? null);
         return AppLayoutDTO::fromModel($layout);
     }
 
@@ -87,7 +87,7 @@ class AppLayoutRepository implements AppLayoutRepositoryInterface
                 'app_config' => $appConfig,
             ]
         );
-        $this->clearCaches($appId);
+        $this->clearAppLayoutCaches($appId);
         return AppLayoutDTO::fromModel($layout);
     }
 
@@ -97,7 +97,7 @@ class AppLayoutRepository implements AppLayoutRepositoryInterface
         if (!$layout) { return false; }
         $appId = $layout->app_id;
         $deleted = (bool) $layout->delete();
-        if ($deleted) { $this->clearCaches($appId); }
+        if ($deleted) { $this->clearAppLayoutCaches($appId); }
         return $deleted;
     }
 
@@ -109,11 +109,19 @@ class AppLayoutRepository implements AppLayoutRepositoryInterface
         ];
     }
 
-    private function clearCaches(?int $appId = null): void
+    private function clearAppLayoutCaches(?int $appId = null): void
     {
         Cache::forget(CacheConfig::buildKey('app_layout', 'all'));
         if ($appId) {
             Cache::forget(CacheConfig::buildKey('app_layout', 'app_id', $appId));
         }
+    }
+
+    /**
+     * Public method to clear caches for a specific app
+     */
+    public function clearCaches(?int $appId = null): void
+    {
+        $this->clearAppLayoutCaches($appId);
     }
 }

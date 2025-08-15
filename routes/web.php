@@ -96,6 +96,7 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::get('/{appId}/layout', [AdminDiagramController::class, 'getAppLayoutVueFlowData'])->name('layout');
         Route::get('/{appId}/layout/admin', [AdminDiagramController::class, 'showAppLayout'])->name('layout.admin');
         Route::post('/{appId}/layout', [AdminDiagramController::class, 'saveAppLayout'])->name('save-layout');
+        Route::get('/{appId}/layout/refresh', [AdminDiagramController::class, 'refreshAppLayout'])->name('layout.refresh');
     });
 
     // Stream CRUD management
