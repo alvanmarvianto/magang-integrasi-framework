@@ -15,6 +15,8 @@ class AppIntegrationFunction extends Model
         'function_name',
     ];
 
+    public $timestamps = false;
+
     public function app(): BelongsTo
     {
         return $this->belongsTo(App::class, 'app_id', 'app_id');

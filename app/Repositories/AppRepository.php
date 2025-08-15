@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Illuminate\Support\Collection as BaseCollection;
 
 class AppRepository extends BaseRepository implements AppRepositoryInterface
 {
@@ -35,8 +36,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
             'app_type', 
             'stratification',
             'description',
-            'created_at',
-            'updated_at',
             'stream_name',
             'stream'
         ];
@@ -531,5 +530,74 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
             
             throw RepositoryException::updateFailed('bulk apps', 'multiple', $e->getMessage());
         }
+    }
+
+    public function getIntegrationFunctionsGrouped(int $appId): array
+    {
+        $this->validateId($appId);
+
+        try {
+            $rows = DB::table('appintegration_functions')
+                ->where('app_id', $appId)
+                ->select('function_name', 'integration_id')
+                ->orderBy('function_name')
+                ->get();
+
+            if ($rows->isEmpty()) {
+                return [];
+            }
+
+            return $rows
+                ->groupBy('function_name')
+                ->map(function ($items, $fname) {
+                    return [
+                        'function_name' => $fname,
+                        'integration_ids' => $items->pluck('integration_id')->unique()->values()->all(),
+                    ];
+                })
+                ->values()
+                ->all();
+        } catch (\Exception $e) {
+            Log::error('Failed to get integration functions grouped', [
+                'appId' => $appId,
+                'exception' => $e->getMessage(),
+            ]);
+            throw RepositoryException::createFailed('integration functions fetch', $e->getMessage());
+        }
+    }
+
+    public function replaceIntegrationFunctions(int $appId, array $functions): void
+    {
+        $this->validateId($appId);
+
+        DB::transaction(function () use ($appId, $functions) {
+            DB::table('appintegration_functions')->where('app_id', $appId)->delete();
+
+            $rows = [];
+            foreach ($functions as $f) {
+                $name = trim((string)($f['function_name'] ?? ''));
+                if ($name === '') continue;
+
+                $ids = [];
+                if (isset($f['integration_ids']) && is_array($f['integration_ids'])) {
+                    $ids = array_values(array_unique(array_map('intval', $f['integration_ids'])));
+                } elseif (!empty($f['integration_id'])) {
+                    $ids = [intval($f['integration_id'])];
+                }
+
+                foreach ($ids as $integrationId) {
+                    if (!$integrationId) continue;
+                    $rows[] = [
+                        'app_id' => $appId,
+                        'integration_id' => $integrationId,
+                        'function_name' => $name,
+                    ];
+                }
+            }
+
+            if (!empty($rows)) {
+                DB::table('appintegration_functions')->insert($rows);
+            }
+        });
     }
 } 

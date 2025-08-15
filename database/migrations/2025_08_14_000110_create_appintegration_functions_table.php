@@ -21,8 +21,6 @@ return new class extends Migration
             $table->integer('app_id');
             $table->integer('integration_id');
             $table->string('function_name');
-            $table->timestamps();
-
             $table->foreign('app_id')
                 ->references('app_id')
                 ->on('apps')

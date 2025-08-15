@@ -93,4 +93,16 @@ interface AppRepositoryInterface
      * Bulk update apps
      */
     public function bulkUpdateApps(array $appData): bool;
+
+    /**
+     * Get integration functions grouped by function_name for an app
+     * Returns an array of [ { function_name: string, integration_ids: int[] }, ... ]
+     */
+    public function getIntegrationFunctionsGrouped(int $appId): array;
+
+    /**
+     * Replace all integration functions for an app with the provided set.
+     * Each item: [ 'function_name' => string, 'integration_ids' => int[] ]
+     */
+    public function replaceIntegrationFunctions(int $appId, array $functions): void;
 } 

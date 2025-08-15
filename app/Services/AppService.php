@@ -86,29 +86,8 @@ class AppService
         // Prepare app payload, and enrich with integration_functions for edit mode
         $appPayload = $appDTO ? $appDTO->toArray() : null;
         if ($appId && $appPayload !== null) {
-            // Fetch functions and group integration_ids per function_name
-            $rows = DB::table('appintegration_functions')
-                ->where('app_id', $appId)
-                ->select('function_name', 'integration_id')
-                ->orderBy('function_name')
-                ->get();
-
-            if ($rows->isNotEmpty()) {
-                $grouped = $rows
-                    ->groupBy('function_name')
-                    ->map(function ($items, $fname) {
-                        return [
-                            'function_name' => $fname,
-                            'integration_ids' => $items->pluck('integration_id')->unique()->values()->all(),
-                        ];
-                    })
-                    ->values()
-                    ->all();
-
-                $appPayload['integration_functions'] = $grouped;
-            } else {
-                $appPayload['integration_functions'] = [];
-            }
+            $grouped = $this->appRepository->getIntegrationFunctionsGrouped($appId);
+            $appPayload['integration_functions'] = $grouped;
         }
 
         return [
@@ -155,7 +134,7 @@ class AppService
 
         // Persist function mappings if provided
         if (!empty($validatedData['functions']) && is_array($validatedData['functions'])) {
-            $this->saveAppIntegrationFunctions($app->app_id, $validatedData['functions']);
+            $this->appRepository->replaceIntegrationFunctions($app->app_id, $validatedData['functions']);
         }
         
         return AppDTO::fromModel($app);
@@ -171,7 +150,7 @@ class AppService
 
         // Persist function mappings if provided (replace existing)
         if (array_key_exists('functions', $validatedData)) {
-            $this->saveAppIntegrationFunctions($app->app_id, $validatedData['functions'] ?? []);
+            $this->appRepository->replaceIntegrationFunctions($app->app_id, $validatedData['functions'] ?? []);
         }
         
         // Reload the app with fresh data (bypassing cache)
@@ -180,43 +159,7 @@ class AppService
         return AppDTO::fromModel($updatedApp);
     }
 
-    private function saveAppIntegrationFunctions(int $appId, array $functions): void
-    {
-        // Expected function item: { function_name: string, integration_ids: number[] } or legacy { integration_id }
-        DB::transaction(function () use ($appId, $functions) {
-            DB::table('appintegration_functions')->where('app_id', $appId)->delete();
-
-            $rows = [];
-            foreach ($functions as $f) {
-                $name = trim((string)($f['function_name'] ?? ''));
-                if ($name === '') {
-                    continue;
-                }
-
-                // Normalize integrations to an array
-                $ids = [];
-                if (isset($f['integration_ids']) && is_array($f['integration_ids'])) {
-                    $ids = array_values(array_unique(array_map('intval', $f['integration_ids'])));
-                } elseif (!empty($f['integration_id'])) { // legacy single
-                    $ids = [intval($f['integration_id'])];
-                }
-
-                foreach ($ids as $integrationId) {
-                    if (!$integrationId) continue;
-                    $rows[] = [
-                        'app_id' => $appId,
-                        'integration_id' => $integrationId,
-                        'function_name' => $name,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-            if (!empty($rows)) {
-                DB::table('appintegration_functions')->insert($rows);
-            }
-        });
-    }
+    // Integration functions persistence is delegated to the repository
 
     /**
      * Delete app and its related data
