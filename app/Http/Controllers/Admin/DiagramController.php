@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\DiagramService;
 use App\Services\DiagramCleanupService;
 use App\Services\StreamLayoutService;
+use App\Models\App;
+use App\Repositories\Interfaces\AppLayoutRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,15 +24,18 @@ class DiagramController extends Controller
     protected DiagramService $diagramService;
     protected DiagramCleanupService $cleanupService;
     protected StreamLayoutService $streamLayoutService;
+    protected AppLayoutRepositoryInterface $appLayoutRepository;
 
     public function __construct(
         DiagramService $diagramService, 
         DiagramCleanupService $cleanupService,
-        StreamLayoutService $streamLayoutService
+        StreamLayoutService $streamLayoutService,
+        AppLayoutRepositoryInterface $appLayoutRepository
     ) {
         $this->diagramService = $diagramService;
         $this->cleanupService = $cleanupService;
         $this->streamLayoutService = $streamLayoutService;
+        $this->appLayoutRepository = $appLayoutRepository;
     }
 
     /**
@@ -59,12 +64,25 @@ class DiagramController extends Controller
             $diagramData = $this->diagramService->getVueFlowData($streamName, false);
             $diagramArray = $diagramData->toArray();
 
+            // Get all function apps for dropdown (regardless of stream)
+            $functionApps = App::where('is_function', true)
+                ->orderBy('app_name')
+                ->get(['app_id', 'app_name'])
+                ->map(function ($app) {
+                    return [
+                        'app_id' => (int)$app->getAttribute('app_id'),
+                        'app_name' => (string)$app->getAttribute('app_name'),
+                    ];
+                })
+                ->toArray();
+
             return inertia('Admin/Diagram', [
                 'streamName' => $streamName,
                 'nodes' => $diagramArray['nodes'] ?? [],
                 'edges' => $diagramArray['edges'] ?? [],
                 'savedLayout' => $diagramArray['layout'] ?? null,
                 'allowedStreams' => $this->diagramService->getAllowedStreams(),
+                'functionApps' => $functionApps,
                 'error' => $diagramArray['error'] ?? null,
             ]);
         } catch (\Exception $e) {
@@ -92,6 +110,114 @@ class DiagramController extends Controller
         } catch (\Exception $e) {
             Log::error('Error fetching admin diagram data: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to load diagram data'], 500);
+        }
+    }
+
+    /**
+     * Save app layout configuration
+     */
+    public function saveAppLayout(Request $request, int $appId): RedirectResponse
+    {
+        try {
+            $this->appLayoutRepository->saveLayoutByAppId(
+                $appId,
+                $request->input('nodes_layout', []),
+                $request->input('edges_layout', []),
+                $request->input('app_config', [])
+            );
+
+            return back()->with('success', 'App layout saved successfully!');
+        } catch (\Exception $e) {
+            Log::error('Error saving app layout: ' . $e->getMessage());
+            return back()->with('error', 'Failed to save app layout');
+        }
+    }
+
+    /**
+     * Show the admin app layout page
+     */
+    public function showAppLayout(int $appId)
+    {
+        try {
+            // Get the app to validate it exists
+            $app = App::with('stream')->find($appId);
+            if (!$app) {
+                abort(404, 'App not found');
+            }
+
+            // Get the app layout diagram data
+            $diagramData = $this->diagramService->getAppLayoutVueFlowData($appId, false);
+            $diagramArray = $diagramData->toArray();
+
+            // Get allowed streams for the dropdown
+            $allowedStreams = $this->diagramService->getAllowedStreams();
+            
+            // Get all function apps for the dropdown
+            $functionApps = App::where('is_function', true)
+                ->orderBy('app_name')
+                ->get(['app_id', 'app_name'])
+                ->map(function ($app) {
+                    return [
+                        'app_id' => (int)$app->getAttribute('app_id'),
+                        'app_name' => (string)$app->getAttribute('app_name'),
+                    ];
+                })
+                ->toArray();
+
+            return inertia('Admin/AppLayoutDiagram', [
+                'appId' => $appId,
+                'appName' => $app->app_name,
+                'streamName' => $app->stream->stream_name ?? '',
+                'nodes' => $diagramArray['nodes'] ?? [],
+                'edges' => $diagramArray['edges'] ?? [],
+                'savedLayout' => $diagramArray['layout'] ?? null,
+                'allowedStreams' => $allowedStreams,
+                'functionApps' => $functionApps,
+                'error' => $diagramArray['error'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error loading admin app layout page: ' . $e->getMessage());
+            
+            return inertia('Admin/AppLayoutDiagram', [
+                'appId' => $appId,
+                'appName' => 'Unknown App',
+                'streamName' => '',
+                'nodes' => [],
+                'edges' => [],
+                'savedLayout' => null,
+                'allowedStreams' => [],
+                'functionApps' => [],
+                'error' => 'Failed to load app layout data'
+            ]);
+        }
+    }
+
+    /**
+     * Get App Layout diagram data for a specific app
+     */
+    public function getAppLayoutVueFlowData(int $appId): JsonResponse
+    {
+        try {
+            $diagramData = $this->diagramService->getAppLayoutVueFlowData($appId, false);
+            \Log::info('Fetched app layout diagram data: ' . json_encode($diagramData));
+            return response()->json($diagramData->toArray());
+        } catch (\Exception $e) {
+            Log::error('Error fetching app layout diagram data: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load app layout diagram data'], 500);
+        }
+    }
+
+    /**
+     * Get App-Function diagram data for admin view
+     */
+    public function getAppFunctionVueFlowData(string $streamName): JsonResponse
+    {
+        try {
+            $diagramData = $this->diagramService->getAppFunctionVueFlowData($streamName, false);
+            return response()->json($diagramData->toArray());
+        } catch (\Exception $e) {
+            Log::error('Error fetching admin app-function diagram data: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load app-function diagram data'], 500);
         }
     }
 

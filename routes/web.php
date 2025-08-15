@@ -53,7 +53,6 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::get('/{id}/edit', [AdminIntegrationController::class, 'edit'])->name('edit');
         Route::put('/{id}', [AdminIntegrationController::class, 'update'])->name('update');
         Route::delete('/{id}', [AdminIntegrationController::class, 'destroy'])->name('destroy');
-        Route::patch('/{id}/switch', [AdminIntegrationController::class, 'switchSourceTarget'])->name('switch');
     });
 
     // Connection types management
@@ -87,8 +86,16 @@ Route::prefix('admin')->as('admin.')->group(function () {
     // Stream management
     Route::prefix('stream')->as('diagrams.')->group(function () {
         Route::get('/{streamName}', [AdminDiagramController::class, 'show'])->name('show');
+    Route::get('/{streamName}/app-function', [AdminDiagramController::class, 'getAppFunctionVueFlowData'])->name('app-function');
         Route::post('/{streamName}/layout', [AdminDiagramController::class, 'saveLayout'])->name('save');
         Route::get('/{streamName}/refresh', [AdminDiagramController::class, 'refreshLayout'])->name('refresh');
+    });
+
+    // App layout management
+    Route::prefix('app')->as('app.')->group(function () {
+        Route::get('/{appId}/layout', [AdminDiagramController::class, 'getAppLayoutVueFlowData'])->name('layout');
+        Route::get('/{appId}/layout/admin', [AdminDiagramController::class, 'showAppLayout'])->name('layout.admin');
+        Route::post('/{appId}/layout', [AdminDiagramController::class, 'saveAppLayout'])->name('save-layout');
     });
 
     // Stream CRUD management

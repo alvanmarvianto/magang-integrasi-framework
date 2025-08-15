@@ -8,6 +8,7 @@ use App\Repositories\StreamRepository;
 use App\Repositories\TechnologyRepository;
 use App\Repositories\ConnectionTypeRepository;
 use App\Repositories\StreamLayoutRepository;
+use App\Repositories\AppLayoutRepository;
 use App\Repositories\ContractRepository;
 use App\Repositories\ContractPeriodRepository;
 use App\Repositories\StreamConfigurationRepository;
@@ -17,6 +18,7 @@ use App\Repositories\Interfaces\StreamRepositoryInterface;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
 use App\Repositories\Interfaces\ConnectionTypeRepositoryInterface;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
+use App\Repositories\Interfaces\AppLayoutRepositoryInterface;
 use App\Repositories\Interfaces\ContractRepositoryInterface;
 use App\Repositories\Interfaces\ContractPeriodRepositoryInterface;
 use App\Repositories\Interfaces\StreamConfigurationRepositoryInterface;
@@ -36,6 +38,7 @@ class RepositoryServiceProvider extends ServiceProvider
         TechnologyRepositoryInterface::class => TechnologyRepository::class,
         ConnectionTypeRepositoryInterface::class => ConnectionTypeRepository::class,
         StreamLayoutRepositoryInterface::class => StreamLayoutRepository::class,
+    AppLayoutRepositoryInterface::class => AppLayoutRepository::class,
         ContractRepositoryInterface::class => ContractRepository::class,
         ContractPeriodRepositoryInterface::class => ContractPeriodRepository::class,
         StreamConfigurationRepositoryInterface::class => StreamConfigurationRepository::class,
