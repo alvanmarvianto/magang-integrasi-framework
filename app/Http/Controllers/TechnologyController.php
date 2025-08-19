@@ -53,6 +53,7 @@ class TechnologyController extends Controller
                     'app_id' => $appTechnologyData->appId,
                     'app_name' => $appTechnologyData->appName,
                     'stream_name' => $appTechnologyData->streamName,
+                    'is_module' => $appTechnologyData->isModule,
                 ],
                 'appDescription' => $appTechnologyData->description,
                 'technology' => $appTechnologyData->technologies,

@@ -11,6 +11,7 @@ readonly class AppTechnologyDataDTO
         public string $streamName,
         public ?string $appType,
         public ?string $stratification,
+        public bool $isModule = false,
         public array $technologies = []
     ) {}
 
@@ -23,6 +24,7 @@ readonly class AppTechnologyDataDTO
             streamName: $app->streamName ?? '',
             appType: $app->appType,
             stratification: $app->stratification,
+            isModule: $app->isModule,
             technologies: $technologies
         );
     }
@@ -36,6 +38,7 @@ readonly class AppTechnologyDataDTO
             'stream_name' => $this->streamName,
             'app_type' => $this->appType,
             'stratification' => $this->stratification,
+            'is_module' => $this->isModule,
             'technology' => $this->technologies,
         ];
     }

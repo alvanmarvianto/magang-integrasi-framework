@@ -116,7 +116,7 @@ const props = defineProps<{
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
 const { createTechnologyNavigation } = useNavigation();
 
-const navigationLinks = createTechnologyNavigation(props.app.app_id);
+const navigationLinks = createTechnologyNavigation(props.app.app_id, props.app.is_module ?? true);
 
 const hasAnyTechnologyData = computed(() => {
   if (!props.technology) return false;

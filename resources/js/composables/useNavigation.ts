@@ -142,18 +142,25 @@ export function useNavigation(options: NavigationOptions = {}) {
   /**
    * Create a standard app-context navigation set (common for all app pages)
    */
-  const createAppNavigation = (appId: number): NavigationLink[] => {
-    return [
+  const createAppNavigation = (appId: number, isModule: boolean = true): NavigationLink[] => {
+    const baseNavigation = [
       {
         icon: 'fa-solid fa-home',
         text: 'Halaman Utama',
         onClick: () => visitRoute('index')
-      },
-      {
+      }
+    ];
+
+    // Only add "Halaman Aplikasi" if the app is a module
+    if (isModule) {
+      baseNavigation.push({
         icon: 'fa-solid fa-sitemap',
         text: 'Halaman Aplikasi',
         onClick: () => visitRoute('integration.module', { app_id: appId })
-      },
+      });
+    }
+
+    baseNavigation.push(
       {
         icon: 'fa-solid fa-microchip',
         text: 'Halaman Teknologi',
@@ -164,7 +171,9 @@ export function useNavigation(options: NavigationOptions = {}) {
         text: 'Halaman Kontrak',
         onClick: () => visitRoute('contract.app', { app_id: appId })
       }
-    ];
+    );
+
+    return baseNavigation;
   };
 
 
@@ -184,8 +193,8 @@ export function useNavigation(options: NavigationOptions = {}) {
   /**
    * Create technology-specific navigation
    */
-  const createTechnologyNavigation = (appId: number): NavigationLink[] => {
-    const baseNavigation = createAppNavigation(appId);
+  const createTechnologyNavigation = (appId: number, isModule: boolean = true): NavigationLink[] => {
+    const baseNavigation = createAppNavigation(appId, isModule);
     return [
       ...baseNavigation,
       {
@@ -207,7 +216,7 @@ export function useNavigation(options: NavigationOptions = {}) {
     }
 
     if (targetApp) {
-      const baseNavigation = createAppNavigation(targetApp.app_id);
+      const baseNavigation = createAppNavigation(targetApp.app_id, targetApp.is_module ?? true);
       return [
         ...baseNavigation,
         {
@@ -241,8 +250,8 @@ export function useNavigation(options: NavigationOptions = {}) {
   /**
    * Create function/module navigation
    */
-  const createFunctionNavigation = (appId: number, streamName?: string): NavigationLink[] => {
-    const baseNavigation = createAppNavigation(appId);
+  const createFunctionNavigation = (appId: number, streamName?: string, isModule: boolean = true): NavigationLink[] => {
+    const baseNavigation = createAppNavigation(appId, isModule);
     return [
       ...baseNavigation,
       ...(streamName ? [{

@@ -151,6 +151,7 @@ interface Props {
   appId: number;
   appName: string;
   streamName: string;
+  isModule?: boolean;
   nodes: Node[];
   edges: Edge[];
   savedLayout: {
@@ -205,7 +206,7 @@ const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewpo
 // Create context menu handler to disable popup on empty space
 const onContextMenu = createCustomContextMenuHandler();
 
-const navigationLinks = createFunctionNavigation(props.appId, props.streamName);
+const navigationLinks = createFunctionNavigation(props.appId, props.streamName, props.isModule ?? true);
 
 const controls = [
   {

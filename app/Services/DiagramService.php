@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Services\StreamConfigurationService;
+use App\Services\EdgeTransformer;
 use App\DTOs\DiagramDataDTO;
 use App\DTOs\DiagramEdgeDTO;
 use App\DTOs\DiagramNodeDTO;
@@ -19,7 +20,8 @@ class DiagramService
     public function __construct(
         private readonly StreamLayoutRepositoryInterface $streamLayoutRepository,
         private readonly AppLayoutRepositoryInterface $appLayoutRepository,
-        private readonly StreamConfigurationService $streamConfigService
+        private readonly StreamConfigurationService $streamConfigService,
+        private readonly EdgeTransformer $edgeTransformer
     ) {}
 
     /**
@@ -72,7 +74,7 @@ class DiagramService
         
         // Get all integrations that involve these functions
         $integrations = AppIntegration::whereIn('integration_id', $functionIntegrationIds)
-            ->with(['sourceApp', 'targetApp', 'functions'])
+            ->with(['sourceApp', 'targetApp', 'functions', 'connections.connectionType'])
             ->get();
 
         // Get external apps that are connected via functions (not the target app itself)
@@ -185,11 +187,17 @@ class DiagramService
             ];
         })->values()->all();
 
-        // Build edges from functions to external apps
+        // Build edges from functions to external apps using proper integration data
         $edges = [];
         foreach ($integrations as $integration) {
             $isAppSource = $integration->source_app_id == $appId;
             $externalAppId = $isAppSource ? $integration->target_app_id : $integration->source_app_id;
+            
+            // Build connection type data once per integration
+            $types = $integration->relationLoaded('connections')
+                ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
+                : [];
+            $connectionType = empty($types) ? 'direct' : implode(' / ', $types);
             
             // Find functions for this integration from the original collection (not deduplicated)
             $integrationFunctions = $allFunctions->where('integration_id', $integration->integration_id);
@@ -201,15 +209,47 @@ class DiagramService
                     'target' => 'ext-' . $externalAppId,
                     'type' => 'smoothstep',
                     'style' => [
-                        'stroke' => '#374151',
+                        'stroke' => $isUserView ? '#374151' : '#000000', // Black for admin, gray for user
                         'strokeWidth' => 2,
                     ],
                     'data' => [
-                        'connection_type' => 'function_integration',
-                        'function_name' => $func->function_name,
+                        'connection_type' => strtolower($connectionType),
+                        'connection_types' => array_map(fn($n) => ['name' => $n], $types),
+                        // Detailed connections payload for sidebar rendering
+                        'connections' => $integration->relationLoaded('connections')
+                            ? $integration->connections->map(function ($conn) use ($integration) {
+                                return [
+                                    'connection_type_id' => $conn->connection_type_id,
+                                    'connection_type_name' => $conn->connectionType?->type_name,
+                                    'connection_color' => $conn->connectionType->color ?? null,
+                                    'source' => [
+                                        'app_id' => $integration->sourceApp?->app_id ?? null,
+                                        'app_name' => $integration->sourceApp?->app_name ?? null,
+                                        'inbound' => $conn->source_inbound,
+                                        'outbound' => $conn->source_outbound,
+                                    ],
+                                    'target' => [
+                                        'app_id' => $integration->targetApp?->app_id ?? null,
+                                        'app_name' => $integration->targetApp?->app_name ?? null,
+                                        'inbound' => $conn->target_inbound,
+                                        'outbound' => $conn->target_outbound,
+                                    ],
+                                ];
+                            })->toArray()
+                            : [],
+                        'color' => $isUserView ? '#374151' : '#000000',
                         'integration_id' => $integration->integration_id,
-                        'source_app_name' => $isAppSource ? $func->function_name : $integration->targetApp->app_name,
-                        'target_app_name' => $isAppSource ? $integration->targetApp->app_name : $func->function_name,
+                        'sourceApp' => [
+                            'app_id' => $integration->sourceApp?->app_id ?? 0,
+                            'app_name' => $integration->sourceApp?->app_name ?? 'Unknown App',
+                        ],
+                        'targetApp' => [
+                            'app_id' => $integration->targetApp?->app_id ?? 0,
+                            'app_name' => $integration->targetApp?->app_name ?? 'Unknown App',
+                        ],
+                        'source_app_name' => $integration->sourceApp?->app_name ?? 'Unknown App',
+                        'target_app_name' => $integration->targetApp?->app_name ?? 'Unknown App',
+                        'function_name' => $func->function_name,
                     ],
                 ];
             }
