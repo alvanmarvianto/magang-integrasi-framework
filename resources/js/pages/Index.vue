@@ -31,11 +31,11 @@
         variant="group"
       />
 
-      <SidebarNavigation
+      <!-- <SidebarNavigation
         title="Admin"
         :links="adminLinks"
         variant="group"
-      />
+      /> -->
     </Sidebar>
 
     <main id="main-content">
@@ -69,7 +69,7 @@ const props = defineProps<{
 }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData, props.allowedStreams);
+const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData);
 const { visitRoute, getRoute } = useRoutes();
 
 // Generate stream links dynamically from database

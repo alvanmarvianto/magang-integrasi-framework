@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\TechnologyController as AdminTechnologyController
 use App\Http\Controllers\Admin\ConnectionTypeController;
 use App\Http\Controllers\Admin\DiagramController as AdminDiagramController;
 use App\Http\Controllers\Admin\ContractController as AdminContractController;
+use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 
 Route::get('/', [AppController::class, 'index'])->name('index');
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
@@ -42,8 +43,15 @@ Route::prefix('contract')->as('contract.')->group(function () {
     Route::get('/{app_id}/{contract_id}', [ContractController::class, 'show'])->name('show');
 });
 
-// Admin routes
+// Admin authentication routes (not protected)
 Route::prefix('admin')->as('admin.')->group(function () {
+    Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.post');
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+});
+
+// Protected Admin routes
+Route::prefix('admin')->as('admin.')->middleware(['sanctum.session', 'admin.auth'])->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('index');
 
     // Integration management

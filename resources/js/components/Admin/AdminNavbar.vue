@@ -5,6 +5,16 @@
         <!-- Additional controls slot before back button -->
         <slot name="controls"></slot>
         
+        <!-- Logout button -->
+        <button 
+          @click="handleLogout"
+          class="admin-logout-button"
+          type="button"
+        >
+          <font-awesome-icon icon="fa-solid fa-sign-out-alt" />
+          Logout
+        </button>
+        
         <!-- Back button -->
         <a 
           v-if="showBackButton" 
@@ -19,11 +29,21 @@
   </template>
   
   <script setup lang="ts">
+  import { router } from '@inertiajs/vue3'
+  
   defineProps<{
     title: string;
     showBackButton?: boolean;
     backUrl?: string;
   }>();
+  
+  const handleLogout = () => {
+    router.post(route('admin.logout'), {}, {
+      onSuccess: () => {
+        // Redirect will be handled by the controller
+      }
+    })
+  }
   </script>
   
   <style scoped>
@@ -49,6 +69,24 @@
     display: flex;
     gap: 1rem;
     align-items: center;
+  }
+  
+  .admin-logout-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  
+  .admin-logout-button:hover {
+    background-color: #b91c1c;
   }
   
   .admin-back-button {
