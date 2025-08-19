@@ -6,6 +6,7 @@ use App\Models\ConnectionType;
 use App\DTOs\ConnectionTypeDTO;
 use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\ConnectionTypeRepositoryInterface;
+use App\Repositories\CacheConfig;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -39,7 +40,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
             $cacheTTL,
             function() {
                 try {
-                    return ConnectionType::withCount('appIntegrations')
+                    return ConnectionType::withCount('appIntegrationConnections')
                         ->orderBy('type_name')
                         ->get();
                 } catch (\Exception $e) {
@@ -179,24 +180,24 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
             $cacheTTL,
             function () {
                 try {
-                    $connectionTypes = ConnectionType::withCount('appIntegrations')->get();
+                    $connectionTypes = ConnectionType::withCount('appIntegrationConnections')->get();
                     
                     return [
                         'total_connection_types' => $connectionTypes->count(),
-                        'used_connection_types' => $connectionTypes->where('app_integrations_count', '>', 0)->count(),
-                        'unused_connection_types' => $connectionTypes->where('app_integrations_count', 0)->count(),
-                        'total_integrations' => $connectionTypes->sum('app_integrations_count'),
+                        'used_connection_types' => $connectionTypes->where('app_integration_connections_count', '>', 0)->count(),
+                        'unused_connection_types' => $connectionTypes->where('app_integration_connections_count', 0)->count(),
+                        'total_integrations' => $connectionTypes->sum('app_integration_connections_count'),
                         'average_integrations_per_type' => $connectionTypes->count() > 0 
-                            ? round($connectionTypes->sum('app_integrations_count') / $connectionTypes->count(), 2)
+                            ? round($connectionTypes->sum('app_integration_connections_count') / $connectionTypes->count(), 2)
                             : 0,
                         'most_used_types' => $connectionTypes
-                            ->sortByDesc('app_integrations_count')
+                            ->sortByDesc('app_integration_connections_count')
                             ->take(5)
                             ->map(function ($type) {
                                 return [
                                     'connection_type_id' => $type->connection_type_id,
                                     'type_name' => $type->type_name,
-                                    'usage_count' => $type->app_integrations_count,
+                                    'usage_count' => $type->app_integration_connections_count,
                                 ];
                             })
                             ->values()
@@ -217,8 +218,8 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            fn() => ConnectionType::withCount('appIntegrations')
-                ->orderByDesc('app_integrations_count')
+            fn() => ConnectionType::withCount('appIntegrationConnections')
+                ->orderByDesc('app_integration_connections_count')
                 ->limit($limit)
                 ->get()
         );
@@ -235,7 +236,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
             function() use ($id) {
                 try {
                     $connectionType = ConnectionType::find($id);
-                    return $connectionType ? $connectionType->appIntegrations()->exists() : false;
+                    return $connectionType ? $connectionType->appIntegrationConnections()->exists() : false;
                 } catch (\Exception $e) {
                     throw RepositoryException::createFailed('check connection type usage', $e->getMessage());
                 }
@@ -253,7 +254,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
             $cacheTTL,
             function() use ($id) {
                 try {
-                    $connectionType = ConnectionType::with(['appIntegrations.sourceApp', 'appIntegrations.targetApp'])
+                    $connectionType = ConnectionType::with(['appIntegrationConnections.integration.sourceApp', 'appIntegrationConnections.integration.targetApp'])
                         ->find($id);
                     
                     if (!$connectionType) {
@@ -264,12 +265,12 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
                         ];
                     }
 
-                    $integrations = $connectionType->appIntegrations;
+                    $connections = $connectionType->appIntegrationConnections;
                     
                     return [
-                        'is_used' => $integrations->count() > 0,
-                        'usage_count' => $integrations->count(),
-                        'integrations' => $integrations
+                        'is_used' => $connections->count() > 0,
+                        'usage_count' => $connections->count(),
+                        'integrations' => $connections
                     ];
                 } catch (\Exception $e) {
                     throw RepositoryException::createFailed('get connection type usage details', $e->getMessage());

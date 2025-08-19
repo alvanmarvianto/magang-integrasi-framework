@@ -122,6 +122,7 @@ class DiagramService
                 'id' => 'f-' . $func->function_name, // Use function name as ID to avoid duplicates
                 'data' => [
                     'label' => $func->function_name, // Show function name, not app name
+                    'function_name' => $func->function_name,
                     'app_id' => $appId,
                     'app_name' => $func->function_name,
                     'integration_id' => $func->integration_id,
@@ -131,7 +132,7 @@ class DiagramService
                     'is_home_stream' => true,
                     'is_parent_node' => false,
                 ],
-                'type' => 'app',
+                'type' => 'function', // Use function type instead of app
                 'parentNode' => (string)$appId,
                 'extent' => 'parent',
                 'position' => ['x' => $x, 'y' => $y],
@@ -375,7 +376,29 @@ class DiagramService
             'app_name' => $app->app_name,
             'total_functions' => $functions->count(),
             'external_apps' => $externalApps->count(),
+            'node_types' => [
+                [
+                    'label' => $app->stream->stream_name ?? 'Home Stream',
+                    'type' => 'app',
+                    'class' => 'home-stream',
+                    'stream_name' => $app->stream->stream_name ?? '',
+                    'color' => $app->stream->color ?? '#3b82f6',
+                ],
+            ],
         ];
+
+        // Add external app stream types to node_types
+        foreach ($externalApps->unique('stream.stream_name') as $extApp) {
+            if ($extApp->stream && $extApp->stream->stream_name !== ($app->stream->stream_name ?? '')) {
+                $config['node_types'][] = [
+                    'label' => $extApp->stream->stream_name,
+                    'type' => 'app',
+                    'class' => strtolower(str_replace([' ', '_'], '-', $extApp->stream->stream_name)),
+                    'stream_name' => $extApp->stream->stream_name,
+                    'color' => $extApp->stream->color ?? '#6b7280',
+                ];
+            }
+        }
 
         \Log::info('App Layout - Diagram nodes', $nodes);
         \Log::info('App Layout - Diagram edges', $edges);

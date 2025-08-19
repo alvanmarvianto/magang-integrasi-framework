@@ -288,23 +288,36 @@ class StreamService
             
             $appChildren = [];
             foreach ($streamWithApps->apps as $app) {
-                $appNode = HierarchyNodeDTO::createFolder($app->app_name, [
+                $appSubNodes = [
                     HierarchyNodeDTO::createUrl(
                         'Integrasi',
                         '/integration/app/' . $app->app_id,
                         $streamWithApps->stream_name
                     ),
-                    HierarchyNodeDTO::createUrl(
-                        'Teknologi', 
-                        '/technology/' . $app->app_id,
+                ];
+                
+                // Only add "Fungsi" option if the app is marked as a function app
+                if ($app->is_function) {
+                    $appSubNodes[] = HierarchyNodeDTO::createUrl(
+                        'Fungsi',
+                        '/integration/function/' . $app->app_id,
                         $streamWithApps->stream_name
-                    ),
-                    HierarchyNodeDTO::createUrl(
-                        'Kontrak', 
-                        '/contract/' . $app->app_id,
-                        $streamWithApps->stream_name
-                    )
-                ]);
+                    );
+                }
+                
+                $appSubNodes[] = HierarchyNodeDTO::createUrl(
+                    'Teknologi', 
+                    '/technology/' . $app->app_id,
+                    $streamWithApps->stream_name
+                );
+                
+                $appSubNodes[] = HierarchyNodeDTO::createUrl(
+                    'Kontrak', 
+                    '/contract/' . $app->app_id,
+                    $streamWithApps->stream_name
+                );
+                
+                $appNode = HierarchyNodeDTO::createFolder($app->app_name, $appSubNodes);
                 $appChildren[] = $appNode;
             }
 
