@@ -104,7 +104,7 @@ import { computed, ref, onMounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useSidebar } from '../../composables/useSidebar';
-import { useRoutes } from '../../composables/useRoutes';
+import { useNavigation } from '../../composables/useNavigation';
 import Sidebar from '../../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
 import SidebarContractPeriod from '../../components/Sidebar/SidebarContractPeriod.vue';
@@ -156,7 +156,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { visitRoute } = useRoutes();
+const { createContractNavigation } = useNavigation();
 const loading = ref(false);
 
 // Refs for period cards and auto-scroll functionality
@@ -167,47 +167,7 @@ const setPeriodCardRef = (el: any, index: number) => {
   }
 };
 
-const navigationLinks = [
-  {
-    icon: 'fa-solid fa-home',
-    text: 'Halaman Utama',
-    onClick: () => visitRoute('index'),
-  },
-  {
-    icon: 'fa-solid fa-project-diagram',
-    text: 'Halaman Integrasi',
-    onClick: () => {
-      // If we have a single app context, go to that app's integration
-      if (props.app) {
-        visitRoute('appIntegration', { app_id: props.app.app_id });
-      } else if (props.contract?.apps && props.contract.apps.length === 1) {
-        // If contract has only one app, use that
-        visitRoute('appIntegration', { app_id: props.contract.apps[0].app_id });
-      } else {
-        // Otherwise go to general integration page or disable
-        visitRoute('index');
-      }
-    },
-  },
-  {
-    icon: 'fa-solid fa-microchip',
-    text: 'Halaman Teknologi',
-    onClick: () => {
-      if (props.app) {
-        visitRoute('technology.app', { app_id: props.app.app_id });
-      } else if (props.contract?.apps && props.contract.apps.length === 1) {
-        visitRoute('technology.app', { app_id: props.contract.apps[0].app_id });
-      } else {
-        visitRoute('technology.index');
-      }
-    },
-  },
-    {
-    icon: 'fa-solid fa-file-contract',
-    text: 'Semua Kontrak',
-    onClick: () => visitRoute('contract.index'),
-  },
-];
+const navigationLinks = createContractNavigation(props.app, props.contract);
 
 // Computed property for sidebar title
 const sidebarTitle = computed(() => {

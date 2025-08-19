@@ -47,7 +47,7 @@
 // @ts-nocheck
 import { useSidebar } from '@/composables/useSidebar';
 import { useD3ForceAppIntegration } from '@/composables/useD3ForceAppIntegration';
-import { useRoutes } from '@/composables/useRoutes';
+import { useNavigation } from '@/composables/useNavigation';
 import { computed } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '@/components/Sidebar/Sidebar.vue';
@@ -79,30 +79,14 @@ const props = defineProps<{
 }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { visitRoute } = useRoutes();
+const { createAppNavigation } = useNavigation();
 
 // Only initialize D3 if there's actual integration data and no error
 if (!props.error && props.integrationData && (!Array.isArray(props.integrationData) || props.integrationData.length > 0)) {
   useD3ForceAppIntegration(props.integrationData, props.allStreams || props.allowedStreams);
 }
 
-const navigationLinks = [
-  {
-    icon: 'fa-solid fa-home',
-    text: 'Halaman Utama',
-    onClick: () => visitRoute('index'),
-  },
-  {
-    icon: 'fa-solid fa-microchip',
-    text: 'Halaman Teknologi',
-    onClick: () => visitRoute('technology.app', { app_id: props.parentAppId }),
-  },
-  {
-    icon: 'fa-solid fa-file-contract',
-    text: 'Halaman Kontrak',
-    onClick: () => visitRoute('contract.app', { app_id: props.parentAppId }),
-  },
-];
+const navigationLinks = createAppNavigation(props.parentAppId);
 
 const nodeTypeLegend = computed(() => {
   // Use allStreams if available, otherwise fallback to allowedStreams

@@ -76,7 +76,7 @@ class DiagramController extends Controller
             $diagramData = $this->diagramService->getAppLayoutVueFlowData($appId, true);
             $diagramArray = $diagramData->toArray();
 
-            return Inertia::render('Integration/Function', [
+            return Inertia::render('Integration/Module', [
                 'appId' => $appId,
                 'appName' => $app->app_name,
                 'streamName' => $app->stream->stream_name ?? '',
@@ -89,7 +89,7 @@ class DiagramController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error("DiagramController - Error loading app layout: " . $e->getMessage());
-            return Inertia::render('Integration/Function', [
+            return Inertia::render('Integration/Module', [
                 'appId' => $appId,
                 'appName' => 'Unknown App',
                 'streamName' => '',

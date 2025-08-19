@@ -122,6 +122,7 @@ import AppNode from '@/components/VueFlow/AppNode.vue';
 import FunctionNode from '@/components/VueFlow/FunctionNode.vue';
 import { useSidebar } from '@/composables/useSidebar';
 import { useVueFlowUserView } from '@/composables/useVueFlowUserView';
+import { useNavigation } from '@/composables/useNavigation';
 import Sidebar from '@/components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '@/components/Sidebar/SidebarNavigation.vue';
 import SidebarControlsSection from '@/components/Sidebar/SidebarControlsSection.vue';
@@ -179,7 +180,7 @@ const props = defineProps<Props>();
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import StreamNest from '@/components/VueFlow/StreamNest.vue';
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { visitRoute } = useRoutes();
+const { createAppNavigation } = useNavigation();
 const {
   selectedEdgeId,
   getNodeColor,
@@ -204,23 +205,7 @@ const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewpo
 // Create context menu handler to disable popup on empty space
 const onContextMenu = createCustomContextMenuHandler();
 
-const navigationLinks = [
-  {
-    icon: 'fa-solid fa-home',
-    text: 'Halaman Utama',
-    onClick: () => visitRoute('index'),
-  },
-  {
-    icon: 'fa-solid fa-bezier-curve',
-    text: 'Stream Diagram',
-    onClick: () => visitRoute('integrations.stream', { stream: props.streamName }),
-  },
-  {
-    icon: 'fa-solid fa-network-wired',
-    text: 'App Integration',
-    onClick: () => visitRoute('appIntegration', { app_id: props.appId }),
-  },
-];
+const navigationLinks = createFunctionNavigation(props.appId, props.streamName);
 
 const controls = [
   {

@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useSidebar } from '../../composables/useSidebar';
-import { useRoutes } from '../../composables/useRoutes';
+import { useNavigation } from '../../composables/useNavigation';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Sidebar from '../../components/Sidebar/Sidebar.vue';
 import SidebarNavigation from '../../components/Sidebar/SidebarNavigation.vue';
@@ -114,25 +114,9 @@ const props = defineProps<{
 }>()
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { visitRoute } = useRoutes();
+const { createTechnologyNavigation } = useNavigation();
 
-const navigationLinks = [
-  {
-    icon: 'fa-solid fa-home',
-    text: 'Halaman Utama',
-    onClick: () => visitRoute('index'),
-  },
-  {
-    icon: 'fa-solid fa-project-diagram',
-    text: 'Halaman Integrasi',
-    onClick: () => visitRoute('appIntegration', { app_id: props.app.app_id }),
-  },
-  {
-    icon: 'fa-solid fa-file-contract',
-    text: 'Halaman Kontrak',
-    onClick: () => visitRoute('contract.app', { app_id: props.app.app_id }),
-  },
-];
+const navigationLinks = createTechnologyNavigation(props.app.app_id);
 
 const hasAnyTechnologyData = computed(() => {
   if (!props.technology) return false;

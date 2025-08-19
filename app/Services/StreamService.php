@@ -300,7 +300,7 @@ class StreamService
                 if ($app->is_module) {
                     $appSubNodes[] = HierarchyNodeDTO::createUrl(
                         'Modul',
-                        '/integration/function/' . $app->app_id,
+                        '/integration/Module/' . $app->app_id,
                         $streamWithApps->stream_name
                     );
                 }

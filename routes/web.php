@@ -16,7 +16,7 @@ use App\Http\Controllers\Admin\ContractController as AdminContractController;
 
 Route::get('/', [AppController::class, 'index'])->name('index');
 Route::get('/integration/app/{app_id}', [AppController::class, 'appIntegration'])->name('appIntegration');
-Route::get('/integration/function/{app_id}', [DiagramController::class, 'showAppLayout'])->name('integration.function');
+Route::get('/integration/module/{app_id}', [DiagramController::class, 'showAppLayout'])->name('integration.module');
 Route::get('/integration/stream/{stream}', [DiagramController::class, 'show'])
     ->name('integrations.stream');
 

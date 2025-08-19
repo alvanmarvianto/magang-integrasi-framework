@@ -3,7 +3,7 @@
     <!-- Error State -->
     <ErrorState
       v-if="props.error"
-      title="Gagal memuat diagram"
+      title="Gagal memuat diagram modul"
       :show-back-button="true"
       back-button-text="Kembali ke Halaman Utama"
       back-route="index"
@@ -12,6 +12,7 @@
     <!-- No Data State -->
     <ErrorState
       v-else-if="!props.nodes || props.nodes.length === 0"
+      title="Tidak ada data modul"
       :show-back-button="true"
       back-button-text="Kembali ke Halaman Utama"
       back-route="index"
@@ -20,8 +21,8 @@
     <!-- Normal Content -->
     <template v-else>
       <Sidebar 
-        :title="streamName" 
-        icon="fa-solid fa-bezier-curve"
+        :title="`${appName}`" 
+        icon="fa-solid fa-sitemap"
         :show-close-button="true"
         @close="closeSidebar"
       >
@@ -70,11 +71,11 @@
             @contextmenu="onContextMenu"
           >
             <!-- Custom Node Types -->
-            <template #node-stream="nodeProps">
-              <StreamNest v-bind="nodeProps" :admin-mode="false" />
-            </template>
             <template #node-app="nodeProps">
               <AppNode v-bind="nodeProps" :admin-mode="false" />
+            </template>
+            <template #node-function="nodeProps">
+              <StreamNest v-bind="nodeProps" :admin-mode="false" />
             </template>
 
             <!-- Controls -->
@@ -94,7 +95,7 @@
           >
             <div class="loading-content">
               <div class="loading-spinner"></div>
-              <p>Loading Diagram...</p>
+              <p>Loading Function Diagram...</p>
             </div>
           </div>
         </div>
@@ -117,8 +118,8 @@ import { VueFlow, PanOnScrollMode, useVueFlow } from '@vue-flow/core';
 import { Controls } from '@vue-flow/controls';
 import { Background, BackgroundVariant } from '@vue-flow/background';
 import { useRoutes } from '@/composables/useRoutes';
-import StreamNest from '@/components/VueFlow/StreamNest.vue';
 import AppNode from '@/components/VueFlow/AppNode.vue';
+import FunctionNode from '@/components/VueFlow/ModuleNode.vue';
 import { useSidebar } from '@/composables/useSidebar';
 import { useVueFlowUserView } from '@/composables/useVueFlowUserView';
 import { useNavigation } from '@/composables/useNavigation';
@@ -147,15 +148,16 @@ import '@vue-flow/controls/dist/style.css';
 
 // Props from Inertia
 interface Props {
+  appId: number;
+  appName: string;
   streamName: string;
   nodes: Node[];
   edges: Edge[];
   savedLayout: {
     nodes_layout?: Record<string, any>
     edges_layout?: any[]
-    stream_config?: Record<string, any>
+    app_config?: Record<string, any>
   } | null
-  streams: string[];
   allowedStreams: string[];
   config?: {
     node_types?: Array<{
@@ -165,8 +167,8 @@ interface Props {
       stream_name: string;
       color?: string;
     }>;
-    total_apps?: number;
-    home_apps?: number;
+    total_nodes?: number;
+    total_functions?: number;
     external_apps?: number;
   } | null;
   error?: string | null;
@@ -176,8 +178,9 @@ const props = defineProps<Props>();
 
 // Use composables
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import StreamNest from '@/components/VueFlow/StreamNest.vue';
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { createStreamNavigation } = useNavigation();
+const { createFunctionNavigation } = useNavigation();
 const {
   selectedEdgeId,
   getNodeColor,
@@ -202,7 +205,7 @@ const onWheel = createCustomWheelHandler(zoomIn, zoomOut, setViewport, getViewpo
 // Create context menu handler to disable popup on empty space
 const onContextMenu = createCustomContextMenuHandler();
 
-const navigationLinks = createStreamNavigation();
+const navigationLinks = createFunctionNavigation(props.appId, props.streamName);
 
 const controls = [
   {
@@ -216,6 +219,7 @@ const controls = [
     onClick: resetLayout,
   },
 ];
+
 const nodeTypeLegend = computed(() => {
   // Use backend-provided node types if available
   if (props.config?.node_types && props.config.node_types.length > 0) {
@@ -232,28 +236,26 @@ const nodeTypeLegend = computed(() => {
     return [];
   }
 
-  // Extract unique lingkup values from actual nodes (excluding stream parent nodes)
-  const uniqueLingkupTypes = new Map();
+  // Extract unique stream types from actual nodes
+  const uniqueStreamTypes = new Map();
   
   props.nodes.forEach((node: any) => {
-    if (node.data && node.data.lingkup && !node.data.is_parent_node) {
-      const rawLingkup: string = node.data.lingkup;
-      const lingkupKey = rawLingkup.toLowerCase();
+    if (node.data && node.data.stream_name && !node.data.is_parent_node) {
+      const streamName: string = node.data.stream_name;
+      const streamKey = streamName.toLowerCase();
       
-      if (!uniqueLingkupTypes.has(lingkupKey)) {
-        uniqueLingkupTypes.set(lingkupKey, {
-          // Show only the stream name, keep original casing
-          label: rawLingkup,
+      if (!uniqueStreamTypes.has(streamKey)) {
+        uniqueStreamTypes.set(streamKey, {
+          label: streamName,
           type: 'circle' as const,
-          class: lingkupKey.replace(/\s+/g, '-'), // Convert spaces to hyphens for CSS class
+          class: streamKey.replace(/\s+/g, '-'), // Convert spaces to hyphens for CSS class
         });
       }
     }
   });
 
-  return Array.from(uniqueLingkupTypes.values());
+  return Array.from(uniqueStreamTypes.values());
 });
-
 
 // Refs
 const vueFlowRef = ref()
@@ -266,6 +268,7 @@ const edges = ref<Edge[]>([])
 // Edge details sidebar
 const showEdgeDetails = ref(false)
 const selectedEdgeData = ref<any>(null)
+
 // Initialize layout
 onMounted(() => {
   initializeLayout()
@@ -303,7 +306,7 @@ function initializeLayout() {
     fitView();
     isLayouted.value = true;
     // Reset any highlight state after initial layout
-  clearNodeHighlight(nodes, edges);
+    clearNodeHighlight(nodes, edges);
   }, 100);
 }
 
@@ -318,24 +321,24 @@ function onNodeClick(event: any) {
   if (selectedEdgeId.value) {
     handlePaneClick();
     edges.value = updateEdgeStylesWithSelection(edges.value);
-  // Hard reset to ensure no lingering animations
-  edges.value = edges.value.map((e: any) => ({ ...e, animated: false }));
+    // Hard reset to ensure no lingering animations
+    edges.value = edges.value.map((e: any) => ({ ...e, animated: false }));
   }
 
-  // Non-app nodes: clear highlight and keep default behavior
-  if (node.type !== 'app') {
+  // Handle different node types
+  if (node.type === 'app') {
+    // App nodes: delegate to composable for highlighting
+    handleAppNodeClick(node, nodes, edges);
+    // Ensure edges remain non-animated after applying node highlight
+    edges.value = edges.value.map((e: any) => ({ ...e, animated: false }));
+  } else if (node.type === 'function') {
+    // Function nodes: clear highlight and keep default behavior (no navigation for user view)
+    clearNodeHighlight(nodes, edges);
+  } else {
+    // Other node types: clear highlight and use default behavior
     clearNodeHighlight(nodes, edges);
     handleNodeClick(node, false, props.allowedStreams);
-    return;
   }
-
-  // App nodes: delegate to composable
-  handleAppNodeClick(node, nodes, edges);
-  // Ensure edges remain non-animated after applying node highlight
-  edges.value = edges.value.map((e: any) => ({ ...e, animated: false }));
-
-  // Preserve any other user-mode click behavior
-  // Intentionally do not redirect for app clicks per requirement
 }
 
 function onEdgeClick(event: any) {
@@ -394,6 +397,7 @@ function resetLayout() {
 <style scoped>
 @import '@/../css/app.css';
 @import '@/../css/vue-flow-integration.css';
+
 /* Loading overlay */
 .loading-overlay {
   position: absolute;
