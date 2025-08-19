@@ -27,7 +27,7 @@ class StoreAppRequest extends FormRequest
             'stream_id' => 'required|exists:streams,stream_id',
             'app_type' => 'nullable|in:cots,inhouse,outsource',
             'stratification' => 'nullable|in:strategis,kritikal,umum',
-            'is_function' => 'sometimes|boolean',
+            'is_module' => 'sometimes|boolean',
             'vendors' => 'array',
             'vendors.*.name' => 'required|string',
             'vendors.*.version' => 'nullable|string',
@@ -53,7 +53,7 @@ class StoreAppRequest extends FormRequest
             'platforms.*.name' => 'required|string',
             'platforms.*.version' => 'nullable|string',
 
-            // Informasi Fungsi section (each module can map to multiple integrations)
+            // Informasi Modul section (each module can map to multiple integrations)
             'functions' => 'sometimes|array',
             'functions.*.function_name' => 'required_with:functions|string|max:255',
             // Preferred: integration_ids as an array of integration IDs

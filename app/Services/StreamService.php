@@ -296,10 +296,10 @@ class StreamService
                     ),
                 ];
                 
-                // Only add "Fungsi" option if the app is marked as a function app
-                if ($app->is_function) {
+                // Only add "Modul" option if the app is marked as a function app
+                if ($app->is_module) {
                     $appSubNodes[] = HierarchyNodeDTO::createUrl(
-                        'Fungsi',
+                        'Modul',
                         '/integration/function/' . $app->app_id,
                         $streamWithApps->stream_name
                     );

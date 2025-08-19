@@ -38,14 +38,14 @@
             ></textarea>
           </AdminFormField>
 
-          <AdminFormField label="Apakah memiliki modul?" id="is_function" class="col-span-2">
+          <AdminFormField label="Apakah memiliki modul?" id="is_module" class="col-span-2">
             <div class="flex items-center gap-4">
               <label class="flex items-center gap-2">
-                <input type="radio" name="is_function" value="1" :checked="form.is_function === true" @change="form.is_function = true" />
+                <input type="radio" name="is_module" value="1" :checked="form.is_module === true" @change="form.is_module = true" />
                 <span>Ya</span>
               </label>
               <label class="flex items-center gap-2">
-                <input type="radio" name="is_function" value="0" :checked="form.is_function === false" @change="form.is_function = false" />
+                <input type="radio" name="is_module" value="0" :checked="form.is_module === false" @change="form.is_module = false" />
                 <span>Tidak</span>
               </label>
             </div>
@@ -53,7 +53,7 @@
         </div>
       </AdminFormSection>
 
-      <AdminFormSection v-if="form.is_function" title="Informasi Fungsi">
+      <AdminFormSection v-if="form.is_module" title="Informasi Modul">
         <div class="tech-section">
           <div class="tech-section-header">
             <h3 class="tech-section-title">Daftar Modul dan Integrasi</h3>
@@ -71,7 +71,7 @@
               <input
                 v-model="fn.function_name"
                 type="text"
-                placeholder="Nama Modul/Fungsi"
+                placeholder="Nama Modul/Modul"
                 class="tech-section-input"
                 required
               />
@@ -235,7 +235,7 @@ interface FormData {
   stream_id: number | null;
   app_type: string | null;
   stratification: string | null;
-  is_function: boolean;
+  is_module: boolean;
   vendors: TechItem[];
   operating_systems: TechItem[];
   databases: TechItem[];
@@ -255,7 +255,7 @@ interface Props {
     stream_id: number;
     app_type: string | null;
     stratification: string | null;
-  is_function?: boolean;
+  is_module?: boolean;
     stream_name: string;
     technology_components: {
       vendors: RawTechItem[];
@@ -306,7 +306,7 @@ const form = ref<FormData>({
   stream_id: null,
   app_type: null,
   stratification: null,
-  is_function: false,
+  is_module: false,
   vendors: [],
   operating_systems: [],
   databases: [],
@@ -331,7 +331,7 @@ onMounted(() => {
         stream_id: appData.stream_id,
         app_type: appData.app_type,
         stratification: appData.stratification,
-  is_function: (appData as any).is_function === true,
+  is_module: (appData as any).is_module === true,
         vendors: (techComponents.vendors || []).map((v: RawTechItem) => ({ 
           name: v.name || '', 
           version: v.version || undefined 

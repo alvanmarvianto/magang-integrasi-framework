@@ -122,7 +122,7 @@ class AppService
             'middlewares' => $technologyOptions['middlewares'] ?? [],
             'thirdParties' => $technologyOptions['third_parties'] ?? [],
             'platforms' => $technologyOptions['platforms'] ?? [],
-            // Integration options for Informasi Fungsi section
+            // Integration options for Informasi Modul section
             'integrationOptions' => $integrationOptions,
         ];
     }
@@ -322,7 +322,7 @@ class AppService
             streamId: $validatedData['stream_id'],
             appType: $validatedData['app_type'],
             stratification: $validatedData['stratification'],
-            isFunction: (bool)($validatedData['is_function'] ?? false),
+            isModule: (bool)($validatedData['is_module'] ?? false),
             technologyComponents: $technologyComponents
         );
     }

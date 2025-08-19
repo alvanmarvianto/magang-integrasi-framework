@@ -220,7 +220,7 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                     'stream_id' => $appData->streamId,
                     'app_type' => $appData->appType,
                     'stratification' => $appData->stratification,
-                    'is_function' => $appData->isFunction ?? false,
+                    'is_module' => $appData->isModule ?? false,
                 ]);
 
                 $this->technologyRepository->bulkUpdateTechnologyComponents(
@@ -266,7 +266,7 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                     'stream_id' => $appData->streamId,
                     'app_type' => $appData->appType,
                     'stratification' => $appData->stratification,
-                    'is_function' => $appData->isFunction ?? false,
+                    'is_module' => $appData->isModule ?? false,
                 ]);
 
                 if ($updated) {

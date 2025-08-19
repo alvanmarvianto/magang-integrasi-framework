@@ -13,7 +13,7 @@ readonly class AppDTO
         public int $streamId,
         public ?string $appType,
         public ?string $stratification,
-    public bool $isFunction = false,
+    public bool $isModule = false,
         public ?string $streamName = null,
     public array $technologyComponents = [],
     public array $integrationFunctions = []
@@ -28,7 +28,7 @@ readonly class AppDTO
             streamId: $data['stream_id'],
             appType: $data['app_type'] ?? null,
             stratification: $data['stratification'] ?? null,
-            isFunction: (bool)($data['is_function'] ?? false),
+            isModule: (bool)($data['is_module'] ?? false),
             streamName: $data['stream_name'] ?? null,
             technologyComponents: $data['technology_components'] ?? [],
             integrationFunctions: $data['integration_functions'] ?? []
@@ -44,7 +44,7 @@ readonly class AppDTO
             streamId: $app->stream_id,
             appType: $app->app_type,
             stratification: $app->stratification,
-            isFunction: (bool)($app->is_function ?? false),
+            isModule: (bool)($app->is_module ?? false),
             streamName: $app->stream?->stream_name,
             technologyComponents: self::extractTechnologyComponents($app),
             integrationFunctions: self::extractIntegrationFunctions($app)
@@ -61,7 +61,7 @@ readonly class AppDTO
             'app_type' => $this->appType,
             'stratification' => $this->stratification,
             'stream_name' => $this->streamName,
-            'is_function' => $this->isFunction,
+            'is_module' => $this->isModule,
             'technology_components' => $this->technologyComponents,
             'integration_functions' => $this->integrationFunctions,
         ];

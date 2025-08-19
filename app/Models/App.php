@@ -20,11 +20,11 @@ class App extends Model
         'stream_id',
         'app_type',
         'stratification',
-        'is_function',
+        'is_module',
     ];
 
     protected $casts = [
-        'is_function' => 'boolean',
+        'is_module' => 'boolean',
     ];
 
     /**

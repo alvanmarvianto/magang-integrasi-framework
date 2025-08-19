@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('apps', function (Blueprint $table) {
-            if (!Schema::hasColumn('apps', 'is_function')) {
-                $table->boolean('is_function')->default(false)->after('stratification');
+            if (!Schema::hasColumn('apps', 'is_module')) {
+                $table->boolean('is_module')->default(false)->after('stratification');
             }
         });
     }
@@ -24,8 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('apps', function (Blueprint $table) {
-            if (Schema::hasColumn('apps', 'is_function')) {
-                $table->dropColumn('is_function');
+            if (Schema::hasColumn('apps', 'is_module')) {
+                $table->dropColumn('is_module');
             }
         });
     }

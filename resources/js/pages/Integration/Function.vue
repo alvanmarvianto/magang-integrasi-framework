@@ -3,7 +3,7 @@
     <!-- Error State -->
     <ErrorState
       v-if="props.error"
-      title="Gagal memuat diagram fungsi"
+      title="Gagal memuat diagram modul"
       :show-back-button="true"
       back-button-text="Kembali ke Halaman Utama"
       back-route="index"
@@ -12,7 +12,7 @@
     <!-- No Data State -->
     <ErrorState
       v-else-if="!props.nodes || props.nodes.length === 0"
-      title="Tidak ada data fungsi"
+      title="Tidak ada data modul"
       :show-back-button="true"
       back-button-text="Kembali ke Halaman Utama"
       back-route="index"
@@ -21,7 +21,7 @@
     <!-- Normal Content -->
     <template v-else>
       <Sidebar 
-        :title="`Fungsi - ${appName}`" 
+        :title="`${appName}`" 
         icon="fa-solid fa-sitemap"
         :show-close-button="true"
         @close="closeSidebar"

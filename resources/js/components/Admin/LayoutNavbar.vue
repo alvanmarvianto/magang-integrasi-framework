@@ -74,14 +74,14 @@
         Reset
       </button>
 
-      <!-- Back button (for app layout only) -->
-      <button 
-        v-if="showBackButton"
-        @click="$emit('back')"
-        class="back-btn"
-      >
-        {{ backButtonText || 'Kembali ke Stream' }}
-      </button>
+      <a 
+          v-if="showBackButton" 
+          :href="backUrl || '/admin'" 
+          class="admin-back-button"
+        >
+          <font-awesome-icon icon="fa-solid fa-arrow-left" />
+          Kembali
+        </a>
     </div>
   </div>
 </template>
@@ -103,6 +103,7 @@ interface Props {
   functionApps?: { app_id: number; app_name: string }[]
   currentStream?: string
   currentAppId?: number | string
+  backUrl?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -322,4 +323,22 @@ initializeSelectedLayout()
 .indicator-dot.saved-dot {
   background: #059669;
 }
+
+  .admin-back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-alt);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+  }
+  
+  .admin-back-button:hover {
+    background-color: var(--bg-hover);
+  }
 </style>

@@ -41,6 +41,7 @@
         @reset="resetLayout"
         @stream-change="onStreamChange"
         @app-change="onAppChange"
+        :showBackButton="true" backUrl="/admin"
       />
 
       <!-- Vue Flow -->

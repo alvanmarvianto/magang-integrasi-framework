@@ -69,7 +69,7 @@ class DiagramController extends Controller
             $diagramArray = $diagramData->toArray();
 
             // Get all function apps for dropdown (regardless of stream)
-            $functionApps = App::where('is_function', true)
+            $functionApps = App::where('is_module', true)
                 ->orderBy('app_name')
                 ->get(['app_id', 'app_name'])
                 ->map(function ($app) {
@@ -157,7 +157,7 @@ class DiagramController extends Controller
             $allowedStreams = $this->diagramService->getAllowedStreams();
             
             // Get all function apps for the dropdown
-            $functionApps = App::where('is_function', true)
+            $functionApps = App::where('is_module', true)
                 ->orderBy('app_name')
                 ->get(['app_id', 'app_name'])
                 ->map(function ($app) {
