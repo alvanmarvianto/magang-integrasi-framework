@@ -2,14 +2,18 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import * as d3 from 'd3';
 
-export function useD3Tree(appData) {
+export function useD3Tree(appData: any, allowedStreams: Array<{ stream_name: string }> = []) {
   let i = 0;
   const duration = 750;
   const loading = ref(true);
   const searchTerm = ref('');
   
   // Blacklist terms that should not be searchable
-  const blacklistedTerms = ['integrasi', 'teknologi'];
+  const baseBlacklistedTerms = ['integrasi', 'teknologi', 'aplikasi bi - dlds', 'aplikasi bi-dlds'];
+  
+  // Add stream names to blacklist
+  const streamNames = allowedStreams.map(stream => stream.stream_name.toLowerCase());
+  const blacklistedTerms = [...baseBlacklistedTerms, ...streamNames];
   
   let root: any = null;
   const allNodes: any[] = [];
@@ -313,10 +317,10 @@ export function useD3Tree(appData) {
     root.x0 = 0;
     root.y0 = 0;
     processData(root, null);
-    // Filter out blacklisted terms from unique node names
+    // Filter out blacklisted terms from unique node names and sort alphabetically
     const allNodeNames = allNodes.map((n: any) => n.name);
     const filteredNodeNames = allNodeNames.filter(name => !isBlacklisted(name));
-    uniqueNodeNames.value = Array.from(new Set(filteredNodeNames));
+    uniqueNodeNames.value = Array.from(new Set(filteredNodeNames)).sort((a, b) => a.localeCompare(b));
 
     // Only collapse nodes at depth 1 (children of root), keep root expanded
     if (root.children) {

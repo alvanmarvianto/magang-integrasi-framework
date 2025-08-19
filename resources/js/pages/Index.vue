@@ -69,7 +69,7 @@ const props = defineProps<{
 }>();
 
 const { visible, isMobile, toggleSidebar, closeSidebar } = useSidebar();
-const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData);
+const { loading, searchTerm, uniqueNodeNames, onSearchInput, clearSearch } = useD3Tree(props.appData, props.allowedStreams);
 const { visitRoute, getRoute } = useRoutes();
 
 // Generate stream links dynamically from database

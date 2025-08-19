@@ -7,6 +7,7 @@ use App\Models\Stream;
 use App\Models\ConnectionType;
 use App\Models\App;
 use App\Models\AppIntegration;
+use App\Models\AppIntegrationFunction;
 use App\Models\Contract;
 use App\Models\ContractPeriod;
 use Illuminate\Support\Facades\DB;
@@ -24,57 +25,57 @@ class ApplicationDataSeeder extends Seeder
         $this->command->info('Creating streams...');
         $streamsData = [
             [
-                'stream_name' => 'sp',
-                'description' => 'Sistem Pembayaran',
+                'stream_name' => 'Stream SP',
+                'description' => 'Aplikasi Sistem Pembayaran',
                 'is_allowed_for_diagram' => true,
                 'sort_order' => 1,
                 'color' => '#FF6B35'
             ],
             [
-                'stream_name' => 'mi',
-                'description' => 'Market Infrastructure',
+                'stream_name' => 'Stream MI',
+                'description' => 'Aplikasi Market',
                 'is_allowed_for_diagram' => true,
                 'sort_order' => 2,
                 'color' => '#F7931E'
             ],
             [
-                'stream_name' => 'ssk',
-                'description' => 'Sistem Surveilans Keuangan',
+                'stream_name' => 'Stream SSK',
+                'description' => 'Aplikasi SSK',
                 'is_allowed_for_diagram' => true,
                 'sort_order' => 3,
                 'color' => '#FFD23F'
             ],
             [
-                'stream_name' => 'moneter',
-                'description' => 'Kebijakan Moneter',
+                'stream_name' => 'Stream Moneter',
+                'description' => 'Aplikasi Moneter',
                 'is_allowed_for_diagram' => true,
                 'sort_order' => 4,
                 'color' => '#06FFA5'
             ],
             [
-                'stream_name' => 'market',
-                'description' => 'Market Operations',
+                'stream_name' => 'Stream Market',
+                'description' => 'Aplikasi Market',
                 'is_allowed_for_diagram' => true,
                 'sort_order' => 5,
                 'color' => '#118AB2'
             ],
             [
-                'stream_name' => 'internal bi',
-                'description' => 'Internal BI Systems',
+                'stream_name' => 'Internal BI',
+                'description' => 'Aplikasi Internal BI',
                 'is_allowed_for_diagram' => false,
                 'sort_order' => null,
-                'color' => null
+                'color' => '#999999'
             ],
             [
-                'stream_name' => 'external bi',
-                'description' => 'External BI Systems',
+                'stream_name' => 'External BI',
+                'description' => 'Aplikasi External BI',
                 'is_allowed_for_diagram' => false,
                 'sort_order' => null,
-                'color' => null
+                'color' => '#777777'
             ],
             [
-                'stream_name' => 'middleware',
-                'description' => 'Middleware Services',
+                'stream_name' => 'Middleware',
+                'description' => 'Aplikasi Middleware',
                 'is_allowed_for_diagram' => true,
                 'sort_order' => 6,
                 'color' => '#8E44AD'
@@ -99,6 +100,7 @@ class ApplicationDataSeeder extends Seeder
         }
 
         // 3. Create Apps (24 apps - 3 per stream to ensure every stream has apps)
+        // Some apps will be modules (is_module = true) to support function-based diagrams
         $this->command->info('Creating apps...');
         $streamIds = Stream::pluck('stream_id')->toArray();
         $appNames = [
@@ -121,18 +123,23 @@ class ApplicationDataSeeder extends Seeder
         ];
 
         // Distribute apps evenly across streams (3 apps per stream)
+        // Mark some apps as modules (every 3rd app will be a module)
         for ($i = 0; $i < count($appNames); $i++) {
             $streamIndex = $i % count($streamIds); // Cycle through streams
+            $isModule = ($i % 3 === 0); // Every 3rd app is a module
+            
             App::create([
                 'app_name' => $appNames[$i],
                 'stream_id' => $streamIds[$streamIndex],
                 'description' => fake()->sentence(10),
                 'app_type' => fake()->randomElement(['cots', 'inhouse', 'outsource']),
-                'stratification' => fake()->randomElement(['strategis', 'kritikal', 'umum'])
+                'stratification' => fake()->randomElement(['strategis', 'kritikal', 'umum']),
+                'is_module' => $isModule
             ]);
         }
 
         // 4. Create App Integrations (ensure every app has at least 1-2 integrations)
+        // Using the new structure with appintegration_connections table
         $this->command->info('Creating app integrations...');
         $appIds = App::pluck('app_id')->toArray();
         $connectionTypeIds = ConnectionType::pluck('connection_type_id')->toArray();
@@ -140,45 +147,125 @@ class ApplicationDataSeeder extends Seeder
         // First, ensure every app has at least 1 integration as source
         foreach ($appIds as $sourceAppId) {
             $targetAppId = fake()->randomElement(array_diff($appIds, [$sourceAppId]));
-            $connectionTypeId = fake()->randomElement($connectionTypeIds);
 
-            AppIntegration::create([
+            // Create the integration first
+            $integration = AppIntegration::create([
                 'source_app_id' => $sourceAppId,
                 'target_app_id' => $targetAppId,
-                'connection_type_id' => $connectionTypeId,
-                'inbound_description' => fake()->sentence(8),
-                'outbound_description' => fake()->sentence(8),
-                'endpoint' => fake()->url(),
-                'direction' => fake()->randomElement(['one_way', 'both_ways'])
+                'connection_type_id' => null // Will be set via connections
             ]);
+
+            // Add 1-2 connection types for this integration
+            $connectionCount = fake()->numberBetween(1, 2);
+            $usedConnectionTypes = [];
+            
+            for ($i = 0; $i < $connectionCount; $i++) {
+                $connectionTypeId = fake()->randomElement($connectionTypeIds);
+                
+                // Avoid duplicate connection types for the same integration
+                if (!in_array($connectionTypeId, $usedConnectionTypes)) {
+                    $usedConnectionTypes[] = $connectionTypeId;
+                    
+                    // Create connection with detailed inbound/outbound for both apps
+                    DB::table('appintegration_connections')->insert([
+                        'integration_id' => $integration->integration_id,
+                        'connection_type_id' => $connectionTypeId,
+                        'source_inbound' => fake()->sentence(8),
+                        'source_outbound' => fake()->sentence(8),
+                        'target_inbound' => fake()->sentence(8),
+                        'target_outbound' => fake()->sentence(8),
+                    ]);
+                }
+            }
         }
 
         // Add additional random integrations
         for ($i = 0; $i < 15; $i++) {
             $sourceAppId = fake()->randomElement($appIds);
             $targetAppId = fake()->randomElement(array_diff($appIds, [$sourceAppId]));
-            $connectionTypeId = fake()->randomElement($connectionTypeIds);
 
-            // Check if this combination already exists
+            // Check if this app pair already has an integration
             $exists = AppIntegration::where('source_app_id', $sourceAppId)
                 ->where('target_app_id', $targetAppId)
-                ->where('connection_type_id', $connectionTypeId)
                 ->exists();
 
             if (!$exists) {
-                AppIntegration::create([
+                // Create the integration
+                $integration = AppIntegration::create([
                     'source_app_id' => $sourceAppId,
                     'target_app_id' => $targetAppId,
-                    'connection_type_id' => $connectionTypeId,
-                    'inbound_description' => fake()->sentence(8),
-                    'outbound_description' => fake()->sentence(8),
-                    'endpoint' => fake()->url(),
-                    'direction' => fake()->randomElement(['one_way', 'both_ways'])
+                    'connection_type_id' => null // Will be set via connections
                 ]);
+
+                // Add 1-2 connection types for this integration
+                $connectionCount = fake()->numberBetween(1, 2);
+                $usedConnectionTypes = [];
+                
+                for ($j = 0; $j < $connectionCount; $j++) {
+                    $connectionTypeId = fake()->randomElement($connectionTypeIds);
+                    
+                    // Avoid duplicate connection types for the same integration
+                    if (!in_array($connectionTypeId, $usedConnectionTypes)) {
+                        $usedConnectionTypes[] = $connectionTypeId;
+                        
+                        // Create connection with detailed inbound/outbound for both apps
+                        DB::table('appintegration_connections')->insert([
+                            'integration_id' => $integration->integration_id,
+                            'connection_type_id' => $connectionTypeId,
+                            'source_inbound' => fake()->sentence(8),
+                            'source_outbound' => fake()->sentence(8),
+                            'target_inbound' => fake()->sentence(8),
+                            'target_outbound' => fake()->sentence(8),
+                        ]);
+                    }
+                }
             }
         }
 
-        // 5. Create Contracts (12 contracts)
+        // 5. Create App Integration Functions for module apps
+        $this->command->info('Creating app integration functions...');
+        $moduleApps = App::where('is_module', true)->get();
+        $integrationIds = AppIntegration::pluck('integration_id')->toArray();
+        
+        // Function names that can be used for modules
+        $functionNames = [
+            'Authentication', 'Authorization', 'Data Processing', 'Report Generation',
+            'File Transfer', 'Message Handling', 'Data Validation', 'Encryption',
+            'Logging', 'Monitoring', 'Cache Management', 'Session Management',
+            'Email Service', 'Notification Service', 'Backup Service', 'Sync Service'
+        ];
+
+        foreach ($moduleApps as $moduleApp) {
+            // Each module app gets 2-4 functions
+            $functionCount = fake()->numberBetween(2, 4);
+            $usedFunctions = [];
+            
+            for ($i = 0; $i < $functionCount; $i++) {
+                $functionName = fake()->randomElement($functionNames);
+                
+                // Avoid duplicate function names for the same app
+                if (!in_array($functionName, $usedFunctions)) {
+                    $usedFunctions[] = $functionName;
+                    $integrationId = fake()->randomElement($integrationIds);
+                    
+                    // Check if this combination already exists
+                    $exists = AppIntegrationFunction::where('app_id', $moduleApp->app_id)
+                        ->where('integration_id', $integrationId)
+                        ->where('function_name', $functionName)
+                        ->exists();
+                    
+                    if (!$exists) {
+                        AppIntegrationFunction::create([
+                            'app_id' => $moduleApp->app_id,
+                            'integration_id' => $integrationId,
+                            'function_name' => $functionName
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // 6. Create Contracts (12 contracts)
         $this->command->info('Creating contracts...');
         for ($i = 0; $i < 12; $i++) {
             $currencyType = fake()->randomElement(['rp', 'non_rp']);
@@ -309,7 +396,7 @@ class ApplicationDataSeeder extends Seeder
             }
         }
 
-        // 6. Create App-Contract relationships (ensure every app has a chance to have contracts)
+        // 7. Create App-Contract relationships (ensure every app has a chance to have contracts)
         $this->command->info('Creating app-contract relationships...');
         $contractIds = Contract::pluck('id')->toArray();
         
@@ -352,7 +439,7 @@ class ApplicationDataSeeder extends Seeder
             }
         }
 
-        // 7. Create Technology Data (ensure every app has comprehensive technology stack)
+        // 8. Create Technology Data (ensure every app has comprehensive technology stack)
         $this->command->info('Creating technology data...');
         
         // Define technology options for each category
