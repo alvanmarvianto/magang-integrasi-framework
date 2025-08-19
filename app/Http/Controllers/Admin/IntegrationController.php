@@ -52,7 +52,7 @@ class IntegrationController extends Controller
         $validated = $request->validate([
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
-            'connections' => 'required|array|min:1',
+            'connections' => 'nullable|array',
             'connections.*.connection_type_id' => 'nullable|distinct|exists:connectiontypes,connection_type_id',
             'connections.*.source_inbound' => 'nullable|string|max:1000',
             'connections.*.source_outbound' => 'nullable|string|max:1000',
@@ -99,7 +99,7 @@ class IntegrationController extends Controller
         $validated = $request->validate([
             'source_app_id' => 'required|exists:apps,app_id',
             'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
-            'connections' => 'required|array|min:1',
+            'connections' => 'nullable|array',
             'connections.*.connection_type_id' => 'nullable|distinct|exists:connectiontypes,connection_type_id',
             'connections.*.source_inbound' => 'nullable|string|max:1000',
             'connections.*.source_outbound' => 'nullable|string|max:1000',

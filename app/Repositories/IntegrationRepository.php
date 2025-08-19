@@ -149,8 +149,8 @@ class IntegrationRepository implements IntegrationRepositoryInterface
                 'target_app_id' => $integrationData->targetAppId,
             ]);
 
-            // If connections provided, replace them atomically
-            if ($updated && is_array($integrationData->connections) && count($integrationData->connections) > 0) {
+            // If connections provided, replace them atomically (including empty array to clear all)
+            if ($updated && is_array($integrationData->connections)) {
                 \DB::table('appintegration_connections')
                     ->where('integration_id', $integration->integration_id)
                     ->delete();

@@ -199,6 +199,11 @@ function removeConnection(index) {
 }
 
 function validateConnections() {
+  // Only validate if there are connections to check
+  if (form.connections.length === 0) {
+    return true; // Allow empty connections
+  }
+  
   // Ensure no duplicate connection types and all selected
   const ids = form.connections.map(c => c.connection_type_id).filter(Boolean);
   if (ids.length !== new Set(ids).size) {
@@ -206,7 +211,7 @@ function validateConnections() {
     return false;
   }
   if (form.connections.some(c => !c.connection_type_id)) {
-    showError('Pilih connection type untuk setiap item');
+    showError('Pilih connection type untuk setiap item yang ditambahkan');
     return false;
   }
   return true;
@@ -218,7 +223,7 @@ function submit() {
   const payload = {
     source_app_id: form.source_app_id,
     target_app_id: form.target_app_id,
-    connections: form.connections,
+    connections: form.connections, // Submit even if empty
   };
 
   if (isEditing.value) {

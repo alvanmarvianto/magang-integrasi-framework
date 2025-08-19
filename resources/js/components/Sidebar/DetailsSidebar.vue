@@ -51,7 +51,7 @@
               <div class="connection-card-header">
                 <span class="connection-type-label">{{ (conn.connection_type_name || 'DIRECT').toUpperCase() }}</span>
               </div>
-              <div class="connection-card-body">
+              <div class="connection-card-body" v-if="hasInboundOutboundData(conn)">
                 <!-- APP 1 / Source -->
                 <div class="app-section">
                   <div class="app-section-title">{{ (conn.source?.app_name || getSourceAppName(edgeData) || 'APP 1').toUpperCase() }}</div>
@@ -280,6 +280,21 @@ function getConnectionCardStyle(conn: EdgeConnectionItem): any {
     }
   }
   return {}
+}
+
+function hasInboundOutboundData(conn: EdgeConnectionItem): boolean {
+  // Check if there's meaningful inbound/outbound data (not just null, undefined, empty string, or '-')
+  const sourceInbound = conn.source?.inbound;
+  const sourceOutbound = conn.source?.outbound;
+  const targetInbound = conn.target?.inbound;
+  const targetOutbound = conn.target?.outbound;
+  
+  const isValidData = (data: any) => {
+    return data && data !== '-' && data.trim() !== '';
+  };
+  
+  return isValidData(sourceInbound) || isValidData(sourceOutbound) || 
+         isValidData(targetInbound) || isValidData(targetOutbound);
 }
 
 function editIntegration() {
