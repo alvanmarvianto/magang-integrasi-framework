@@ -85,6 +85,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Create app_layouts table
+        Schema::create('app_layouts', function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('app_id')->index('app_id');
+            $table->json('nodes_layout')->nullable();
+            $table->json('edges_layout')->nullable();
+            $table->json('app_config')->nullable();
+            $table->timestamps();
+        });
+
         // Add foreign key constraints
         Schema::table('apps', function (Blueprint $table) {
             $table->foreign(['stream_id'], 'apps_ibfk_1')->references(['stream_id'])->on('streams')->onUpdate('restrict')->onDelete('restrict');
@@ -99,6 +109,13 @@ return new class extends Migration
         Schema::table('stream_layouts', function (Blueprint $table) {
             $table->foreign(['stream_id'], 'stream_layouts_ibfk_1')->references(['stream_id'])->on('streams')->onUpdate('cascade')->onDelete('cascade');
         });
+
+        Schema::table('app_layouts', function (Blueprint $table) {
+            $table->foreign(['app_id'], 'app_layouts_ibfk_1')
+                ->references(['app_id'])->on('apps')
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
+        });
     }
 
     /**
@@ -112,5 +129,6 @@ return new class extends Migration
         Schema::dropIfExists('connectiontypes');
         Schema::dropIfExists('streams');
         Schema::dropIfExists('appintegration_connections');
+        Schema::dropIfExists('app_layouts');
     }
 };
