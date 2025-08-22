@@ -8,6 +8,8 @@ use App\DTOs\TechnologyAppListingDTO;
 use App\DTOs\AppTechnologyDataDTO;
 use App\DTOs\TechnologyListingPageDTO;
 use App\Models\App;
+use App\Models\Technology;
+use App\Models\AppTechnology;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,98 +17,110 @@ use Illuminate\Support\Facades\Log;
 class TechnologyService
 {
     /**
-     * Get table name for technology type
+     * Get technology type mapping
      */
-    public function getTableName(string $type): string
+    public function getTypeMapping(): array
     {
-        return match ($type) {
-            'vendors' => 'technology_vendors',
-            'operatingSystems' => 'technology_operating_systems',
-            'databases' => 'technology_databases',
-            'languages' => 'technology_programming_languages',
-            'frameworks' => 'technology_frameworks',
-            'middlewares' => 'technology_middlewares',
-            'thirdParties' => 'technology_third_parties',
-            'platforms' => 'technology_platforms',
-            default => throw new \InvalidArgumentException('Invalid technology type'),
-        };
+        return [
+            'vendors' => 'vendors',
+            'operatingSystems' => 'operating_systems',
+            'databases' => 'databases',
+            'languages' => 'programming_languages',
+            'frameworks' => 'frameworks',
+            'middlewares' => 'middlewares',
+            'thirdParties' => 'third_parties',
+            'platforms' => 'platforms',
+        ];
     }
 
     /**
-     * Get enum values from a technology table
+     * Get table name for technology type (legacy compatibility)
      */
-    public function getEnumValues(string $tableName): TechnologyEnumDTO
+    public function getTableName(string $type): string
     {
-        $type = DB::table('information_schema.COLUMNS')
-            ->where('TABLE_NAME', $tableName)
-            ->where('COLUMN_NAME', 'name')
-            ->value('COLUMN_TYPE');
+        // This method is kept for backward compatibility but will use new structure
+        return 'technologies'; // All technologies are now in one table
+    }
 
-        preg_match('/^enum\((.*)\)$/', $type, $matches);
-        $values = str_getcsv($matches[1], ',', "'");
-
-        $cleanValues = array_map(function ($value) {
-            return trim($value);
-        }, $values);
+    /**
+     * Get enum values from technologies table by type
+     */
+    public function getEnumValues(string $type): TechnologyEnumDTO
+    {
+        $typeMapping = $this->getTypeMapping();
+        $techType = $typeMapping[$type] ?? $type;
+        
+        $technologies = Technology::where('type', $techType)->pluck('name')->toArray();
 
         return new TechnologyEnumDTO(
-            type: $tableName,
-            values: $cleanValues
+            type: $type,
+            values: $technologies
         );
     }
 
     /**
-     * Get technology data for an app
+     * Get technology data for an app by type
      */
-    public function getTechnologyData(string $tableName, int $appId): Collection
+    public function getTechnologyData(string $type, int $appId): Collection
     {
-        $results = DB::table($tableName)
-            ->where('app_id', $appId)
-            ->get(['name', 'version']);
+        // For backward compatibility, handle old table names
+        if (str_starts_with($type, 'technology_')) {
+            $techType = str_replace('technology_', '', $type);
+            $techType = str_replace('_', '_', $techType); // Keep underscores for exact mapping
+        } else {
+            $typeMapping = $this->getTypeMapping();
+            $techType = $typeMapping[$type] ?? $type;
+        }
 
-        return $results->map(function (object $item) {
-            return TechnologyComponentDTO::fromArray([
-                'id' => null, // Technology components don't have separate IDs
-                'name' => $item->name,
-                'version' => $item->version,
-            ]);
+        $appTechnologies = AppTechnology::with('technology')
+            ->where('app_id', $appId)
+            ->whereHas('technology', function ($query) use ($techType) {
+                $query->where('type', $techType);
+            })
+            ->get();
+
+        return $appTechnologies->map(function ($appTech) {
+            return TechnologyComponentDTO::fromModel(
+                $appTech->technology,
+                $appTech->version
+            );
         });
     }
 
     /**
      * Get apps by technology condition as DTOs
      */
-    public function getAppByCondition(string $tableName, string $name): Collection
+    public function getAppByCondition(string $techType, string $name): Collection
     {
-        $appIds = DB::table($tableName)
-            ->where('name', $name)
-            ->pluck('app_id')
-            ->unique()
-            ->toArray();
+        // Handle legacy table name format
+        if (str_starts_with($techType, 'technology_')) {
+            $techType = str_replace('technology_', '', $techType);
+        }
 
-        if (empty($appIds)) {
+        $technology = Technology::where('type', $techType)
+            ->where('name', $name)
+            ->first();
+
+        if (!$technology) {
             return collect([]);
         }
 
-        /** @var \Illuminate\Database\Eloquent\Collection $apps */
-        $apps = App::with('stream')->whereIn('app_id', $appIds)->get();
+        $appTechnologies = AppTechnology::with(['app.stream'])
+            ->where('tech_id', $technology->id)
+            ->get();
 
-        return $apps->map(function ($app) use ($tableName, $name) {
-            $version = DB::table($tableName)
-                ->where('app_id', $app->getAttribute('app_id'))
-                ->where('name', $name)
-                ->value('version');
-
+        return $appTechnologies->map(function ($appTech) use ($name) {
+            $app = $appTech->app;
             return TechnologyAppListingDTO::fromArray([
-                'id' => $app->getAttribute('app_id'),
-                'name' => $app->getAttribute('app_name'),
-                'description' => $app->getAttribute('description'),
-                'version' => $version,
+                'id' => $app->app_id,
+                'name' => $app->app_name,
+                'description' => $app->description,
+                'version' => $appTech->version,
                 'stream' => [
                     'id' => $app->stream?->stream_id,
                     'name' => $app->stream?->stream_name
                 ],
-                'technology_detail' => $name . ($version ? ' ' . $version : '')
+                'technology_detail' => $name . ($appTech->version ? ' ' . $appTech->version : '')
             ]);
         });
     }
@@ -135,86 +149,96 @@ class TechnologyService
     }
 
     /**
-     * Store new enum value
+     * Store new technology
      */
     public function storeEnumValue(string $type, string $name): bool
     {
         try {
-            $tableName = $this->getTableName($type);
-            $currentEnumDTO = $this->getEnumValues($tableName);
+            $typeMapping = $this->getTypeMapping();
+            $techType = $typeMapping[$type] ?? $type;
             
-            if (in_array($name, $currentEnumDTO->values)) {
-                throw new \Exception('Nilai enum sudah ada');
+            $existingTech = Technology::where('type', $techType)
+                ->where('name', $name)
+                ->first();
+                
+            if ($existingTech) {
+                throw new \Exception('Technology already exists');
             }
             
-            $newValues = array_merge($currentEnumDTO->values, [$name]);
-
-            DB::statement("ALTER TABLE {$tableName} MODIFY COLUMN name ENUM(" .
-                implode(',', array_map(fn($val) => "'" . addslashes($val) . "'", $newValues)) .
-            ")");
+            Technology::create([
+                'type' => $techType,
+                'name' => $name,
+            ]);
 
             return true;
         } catch (\Exception $e) {
-            Log::error('Error adding enum: ' . $e->getMessage());
+            Log::error('Error adding technology: ' . $e->getMessage());
             throw $e;
         }
     }
 
     /**
-     * Update existing enum value
+     * Update existing technology
      */
     public function updateEnumValue(string $type, string $oldValue, string $newValue): bool
     {
         try {
-            $tableName = $this->getTableName($type);
-            $currentEnumDTO = $this->getEnumValues($tableName);
+            $typeMapping = $this->getTypeMapping();
+            $techType = $typeMapping[$type] ?? $type;
             
-            if ($newValue !== $oldValue && in_array($newValue, $currentEnumDTO->values)) {
-                throw new \Exception('Nilai enum sudah ada');
+            $technology = Technology::where('type', $techType)
+                ->where('name', $oldValue)
+                ->first();
+                
+            if (!$technology) {
+                throw new \Exception('Technology not found');
+            }
+            
+            if ($newValue !== $oldValue) {
+                $existingTech = Technology::where('type', $techType)
+                    ->where('name', $newValue)
+                    ->first();
+                    
+                if ($existingTech) {
+                    throw new \Exception('Technology name already exists');
+                }
             }
 
-            if ($this->isEnumValueInUse($tableName, $oldValue)) {
-                throw new \Exception('Nilai enum sedang digunakan');
+            if ($this->isTechnologyInUse($technology->id)) {
+                throw new \Exception('Technology is currently in use');
             }
 
-            $newValues = array_map(
-                fn($val) => $val === $oldValue ? $newValue : $val,
-                $currentEnumDTO->values
-            );
-
-            DB::statement("ALTER TABLE {$tableName} MODIFY COLUMN name ENUM(" .
-                implode(',', array_map(fn($val) => "'" . addslashes($val) . "'", $newValues)) .
-            ")");
+            $technology->update(['name' => $newValue]);
 
             return true;
         } catch (\Exception $e) {
-            Log::error('Error updating enum: ' . $e->getMessage());
+            Log::error('Error updating technology: ' . $e->getMessage());
             throw $e;
         }
     }
 
     /**
-     * Delete enum value
+     * Delete technology
      */
     public function deleteEnumValue(string $type, string $value): bool
     {
         try {
-            $tableName = $this->getTableName($type);
+            $typeMapping = $this->getTypeMapping();
+            $techType = $typeMapping[$type] ?? $type;
             
-            if ($this->isEnumValueInUse($tableName, $value)) {
-                throw new \Exception('Nilai enum sedang digunakan dan tidak dapat dihapus');
+            $technology = Technology::where('type', $techType)
+                ->where('name', $value)
+                ->first();
+                
+            if (!$technology) {
+                throw new \Exception('Technology not found');
+            }
+            
+            if ($this->isTechnologyInUse($technology->id)) {
+                throw new \Exception('Technology is currently in use and cannot be deleted');
             }
 
-            $currentEnumDTO = $this->getEnumValues($tableName);
-            $newValues = array_values(array_filter($currentEnumDTO->values, fn($val) => $val !== $value));
-            
-            if (count($newValues) === 0) {
-                throw new \Exception('Tidak dapat menghapus nilai enum terakhir');
-            }
-
-            DB::statement("ALTER TABLE {$tableName} MODIFY COLUMN name ENUM(" .
-                implode(',', array_map(fn($val) => "'" . addslashes($val) . "'", $newValues)) .
-            ")");
+            $technology->delete();
 
             return true;
         } catch (\Exception $e) {
@@ -224,35 +248,58 @@ class TechnologyService
     }
 
     /**
-     * Check if enum value is in use
+     * Check if technology is in use
      */
-    public function isEnumValueInUse(string $tableName, string $value): bool
+    public function isTechnologyInUse(int $techId): bool
     {
-        return DB::table($tableName)->where('name', $value)->exists();
+        return AppTechnology::where('tech_id', $techId)->exists();
     }
 
     /**
-     * Get apps using specific enum value
+     * Legacy method for backward compatibility
+     */
+    public function isEnumValueInUse(string $tableName, string $value): bool
+    {
+        // Extract type from old table name
+        $techType = str_replace('technology_', '', $tableName);
+        
+        $technology = Technology::where('type', $techType)
+            ->where('name', $value)
+            ->first();
+            
+        return $technology ? $this->isTechnologyInUse($technology->id) : false;
+    }
+
+    /**
+     * Get apps using specific technology
      */
     public function getAppsUsingEnum(string $tableName, string $value): array
     {
-        $apps = DB::table($tableName)
-            ->join('apps', $tableName . '.app_id', '=', 'apps.app_id')
-            ->where($tableName . '.name', $value)
-            ->select('apps.app_id', 'apps.app_name')
+        $techType = str_replace('technology_', '', $tableName);
+        
+        $technology = Technology::where('type', $techType)
+            ->where('name', $value)
+            ->first();
+            
+        if (!$technology) {
+            return [];
+        }
+
+        $appTechnologies = AppTechnology::with('app')
+            ->where('tech_id', $technology->id)
             ->get();
 
-        return $apps->map(function($app) {
+        return $appTechnologies->map(function($appTech) {
             return [
-                'id' => $app->app_id,
-                'name' => $app->app_name,
-                'edit_url' => route('admin.apps.edit', $app->app_id)
+                'id' => $appTech->app->app_id,
+                'name' => $appTech->app->app_name,
+                'edit_url' => route('admin.apps.edit', $appTech->app->app_id)
             ];
         })->all();
     }
 
     /**
-     * Get all technology types with their enum values as DTOs
+     * Get all technology types with their values as DTOs
      */
     public function getAllTechnologyTypes(): array
     {
@@ -264,8 +311,7 @@ class TechnologyService
         $result = [];
         foreach ($types as $type) {
             try {
-                $tableName = $this->getTableName($type);
-                $enumDTO = $this->getEnumValues($tableName);
+                $enumDTO = $this->getEnumValues($type);
                 $result[$type] = $enumDTO;
             } catch (\Exception $e) {
                 Log::warning("Failed to get enum values for type {$type}: " . $e->getMessage());
@@ -281,18 +327,21 @@ class TechnologyService
      */
     public function getTechnologyComponentsForApps(array $appIds, string $type): Collection
     {
-        $tableName = $this->getTableName($type);
+        $typeMapping = $this->getTypeMapping();
+        $techType = $typeMapping[$type] ?? $type;
         
-        $results = DB::table($tableName)
+        $appTechnologies = AppTechnology::with('technology')
             ->whereIn('app_id', $appIds)
-            ->get(['app_id', 'name', 'version']);
+            ->whereHas('technology', function ($query) use ($techType) {
+                $query->where('type', $techType);
+            })
+            ->get();
 
-        return $results->map(function ($item) {
-            return TechnologyComponentDTO::fromArray([
-                'id' => $item->app_id,
-                'name' => $item->name,
-                'version' => $item->version,
-            ]);
+        return $appTechnologies->map(function ($appTech) {
+            return TechnologyComponentDTO::fromModel(
+                $appTech->technology,
+                $appTech->version
+            );
         });
     }
 
@@ -309,25 +358,25 @@ class TechnologyService
             throw new \Exception("App with ID {$appId} not found");
         }
 
-        // Get all technology data for this app
+        // Get all technology data for this app using new structure
         $technologies = [
             'app_type' => $app->appType,
             'stratification' => $app->stratification,
-            'vendor' => $this->getTechnologyData('technology_vendors', $appId)
+            'vendor' => $this->getTechnologyData('vendors', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'os' => $this->getTechnologyData('technology_operating_systems', $appId)
+            'os' => $this->getTechnologyData('operating_systems', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'database' => $this->getTechnologyData('technology_databases', $appId)
+            'database' => $this->getTechnologyData('databases', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'language' => $this->getTechnologyData('technology_programming_languages', $appId)
+            'language' => $this->getTechnologyData('programming_languages', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'third_party' => $this->getTechnologyData('technology_third_parties', $appId)
+            'third_party' => $this->getTechnologyData('third_parties', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'middleware' => $this->getTechnologyData('technology_middlewares', $appId)
+            'middleware' => $this->getTechnologyData('middlewares', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'framework' => $this->getTechnologyData('technology_frameworks', $appId)
+            'framework' => $this->getTechnologyData('frameworks', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
-            'platform' => $this->getTechnologyData('technology_platforms', $appId)
+            'platform' => $this->getTechnologyData('platforms', $appId)
                 ->map(fn($dto) => $dto->toArray())->toArray(),
         ];
 
@@ -360,8 +409,8 @@ class TechnologyService
         if (in_array($type, ['app_type', 'stratification'])) {
             $apps = $this->getAppsByAttribute($type, $name);
         } else {
-            $tableName = $this->getTableName($this->getServiceTypeKey($type));
-            $apps = $this->getAppByCondition($tableName, $name);
+            $techType = $this->getServiceTypeKey($type);
+            $apps = $this->getAppByCondition($techType, $name);
         }
 
         return TechnologyListingPageDTO::create(
@@ -379,10 +428,10 @@ class TechnologyService
     {
         return match ($controllerType) {
             'vendor' => 'vendors',
-            'os' => 'operatingSystems',
+            'os' => 'operating_systems',
             'database' => 'databases',
-            'language' => 'languages',
-            'third_party' => 'thirdParties',
+            'language' => 'programming_languages',
+            'third_party' => 'third_parties',
             'middleware' => 'middlewares',
             'framework' => 'frameworks',
             'platform' => 'platforms',

@@ -67,44 +67,73 @@ class App extends Model
         return $this->hasMany(AppIntegrationFunction::class, 'app_id', 'app_id');
     }
 
-    public function vendors(): HasMany
+    /**
+     * Get all technology assignments for this app.
+     */
+    public function appTechnologies(): HasMany
     {
-        return $this->hasMany(Vendor::class, 'app_id', 'app_id');
+        return $this->hasMany(AppTechnology::class, 'app_id', 'app_id');
     }
 
-    public function operatingSystems(): HasMany
+    /**
+     * Get all technologies for this app.
+     */
+    public function technologies(): BelongsToMany
     {
-        return $this->hasMany(OperatingSystem::class, 'app_id', 'app_id');
+        return $this->belongsToMany(Technology::class, 'app_technologies', 'app_id', 'tech_id')
+            ->withPivot('version')
+            ->withTimestamps();
     }
 
-    public function databases(): HasMany
+    /**
+     * Get technologies of a specific type for this app.
+     */
+    public function getTechnologiesByType(string $type)
     {
-        return $this->hasMany(Database::class, 'app_id', 'app_id');
+        return $this->technologies()->where('type', $type)->get();
     }
 
-    public function programmingLanguages(): HasMany
+    /**
+     * Helper methods for specific technology types
+     */
+    public function vendors()
     {
-        return $this->hasMany(ProgrammingLanguage::class, 'app_id', 'app_id');
+        return $this->getTechnologiesByType('vendors');
     }
 
-    public function frameworks(): HasMany
+    public function operatingSystems()
     {
-        return $this->hasMany(Framework::class, 'app_id', 'app_id');
+        return $this->getTechnologiesByType('operating_systems');
     }
 
-    public function middlewares(): HasMany
+    public function databases()
     {
-        return $this->hasMany(Middleware::class, 'app_id', 'app_id');
+        return $this->getTechnologiesByType('databases');
     }
 
-    public function thirdParties(): HasMany
+    public function programmingLanguages()
     {
-        return $this->hasMany(ThirdParty::class, 'app_id', 'app_id');
+        return $this->getTechnologiesByType('programming_languages');
     }
 
-    public function platforms(): HasMany
+    public function frameworks()
     {
-        return $this->hasMany(Platform::class, 'app_id', 'app_id');
+        return $this->getTechnologiesByType('frameworks');
+    }
+
+    public function middlewares()
+    {
+        return $this->getTechnologiesByType('middlewares');
+    }
+
+    public function thirdParties()
+    {
+        return $this->getTechnologiesByType('third_parties');
+    }
+
+    public function platforms()
+    {
+        return $this->getTechnologiesByType('platforms');
     }
 
     public function contracts(): BelongsToMany
