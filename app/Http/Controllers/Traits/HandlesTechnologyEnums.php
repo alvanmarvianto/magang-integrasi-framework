@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Traits;
 
+use App\Models\Technology;
 use Illuminate\Support\Facades\DB;
 
 trait HandlesTechnologyEnums
@@ -42,14 +43,14 @@ trait HandlesTechnologyEnums
     protected function getTechnologyEnums(): array
     {
         return [
-            'vendors' => $this->getEnumValues('technology_vendors'),
-            'operatingSystems' => $this->getEnumValues('technology_operating_systems'),
-            'databases' => $this->getEnumValues('technology_databases'),
-            'languages' => $this->getEnumValues('technology_programming_languages'),
-            'frameworks' => $this->getEnumValues('technology_frameworks'),
-            'middlewares' => $this->getEnumValues('technology_middlewares'),
-            'thirdParties' => $this->getEnumValues('technology_third_parties'),
-            'platforms' => $this->getEnumValues('technology_platforms'),
+            'vendors' => Technology::where('type', 'vendors')->pluck('name')->toArray(),
+            'operatingSystems' => Technology::where('type', 'operating_systems')->pluck('name')->toArray(),
+            'databases' => Technology::where('type', 'databases')->pluck('name')->toArray(),
+            'languages' => Technology::where('type', 'programming_languages')->pluck('name')->toArray(),
+            'frameworks' => Technology::where('type', 'frameworks')->pluck('name')->toArray(),
+            'middlewares' => Technology::where('type', 'middlewares')->pluck('name')->toArray(),
+            'thirdParties' => Technology::where('type', 'third_parties')->pluck('name')->toArray(),
+            'platforms' => Technology::where('type', 'platforms')->pluck('name')->toArray(),
         ];
     }
 } 

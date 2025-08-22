@@ -91,14 +91,8 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         try {
             $query = App::with([
                 'stream',
-                'vendors',
-                'operatingSystems',
-                'databases',
-                'programmingLanguages',
-                'frameworks',
-                'middlewares',
-                'thirdParties',
-                'platforms'
+                'technologies',
+                'appTechnologies.technology'
             ]);
 
             if ($search) {
@@ -137,14 +131,8 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
             $cacheKey,
             fn() => App::with([
                 'stream',
-                'vendors',
-                'operatingSystems',
-                'databases',
-                'programmingLanguages',
-                'frameworks',
-                'middlewares',
-                'thirdParties',
-                'platforms',
+                'technologies',
+                'appTechnologies.technology',
             ])->find($id)
         );
     }
@@ -158,14 +146,8 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         
         return App::with([
             'stream',
-            'vendors',
-            'operatingSystems',
-            'databases',
-            'programmingLanguages',
-            'frameworks',
-            'middlewares',
-            'thirdParties',
-            'platforms',
+            'technologies',
+            'appTechnologies.technology',
         ])->find($id);
     }
 
@@ -232,14 +214,8 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
 
                 return $app->load([
                     'stream',
-                    'vendors',
-                    'operatingSystems',
-                    'databases',
-                    'programmingLanguages',
-                    'frameworks',
-                    'middlewares',
-                    'thirdParties',
-                    'platforms',
+                    'technologies',
+                    'appTechnologies.technology',
                 ]);
             });
         } catch (\Exception $e) {

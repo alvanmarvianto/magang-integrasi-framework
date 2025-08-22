@@ -274,8 +274,8 @@ class AppService
         $technologyTypes = $this->technologyRepository->getTechnologyTypeMappings();
         $options = [];
 
-        foreach ($technologyTypes as $type => $mapping) {
-            $enumData = $this->technologyRepository->getEnumValues($mapping['table']);
+        foreach ($technologyTypes as $type => $techType) {
+            $enumData = $this->technologyRepository->getEnumValues($type);
             $options[$type] = $enumData->values;
         }
 

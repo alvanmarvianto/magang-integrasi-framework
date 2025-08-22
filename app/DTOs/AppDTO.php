@@ -71,30 +71,41 @@ readonly class AppDTO
     {
         $components = [];
         
-        $relationMappings = [
-            'vendors' => 'vendors',
-            'operating_systems' => 'operatingSystems',
-            'databases' => 'databases',
-            'programming_languages' => 'programmingLanguages',
-            'frameworks' => 'frameworks',
-            'middlewares' => 'middlewares',
-            'third_parties' => 'thirdParties',
-            'platforms' => 'platforms',
-        ];
+        // Use the new technology relationship structure
+        if ($app->relationLoaded('appTechnologies') && $app->appTechnologies) {
+            $groupedTechnologies = $app->appTechnologies->groupBy(function ($appTech) {
+                return $appTech->technology->type;
+            });
 
-        foreach ($relationMappings as $key => $relation) {
-            if ($app->relationLoaded($relation) && $app->$relation) {
-                $components[$key] = $app->$relation->map(function ($item) {
+            foreach ($groupedTechnologies as $type => $appTechs) {
+                $techKey = self::mapTypeToKey($type);
+                $components[$techKey] = $appTechs->map(function ($appTech) {
                     return new TechnologyComponentDTO(
-                        id: $item->getKey(),
-                        name: $item->name,
-                        version: $item->version ?? null
+                        id: $appTech->technology->id,
+                        name: $appTech->technology->name,
+                        type: $appTech->technology->type,
+                        version: $appTech->version
                     );
                 })->toArray();
             }
         }
 
         return $components;
+    }
+
+    private static function mapTypeToKey(string $type): string
+    {
+        return match ($type) {
+            'vendors' => 'vendors',
+            'operating_systems' => 'operating_systems',
+            'databases' => 'databases',
+            'programming_languages' => 'programming_languages',
+            'frameworks' => 'frameworks',
+            'middlewares' => 'middlewares',
+            'third_parties' => 'third_parties',
+            'platforms' => 'platforms',
+            default => $type,
+        };
     }
 
     private static function extractIntegrationFunctions($app): array

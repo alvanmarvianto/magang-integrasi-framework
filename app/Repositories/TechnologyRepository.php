@@ -4,6 +4,9 @@ namespace App\Repositories;
 
 use App\DTOs\TechnologyComponentDTO;
 use App\DTOs\TechnologyEnumDTO;
+use App\Models\Technology;
+use App\Models\AppTechnology;
+use App\Models\App;
 use App\Repositories\Exceptions\RepositoryException;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -13,79 +16,37 @@ use Illuminate\Support\Facades\Cache;
 class TechnologyRepository implements TechnologyRepositoryInterface
 {    
     private const TECHNOLOGY_TYPE_MAPPINGS = [
-        'vendors' => [
-            'table' => 'technology_vendors',
-            'model' => \App\Models\Vendor::class,
-            'primary_key' => 'vendor_id',
-        ],
-        'operating_systems' => [
-            'table' => 'technology_operating_systems',
-            'model' => \App\Models\OperatingSystem::class,
-            'primary_key' => 'os_id',
-        ],
-        'databases' => [
-            'table' => 'technology_databases',
-            'model' => \App\Models\Database::class,
-            'primary_key' => 'database_id',
-        ],
-        'programming_languages' => [
-            'table' => 'technology_programming_languages',
-            'model' => \App\Models\ProgrammingLanguage::class,
-            'primary_key' => 'language_id',
-        ],
-        'frameworks' => [
-            'table' => 'technology_frameworks',
-            'model' => \App\Models\Framework::class,
-            'primary_key' => 'framework_id',
-        ],
-        'middlewares' => [
-            'table' => 'technology_middlewares',
-            'model' => \App\Models\Middleware::class,
-            'primary_key' => 'middleware_id',
-        ],
-        'third_parties' => [
-            'table' => 'technology_third_parties',
-            'model' => \App\Models\ThirdParty::class,
-            'primary_key' => 'third_party_id',
-        ],
-        'platforms' => [
-            'table' => 'technology_platforms',
-            'model' => \App\Models\Platform::class,
-            'primary_key' => 'platform_id',
-        ],
+        'vendors' => 'vendors',
+        'operating_systems' => 'operating_systems',
+        'databases' => 'databases',
+        'programming_languages' => 'programming_languages',
+        'frameworks' => 'frameworks',
+        'middlewares' => 'middlewares',
+        'third_parties' => 'third_parties',
+        'platforms' => 'platforms',
     ];
 
-    public function getEnumValues(string $tableName): TechnologyEnumDTO
+    public function getEnumValues(string $technologyType): TechnologyEnumDTO
     {
-        if (empty(trim($tableName))) {
-            throw new \InvalidArgumentException('Table name cannot be empty');
+        if (empty(trim($technologyType))) {
+            throw new \InvalidArgumentException('Technology type cannot be empty');
         }
 
-        $cacheKey = CacheConfig::buildKey('technology', 'enum', $tableName);
-        $cacheTTL = CacheConfig::getTTL('long'); // Cache for longer since enum values rarely change
+        // Map old table names to new type system
+        $type = $this->mapToTechnologyType($technologyType);
+
+        $cacheKey = CacheConfig::buildKey('technology', 'enum', $type);
+        $cacheTTL = CacheConfig::getTTL('long');
         
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            function () use ($tableName) {
+            function () use ($type, $technologyType) {
                 try {
-                    $type = DB::table('information_schema.COLUMNS')
-                        ->where('TABLE_NAME', $tableName)
-                        ->where('COLUMN_NAME', 'name')
-                        ->value('COLUMN_TYPE');
-
-                    if (!$type || !str_starts_with($type, 'enum')) {
-                        return new TechnologyEnumDTO($tableName, []);
-                    }
-
-                    preg_match('/^enum\((.*)\)$/', $type, $matches);
-                    $values = str_getcsv($matches[1], ',', "'");
-
-                    $cleanValues = array_map(fn($value) => trim($value), $values);
-
-                    return new TechnologyEnumDTO($tableName, $cleanValues);
+                    $technologies = Technology::where('type', $type)->pluck('name')->toArray();
+                    return new TechnologyEnumDTO($technologyType, $technologies);
                 } catch (\Exception $e) {
-                    throw RepositoryException::createFailed("technology enum values for {$tableName}", $e->getMessage());
+                    throw RepositoryException::createFailed("technology enum values for {$technologyType}", $e->getMessage());
                 }
             }
         );
@@ -97,17 +58,30 @@ class TechnologyRepository implements TechnologyRepositoryInterface
             throw new \InvalidArgumentException('App ID must be a positive integer');
         }
 
-        $mapping = $this->getTechnologyTypeMapping($technologyType);
+        $type = $this->mapToTechnologyType($technologyType);
         
-        $cacheKey = CacheConfig::buildKey('app', $appId, 'technology', $technologyType);
+        $cacheKey = CacheConfig::buildKey('app', $appId, 'technology', $type);
         $cacheTTL = CacheConfig::getTTL('default');
         
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            function() use ($appId, $mapping) {
+            function() use ($appId, $type) {
                 try {
-                    return $mapping['model']::where('app_id', $appId)->get();
+                    return AppTechnology::with('technology')
+                        ->where('app_id', $appId)
+                        ->whereHas('technology', function ($query) use ($type) {
+                            $query->where('type', $type);
+                        })
+                        ->get()
+                        ->map(function ($appTech) {
+                            return new TechnologyComponentDTO(
+                                id: $appTech->technology->id,
+                                name: $appTech->technology->name,
+                                type: $appTech->technology->type,
+                                version: $appTech->version
+                            );
+                        });
                 } catch (\Exception $e) {
                     throw RepositoryException::createFailed("technology components for app {$appId}", $e->getMessage());
                 }
@@ -121,27 +95,37 @@ class TechnologyRepository implements TechnologyRepositoryInterface
             throw new \InvalidArgumentException('App ID must be a positive integer');
         }
 
-        $mapping = $this->getTechnologyTypeMapping($technologyType);
-        $modelClass = $mapping['model'];
+        $type = $this->mapToTechnologyType($technologyType);
 
         try {
-            DB::transaction(function () use ($appId, $technologyType, $components, $modelClass) {
-                // Delete existing components
-                $this->deleteTechnologyComponentsForApp($appId, $technologyType);
+            DB::transaction(function () use ($appId, $type, $components) {
+                // Delete existing components of this type for the app
+                AppTechnology::where('app_id', $appId)
+                    ->whereHas('technology', function ($query) use ($type) {
+                        $query->where('type', $type);
+                    })
+                    ->delete();
 
                 // Create new components
                 foreach ($components as $component) {
                     $componentData = is_array($component) ? $component : $component->toArray();
                     
-                    $modelClass::create([
-                        'app_id' => $appId,
+                    // Find or create the technology
+                    $technology = Technology::firstOrCreate([
+                        'type' => $type,
                         'name' => $componentData['name'],
+                    ]);
+
+                    // Create the app-technology relationship
+                    AppTechnology::create([
+                        'app_id' => $appId,
+                        'tech_id' => $technology->id,
                         'version' => $componentData['version'] ?? null,
                     ]);
                 }
             });
 
-            $this->clearTechnologyCache($appId, $technologyType);
+            $this->clearTechnologyCache($appId, $type);
         } catch (\Exception $e) {
             throw RepositoryException::createFailed("technology components for app {$appId}", $e->getMessage());
         }
@@ -149,13 +133,16 @@ class TechnologyRepository implements TechnologyRepositoryInterface
 
     public function deleteTechnologyComponentsForApp(int $appId, string $technologyType): bool
     {
-        $mapping = $this->getTechnologyTypeMapping($technologyType);
-        $modelClass = $mapping['model'];
+        $type = $this->mapToTechnologyType($technologyType);
 
-        $deleted = $modelClass::where('app_id', $appId)->delete();
+        $deleted = AppTechnology::where('app_id', $appId)
+            ->whereHas('technology', function ($query) use ($type) {
+                $query->where('type', $type);
+            })
+            ->delete();
         
-        if ($deleted) {
-            $this->clearTechnologyCache($appId, $technologyType);
+        if ($deleted > 0) {
+            $this->clearTechnologyCache($appId, $type);
         }
 
         return $deleted > 0;
@@ -163,18 +150,25 @@ class TechnologyRepository implements TechnologyRepositoryInterface
 
     public function getAppsUsingTechnology(string $technologyType, string $technologyName): Collection
     {
-        $mapping = $this->getTechnologyTypeMapping($technologyType);
-        $modelClass = $mapping['model'];
+        $type = $this->mapToTechnologyType($technologyType);
 
-        $cacheKey = CacheConfig::buildKey('technology', $technologyType, $technologyName, 'apps');
+        $cacheKey = CacheConfig::buildKey('technology', $type, $technologyName, 'apps');
         $cacheTTL = CacheConfig::getTTL('default');
 
         return Cache::remember(
             $cacheKey,
             $cacheTTL,
-            function () use ($modelClass, $technologyName) {
-                return $modelClass::where('name', $technologyName)
-                    ->with('app.stream')
+            function () use ($type, $technologyName) {
+                $technology = Technology::where('type', $type)
+                    ->where('name', $technologyName)
+                    ->first();
+
+                if (!$technology) {
+                    return collect();
+                }
+
+                return AppTechnology::where('tech_id', $technology->id)
+                    ->with(['app.stream'])
                     ->get()
                     ->pluck('app')
                     ->filter();
@@ -211,19 +205,38 @@ class TechnologyRepository implements TechnologyRepositoryInterface
             function () {
                 $statistics = [];
 
-                foreach (self::TECHNOLOGY_TYPE_MAPPINGS as $type => $mapping) {
-                    $modelClass = $mapping['model'];
+                foreach (self::TECHNOLOGY_TYPE_MAPPINGS as $key => $type) {
+                    $techCount = Technology::where('type', $type)->count();
+                    $appTechCount = AppTechnology::whereHas('technology', function ($query) use ($type) {
+                        $query->where('type', $type);
+                    })->count();
                     
-                    $statistics[$type] = [
-                        'total_components' => $modelClass::count(),
-                        'unique_technologies' => $modelClass::distinct('name')->count('name'),
-                        'apps_using' => $modelClass::distinct('app_id')->count('app_id'),
-                        'most_used' => $modelClass::select('name', DB::raw('count(*) as usage_count'))
-                            ->groupBy('name')
-                            ->orderByDesc('usage_count')
-                            ->limit(5)
-                            ->get()
-                            ->toArray(),
+                    $uniqueApps = AppTechnology::whereHas('technology', function ($query) use ($type) {
+                        $query->where('type', $type);
+                    })->distinct('app_id')->count('app_id');
+
+                    $mostUsed = AppTechnology::select('tech_id', DB::raw('count(*) as usage_count'))
+                        ->whereHas('technology', function ($query) use ($type) {
+                            $query->where('type', $type);
+                        })
+                        ->with('technology')
+                        ->groupBy('tech_id')
+                        ->orderByDesc('usage_count')
+                        ->limit(5)
+                        ->get()
+                        ->map(function ($item) {
+                            return [
+                                'name' => $item->technology->name,
+                                'usage_count' => $item->usage_count,
+                            ];
+                        })
+                        ->toArray();
+                    
+                    $statistics[$key] = [
+                        'total_components' => $appTechCount,
+                        'unique_technologies' => $techCount,
+                        'apps_using' => $uniqueApps,
+                        'most_used' => $mostUsed,
                     ];
                 }
 
@@ -234,55 +247,48 @@ class TechnologyRepository implements TechnologyRepositoryInterface
 
     public function searchTechnologiesByName(string $searchTerm): Collection
     {
-        $results = collect();
+        $appTechnologies = AppTechnology::with(['technology', 'app'])
+            ->whereHas('technology', function ($query) use ($searchTerm) {
+                $query->where('name', 'like', "%{$searchTerm}%");
+            })
+            ->get();
 
-        foreach (self::TECHNOLOGY_TYPE_MAPPINGS as $type => $mapping) {
-            $modelClass = $mapping['model'];
-            
-            $typeResults = $modelClass::where('name', 'like', "%{$searchTerm}%")
-                ->with('app')
-                ->get()
-                ->map(function ($item) use ($type) {
-                    return [
-                        'type' => $type,
-                        'name' => $item->name,
-                        'version' => $item->version,
-                        'app' => $item->app ? [
-                            'app_id' => $item->app->app_id,
-                            'app_name' => $item->app->app_name,
-                        ] : null,
-                    ];
-                });
-
-            $results = $results->merge($typeResults);
-        }
-
-        return $results;
+        return $appTechnologies->map(function ($appTech) {
+            return [
+                'type' => $appTech->technology->type,
+                'name' => $appTech->technology->name,
+                'version' => $appTech->version,
+                'app' => $appTech->app ? [
+                    'app_id' => $appTech->app->app_id,
+                    'app_name' => $appTech->app->app_name,
+                ] : null,
+            ];
+        });
     }
 
-    private function getTechnologyTypeMapping(string $technologyType): array
+    private function mapToTechnologyType(string $input): string
     {
-        if (!isset(self::TECHNOLOGY_TYPE_MAPPINGS[$technologyType])) {
-            throw new \InvalidArgumentException("Invalid technology type: {$technologyType}");
+        // Handle old table names
+        if (str_starts_with($input, 'technology_')) {
+            $input = str_replace('technology_', '', $input);
         }
 
-        return self::TECHNOLOGY_TYPE_MAPPINGS[$technologyType];
+        // Map old keys to new types
+        return self::TECHNOLOGY_TYPE_MAPPINGS[$input] ?? $input;
     }
 
-    private function clearTechnologyCache(int $appId, string $technologyType): void
+    private function clearTechnologyCache(int $appId, string $type): void
     {
-        $mapping = $this->getTechnologyTypeMapping($technologyType);
-        
         // Clear app-specific technology cache
-        $appCacheKey = CacheConfig::buildKey('app', $appId, 'technology', $technologyType);
+        $appCacheKey = CacheConfig::buildKey('app', $appId, 'technology', $type);
         Cache::forget($appCacheKey);
         
         // Clear statistics cache
         $statisticsCacheKey = CacheConfig::buildKey('technology', 'statistics');
         Cache::forget($statisticsCacheKey);
         
-        // Clear enum cache if needed
-        $enumCacheKey = CacheConfig::buildKey('technology', 'enum', $mapping['table']);
+        // Clear enum cache
+        $enumCacheKey = CacheConfig::buildKey('technology', 'enum', $type);
         Cache::forget($enumCacheKey);
     }
 }
