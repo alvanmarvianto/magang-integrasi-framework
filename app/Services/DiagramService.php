@@ -5,12 +5,11 @@ namespace App\Services;
 use App\Services\StreamConfigurationService;
 use App\Services\EdgeTransformer;
 use App\DTOs\DiagramDataDTO;
-use App\DTOs\DiagramEdgeDTO;
-use App\DTOs\DiagramNodeDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
-use App\Models\AppIntegrationFunction;
 use App\Models\Stream;
+use App\Models\StreamLayout;
+use App\Models\AppIntegrationFunction;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\AppLayoutRepositoryInterface;
 use Illuminate\Support\Collection;
@@ -262,18 +261,6 @@ class DiagramService
         $savedLayoutDTO = $this->appLayoutRepository->findByAppId($appId);
         $savedLayout = null;
         
-        \Log::info('App Layout - Raw DTO from repository', [
-            'appId' => $appId,
-            'foundDTO' => $savedLayoutDTO ? 'YES' : 'NO',
-            'dtoData' => $savedLayoutDTO ? [
-                'id' => $savedLayoutDTO->id,
-                'appId' => $savedLayoutDTO->appId,
-                'nodesLayout' => $savedLayoutDTO->nodesLayout,
-                'edgesLayout' => $savedLayoutDTO->edgesLayout,
-                'appConfig' => $savedLayoutDTO->appConfig,
-            ] : null
-        ]);
-        
         // Check if we have meaningful saved layout data (not just empty arrays)
         $hasMeaningfulSavedLayout = false;
         if ($savedLayoutDTO) {
@@ -283,13 +270,6 @@ class DiagramService
             
             // Only consider it a meaningful layout if nodes_layout has actual data
             $hasMeaningfulSavedLayout = !empty($nodesLayout) && is_array($nodesLayout) && count($nodesLayout) > 0;
-            
-            \Log::info('App Layout - Retrieved from database', [
-                'nodesLayout' => $nodesLayout,
-                'edgesLayout' => $edgesLayout,
-                'appConfig' => $appConfig,
-                'hasMeaningfulData' => $hasMeaningfulSavedLayout
-            ]);
         }
         
         if ($hasMeaningfulSavedLayout) {
@@ -299,9 +279,7 @@ class DiagramService
                 'edges_layout' => $savedLayoutDTO->edgesLayout ?? [], // Use camelCase property name
                 'app_config' => $savedLayoutDTO->appConfig ?? [],     // Use camelCase property name
             ];
-            
-            \Log::info('App Layout - Using saved layout from database', $savedLayout);
-            
+                        
             // Apply saved positions and styles to nodes if they exist
             foreach ($nodes as &$node) {
                 $nodeId = $node['id'];
@@ -338,9 +316,7 @@ class DiagramService
                 unset($edge); // Break reference
             }
         } else {
-            // Build default layout structure if no meaningful saved layout
-            \Log::info('App Layout - No meaningful saved layout found, auto-generating default layout');
-            
+            // Build default layout structure if no meaningful saved layout            
             $nodesLayout = [
                 (string)$appId => [
                     'position' => ['x' => 50, 'y' => 50],
@@ -440,10 +416,6 @@ class DiagramService
             }
         }
 
-        \Log::info('App Layout - Diagram nodes', $nodes);
-        \Log::info('App Layout - Diagram edges', $edges);
-        \Log::info('App Layout - Saved layout', $savedLayout);
-
         return DiagramDataDTO::create($nodes, $edges, $savedLayout, $config);
     }
 
@@ -523,7 +495,7 @@ class DiagramService
         })->values()->all();
 
         // Function nodes under each app
-        $functions = \App\Models\AppIntegrationFunction::whereIn('app_id', $homeAppIds)
+        $functions = AppIntegrationFunction::whereIn('app_id', $homeAppIds)
             ->with(['app', 'integration'])
             ->get();
 
@@ -561,13 +533,12 @@ class DiagramService
 
         // Preload integrations to know source/target apps
         $integrationIds = $funcsByIntegration->keys()->values()->all();
-        $integrations = \App\Models\AppIntegration::whereIn('integration_id', $integrationIds)
+        $integrations = AppIntegration::whereIn('integration_id', $integrationIds)
             ->with(['sourceApp', 'targetApp'])
             ->get()
             ->keyBy('integration_id');
 
         foreach ($funcsByIntegration as $integrationId => $funcRows) {
-            /** @var \App\Models\AppIntegration|null $integration */
             $integration = $integrations->get($integrationId);
             if (!$integration) { continue; }
 
@@ -681,6 +652,10 @@ class DiagramService
     }
 
     /**
+     * Validate if a stream is allowed
+     */
+    public function isStreamAllowed(string $streamName): bool
+    {
         // Try direct validation first
         if ($this->streamConfigService->isStreamAllowed($streamName)) {
             return true;
@@ -824,20 +799,14 @@ class DiagramService
             
             // Debug: Check what layouts exist in the database
             try {
-                $allLayouts = \App\Models\StreamLayout::with('stream')->get()->map(function($layout) {
+                StreamLayout::with('stream')->get()->map(function($layout) {
                     return $layout->stream ? $layout->stream->stream_name : "No stream (ID: {$layout->stream_id})";
                 })->toArray();
-                \Log::info("DiagramService - All stream layouts in DB: ", $allLayouts);
-                
+
                 // Also show the cleaned stream name for debugging
                 $cleanStreamName = strtolower(trim($streamName));
                 if (str_starts_with($cleanStreamName, 'stream ')) {
                     $cleanStreamName = substr($cleanStreamName, 7);
-                }
-                \Log::info("DiagramService - Looking for layout with stream ID: {$stream->stream_id} ('{$streamName}' -> '{$cleanStreamName}')");
-                \Log::info("DiagramService - Found layout: " . ($savedLayout ? 'YES' : 'NO'));
-                if ($savedLayout) {
-                    \Log::info("DiagramService - Layout contents: ", $savedLayout);
                 }
             } catch (\Exception $e) {
                 \Log::error("DiagramService - Debug error: " . $e->getMessage());

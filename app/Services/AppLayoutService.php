@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\App;
+use App\Models\Stream;
 use App\Repositories\Interfaces\AppLayoutRepositoryInterface;
 use Illuminate\Support\Facades\Log;
 
@@ -34,7 +35,7 @@ class AppLayoutService
             $streamColor = $app->stream->color ?? '#3b82f6';
             
             // Get all streams for external app color resolution
-            $allStreams = \App\Models\Stream::all()->keyBy('stream_name');
+            $allStreams = Stream::all()->keyBy('stream_name');
             
             foreach ($nodesLayout as $nodeId => $node) {
                 $colorNeedsUpdate = false;

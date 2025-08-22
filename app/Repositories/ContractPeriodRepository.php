@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Contract;
 use App\Models\ContractPeriod;
 use App\Repositories\Interfaces\ContractPeriodRepositoryInterface;
 use Illuminate\Support\Collection;
@@ -220,7 +221,7 @@ class ContractPeriodRepository extends BaseRepository implements ContractPeriodR
         if ($contractId) {
             // Get contract to find related app IDs and clear their caches
             try {
-                $contract = \App\Models\Contract::with('apps')->find($contractId);
+                $contract = Contract::with('apps')->find($contractId);
                 if ($contract && $contract->apps) {
                     foreach ($contract->apps as $app) {
                         Cache::forget("contracts.app.{$app->app_id}");

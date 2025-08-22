@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Stream;
 use App\Models\ConnectionType;
 use App\DTOs\ConnectionTypeDTO;
 use App\Repositories\Exceptions\RepositoryException;
@@ -294,7 +295,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         // Clear diagram-related caches for all streams since connection types affect colors
         try {
             // Get stream names from database instead of hardcoded list
-            $streams = \App\Models\Stream::pluck('stream_name')->toArray();
+            $streams = Stream::pluck('stream_name')->toArray();
             foreach ($streams as $streamName) {
                 Cache::forget("diagram_data.{$streamName}");
                 Cache::forget("vue_flow_data.{$streamName}");

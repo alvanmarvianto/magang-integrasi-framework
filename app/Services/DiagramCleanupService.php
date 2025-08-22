@@ -3,13 +3,11 @@
 namespace App\Services;
 
 use App\DTOs\DiagramDataDTO;
-use App\DTOs\DiagramNodeDTO;
 use App\DTOs\DiagramEdgeDTO;
 use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class DiagramCleanupService

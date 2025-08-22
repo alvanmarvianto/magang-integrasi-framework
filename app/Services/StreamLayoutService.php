@@ -7,10 +7,8 @@ use App\DTOs\StreamLayoutDTO;
 use App\Models\App;
 use App\Models\AppIntegration;
 use App\Models\Stream;
-use App\Models\StreamLayout;
+use App\Models\ConnectionType;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
 class StreamLayoutService
 {
@@ -34,7 +32,7 @@ class StreamLayoutService
             $edgesLayout = $layoutDto->edgesLayout;
             
             // Get stream name from database using stream ID
-            $stream = \App\Models\Stream::find($layoutDto->streamId);
+            $stream = Stream::find($layoutDto->streamId);
             $streamName = $stream ? $stream->stream_name : '';
             
             // Check if this integration involves apps from this stream
@@ -205,7 +203,7 @@ class StreamLayoutService
         $nodesLayout = $layoutDto->nodesLayout;
         
         // Get the stream name from database using stream ID
-        $stream = \App\Models\Stream::find($layoutDto->streamId);
+        $stream = Stream::find($layoutDto->streamId);
         $streamName = $stream ? $stream->stream_name : '';
         
         $validNodesCount = count(array_filter($nodesLayout, function($key) use ($streamName) {
@@ -242,7 +240,7 @@ class StreamLayoutService
         }
 
         // Resolve the stream by exact name (DB casing)
-        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
+        $stream = Stream::where('stream_name', $streamName)->first();
         if (!$stream) {
             return 0;
         }
@@ -481,7 +479,7 @@ class StreamLayoutService
         $colorsSynced = 0;
         
         // Get all connection types with their current colors
-    $connectionTypes = \App\Models\ConnectionType::all();
+    $connectionTypes = ConnectionType::all();
         // Build lookup maps: by ID and by lowercase name (to handle casing differences)
         $connectionTypesById = $connectionTypes->keyBy('connection_type_id');
         $connectionTypesByName = $connectionTypes->mapWithKeys(function ($ct) {
@@ -514,11 +512,11 @@ class StreamLayoutService
                 $edgeIntegrationId = $edge['data']['integration_id'] ?? null;
 
                 if ($edgeIntegrationId) {
-                    $integration = \App\Models\AppIntegration::with('connections.connectionType')
+                    $integration = AppIntegration::with('connections.connectionType')
                         ->find($edgeIntegrationId);
                 } elseif ($edgeSource && $edgeTarget) {
                     // Try both directions
-                    $integration = \App\Models\AppIntegration::with('connections.connectionType')
+                    $integration = AppIntegration::with('connections.connectionType')
                         ->where(function($q) use ($edgeSource, $edgeTarget) {
                             $q->where(function($q2) use ($edgeSource, $edgeTarget) {
                                 $q2->where('source_app_id', $edgeSource)
@@ -624,7 +622,7 @@ class StreamLayoutService
         $colorsSynced = 0;
         
         // Get all streams with their current colors
-        $streams = \App\Models\Stream::all();
+        $streams = Stream::all();
         // Build maps: exact by name and normalized (lowercase + without 'stream ' prefix)
         $streamsByExact = $streams->keyBy('stream_name');
         $streamsByNormalized = $streams->mapWithKeys(function ($s) {
@@ -661,7 +659,7 @@ class StreamLayoutService
 
             // If still unknown and node id looks like numeric app id, resolve via DB
             if (!$nodeStreamName && is_numeric($nodeIdStr)) {
-                $app = \App\Models\App::with('stream')->find((int)$nodeIdStr);
+                $app = App::with('stream')->find((int)$nodeIdStr);
                 if ($app && $app->stream) {
                     $nodeStreamName = $app->stream->stream_name;
                 }
@@ -669,7 +667,7 @@ class StreamLayoutService
 
             // Legacy fallback: try to resolve by data.app_name
             if (!$nodeStreamName && isset($node['data']['app_name']) && is_string($node['data']['app_name'])) {
-                $byName = \App\Models\App::with('stream')->where('app_name', $node['data']['app_name'])->first();
+                $byName = App::with('stream')->where('app_name', $node['data']['app_name'])->first();
                 if ($byName && $byName->stream) {
                     $nodeStreamName = $byName->stream->stream_name;
                 }
@@ -677,7 +675,7 @@ class StreamLayoutService
 
             // Legacy fallback: try to resolve by node id as app_name
             if (!$nodeStreamName && !is_numeric($nodeIdStr)) {
-                $byIdName = \App\Models\App::with('stream')->where('app_name', $nodeIdStr)->first();
+                $byIdName = App::with('stream')->where('app_name', $nodeIdStr)->first();
                 if ($byIdName && $byIdName->stream) {
                     $nodeStreamName = $byIdName->stream->stream_name;
                 }

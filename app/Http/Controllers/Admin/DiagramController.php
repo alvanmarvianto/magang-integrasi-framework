@@ -203,7 +203,6 @@ class DiagramController extends Controller
     {
         try {
             $diagramData = $this->diagramService->getAppLayoutVueFlowData($appId, false);
-            \Log::info('Fetched app layout diagram data: ' . json_encode($diagramData));
             return response()->json($diagramData->toArray());
         } catch (\Exception $e) {
             Log::error('Error fetching app layout diagram data: ' . $e->getMessage());

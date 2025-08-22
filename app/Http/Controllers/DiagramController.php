@@ -25,18 +25,10 @@ class DiagramController extends Controller
             abort(404, 'Stream not found');
         }
 
-        // Debug: Log the request
-        \Log::info("DiagramController - Showing stream: {$streamName}");
 
         try {
             $diagramData = $this->diagramService->getVueFlowData($streamName, true);
             $diagramArray = $diagramData->toArray();
-            
-            \Log::info("DiagramController - Layout data: ", [
-                'has_layout' => isset($diagramArray['layout']),
-                'layout_is_null' => $diagramArray['layout'] === null,
-                'layout_content' => $diagramArray['layout']
-            ]);
 
             return Inertia::render('Integration/Stream', [
                 'streamName' => $streamName,

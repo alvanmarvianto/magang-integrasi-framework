@@ -7,11 +7,11 @@ use App\DTOs\TechnologyEnumDTO;
 use App\DTOs\TechnologyAppListingDTO;
 use App\DTOs\AppTechnologyDataDTO;
 use App\DTOs\TechnologyListingPageDTO;
+use App\Repositories\Interfaces\AppRepositoryInterface;
 use App\Models\App;
 use App\Models\Technology;
 use App\Models\AppTechnology;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TechnologyService
@@ -351,7 +351,7 @@ class TechnologyService
     public function getAppTechnologyData(int $appId): AppTechnologyDataDTO
     {
         // Get app data using AppRepository
-        $appRepository = app(\App\Repositories\Interfaces\AppRepositoryInterface::class);
+        $appRepository = app(AppRepositoryInterface::class);
         $app = $appRepository->findAsDTOFresh($appId);
         
         if (!$app) {

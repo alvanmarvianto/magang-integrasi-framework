@@ -44,19 +44,6 @@ class AppLayoutRepository implements AppLayoutRepositoryInterface
         $cacheTTL = CacheConfig::getTTL('default');
         return Cache::remember($cacheKey, $cacheTTL, function () use ($appId) {
             $layout = $this->model->where('app_id', $appId)->first();
-            
-            \Log::info('AppLayoutRepository - Database query result', [
-                'appId' => $appId,
-                'found' => $layout ? 'YES' : 'NO',
-                'rawData' => $layout ? [
-                    'id' => $layout->id,
-                    'app_id' => $layout->app_id,
-                    'nodes_layout' => $layout->nodes_layout,
-                    'edges_layout' => $layout->edges_layout,
-                    'app_config' => $layout->app_config,
-                ] : null
-            ]);
-            
             return $layout ? AppLayoutDTO::fromModel($layout) : null;
         });
     }

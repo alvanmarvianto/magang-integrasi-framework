@@ -6,7 +6,6 @@ use App\Models\Stream;
 use App\DTOs\StreamDTO;
 use App\DTOs\HierarchyNodeDTO;
 use App\Services\StreamConfigurationService;
-use App\Http\Resources\StreamResource;
 use App\Repositories\Interfaces\StreamRepositoryInterface;
 use Illuminate\Support\Collection;
 

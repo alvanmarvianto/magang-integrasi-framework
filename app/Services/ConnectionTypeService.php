@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\DTOs\ConnectionTypeDTO;
-use App\Models\ConnectionType;
 use App\Repositories\ConnectionTypeRepository;
 use App\Services\StreamLayoutService;
 use App\Services\DiagramCleanupService;

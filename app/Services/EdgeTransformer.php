@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\DTOs\DiagramEdgeDTO;
-use App\Models\AppIntegration;
 use Illuminate\Support\Collection;
 
 class EdgeTransformer

@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\DTOs\StreamLayoutDTO;
+use App\Models\Stream;
 use App\Models\StreamLayout;
 use App\Repositories\CacheConfig;
 use App\Repositories\Exceptions\RepositoryException;
@@ -93,21 +94,21 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         }
         
         // Try to find stream by exact match first
-        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
+        $stream = Stream::where('stream_name', $streamName)->first();
         
         // If not found, try with "Stream " prefix
         if (!$stream) {
-            $stream = \App\Models\Stream::where('stream_name', 'Stream ' . ucfirst($cleanStreamName))->first();
+            $stream = Stream::where('stream_name', 'Stream ' . ucfirst($cleanStreamName))->first();
         }
         
         // If still not found, try case-insensitive search
         if (!$stream) {
-            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->first();
+            $stream = Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->first();
         }
         
         // If still not found, try case-insensitive search with "Stream " prefix
         if (!$stream) {
-            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', ['stream ' . $cleanStreamName])->first();
+            $stream = Stream::whereRaw('LOWER(stream_name) = ?', ['stream ' . $cleanStreamName])->first();
         }
         
         if (!$stream) {
@@ -192,21 +193,21 @@ class StreamLayoutRepository implements StreamLayoutRepositoryInterface
         }
         
         // Try to find stream by exact match first
-        $stream = \App\Models\Stream::where('stream_name', $streamName)->first();
+        $stream = Stream::where('stream_name', $streamName)->first();
         
         // If not found, try with "Stream " prefix
         if (!$stream) {
-            $stream = \App\Models\Stream::where('stream_name', 'Stream ' . ucfirst($cleanStreamName))->first();
+            $stream = Stream::where('stream_name', 'Stream ' . ucfirst($cleanStreamName))->first();
         }
         
         // If still not found, try case-insensitive search
         if (!$stream) {
-            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->first();
+            $stream = Stream::whereRaw('LOWER(stream_name) = ?', [strtolower($streamName)])->first();
         }
         
         // If still not found, try case-insensitive search with "Stream " prefix
         if (!$stream) {
-            $stream = \App\Models\Stream::whereRaw('LOWER(stream_name) = ?', ['stream ' . $cleanStreamName])->first();
+            $stream = Stream::whereRaw('LOWER(stream_name) = ?', ['stream ' . $cleanStreamName])->first();
         }
         
         if (!$stream) {

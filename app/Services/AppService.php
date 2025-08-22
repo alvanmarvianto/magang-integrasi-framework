@@ -6,10 +6,8 @@ use App\Models\App;
 use App\DTOs\AppDTO;
 use App\Repositories\Interfaces\AppRepositoryInterface;
 use App\Repositories\Interfaces\IntegrationRepositoryInterface;
-use Illuminate\Support\Facades\DB;
 use App\Repositories\Interfaces\StreamLayoutRepositoryInterface;
 use App\Repositories\Interfaces\TechnologyRepositoryInterface;
-use Illuminate\Support\Facades\Log;
 
 class AppService
 {

@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\DTOs\DiagramNodeDTO;
-use App\Models\App;
-use App\Models\AppIntegration;
 use Illuminate\Support\Collection;
 
 class NodeTransformer
