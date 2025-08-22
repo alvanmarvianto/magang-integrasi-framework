@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
 
         // Seed all application data
         $this->call([
-            AdminUserSeeder::class,
             ApplicationDataSeeder::class,
             TechnologySeeder::class,
         ]);
