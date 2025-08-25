@@ -239,6 +239,9 @@ function formatTechName(name: string): string {
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .tech-category-card:hover {
@@ -283,6 +286,8 @@ function formatTechName(name: string): string {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 0.75rem;
+  overflow-y: auto;
+  max-height: calc(400px - 120px);
 }
 
 /* Technology Items Styling */
@@ -339,11 +344,13 @@ function formatTechName(name: string): string {
 
   .tech-category-card {
     padding: 1rem;
+    height: 350px;
   }
 
   .tech-items-grid {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 0.5rem;
+    max-height: calc(350px - 100px);
   }
 
   .tech-item {

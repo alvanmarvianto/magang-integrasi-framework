@@ -15,33 +15,35 @@
           </button>
         </div>
 
-        <AdminTable
-          :columns="tableColumns"
-          :items="getTableItems(category.name)"
-        >
-          <template #column:name="{ item }">
-            {{ item.name }}
-          </template>
-          
-          <template #column:actions="{ item }">
-            <div class="flex justify-center gap-2">
-              <button 
-                @click="editItem(category.name, item.name)"
-                class="action-button edit-button"
-                title="Edit Item"
-              >
-                <font-awesome-icon icon="fa-solid fa-pencil" />
-              </button>
-              <button 
-                @click="deleteItem(category.name, item.name)"
-                class="action-button delete-button"
-                title="Hapus Item"
-              >
-                <font-awesome-icon icon="fa-solid fa-trash" />
-              </button>
-            </div>
-          </template>
-        </AdminTable>
+        <div class="tech-table-container">
+          <AdminTable
+            :columns="tableColumns"
+            :items="getTableItems(category.name)"
+          >
+            <template #column:name="{ item }">
+              {{ item.name }}
+            </template>
+            
+            <template #column:actions="{ item }">
+              <div class="flex justify-center gap-2">
+                <button 
+                  @click="editItem(category.name, item.name)"
+                  class="action-button edit-button"
+                  title="Edit Item"
+                >
+                  <font-awesome-icon icon="fa-solid fa-pencil" />
+                </button>
+                <button 
+                  @click="deleteItem(category.name, item.name)"
+                  class="action-button delete-button"
+                  title="Hapus Item"
+                >
+                  <font-awesome-icon icon="fa-solid fa-trash" />
+                </button>
+              </div>
+            </template>
+          </AdminTable>
+        </div>
       </div>
     </div>
 
@@ -332,6 +334,9 @@ watch(() => page.props.flash, (newFlash) => {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   overflow: hidden;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .tech-card-header {
@@ -366,10 +371,9 @@ watch(() => page.props.flash, (newFlash) => {
 }
 
 .tech-table-container {
-  max-height: 300px;
+  flex: 1;
   overflow-y: auto;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  max-height: calc(400px - 80px);
 }
 
 /* Modal Styles */
@@ -538,21 +542,18 @@ watch(() => page.props.flash, (newFlash) => {
 }
 
 @media (max-width: 768px) {
-  #technology-container {
-    padding: 1rem;
-  }
-
-  .tech-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .tech-cards-container {
+  .tech-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+    margin-top: 1rem;
   }
 
   .tech-card {
-    padding: 1rem;
+    height: 350px;
+  }
+
+  .tech-table-container {
+    max-height: calc(350px - 80px);
   }
 }
 </style> 

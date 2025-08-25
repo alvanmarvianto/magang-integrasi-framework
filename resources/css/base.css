@@ -19,9 +19,10 @@ body {
   background-color: var(--bg-color-light);
   color: var(--text-color-light);
   transition: background-color 0.5s ease, color 0.5s ease;
-  background: linear-gradient(120deg, #d4e0e8 0%, #a7c5eb 100%);
+  background: #b9cbe5;
   background-size: cover;
   overflow: auto;
+  overflow-x: hidden;
 }
 
 a {

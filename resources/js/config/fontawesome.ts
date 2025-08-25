@@ -49,6 +49,7 @@ import {
     faList,
     faGripVertical,
     faCircleNotch,
+    faSignOutAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Add icons to the library
@@ -101,6 +102,7 @@ library.add(
     faList,
     faGripVertical,
     faCircleNotch,
+    faSignOutAlt,
 );
 
 export { FontAwesomeIcon }; 
