@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Services\ContractService;
+use App\Http\Requests\Admin\StoreContractRequest;
+use App\Http\Requests\Admin\UpdateContractRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -74,10 +76,10 @@ class ContractController extends Controller
     /**
      * Store a newly created contract
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreContractRequest $request): RedirectResponse
     {
         try {
-            $contract = $this->contractService->createContract($request->all());
+            $contract = $this->contractService->createContract($request->validated());
 
             return redirect()->route('admin.contracts.index')
                 ->with('success', 'Contract created successfully');
@@ -113,10 +115,10 @@ class ContractController extends Controller
     /**
      * Update the specified contract
      */
-    public function update(Request $request, Contract $contract): RedirectResponse
+    public function update(UpdateContractRequest $request, Contract $contract): RedirectResponse
     {
         try {
-            $updatedContract = $this->contractService->updateContract($contract, $request->all());
+            $updatedContract = $this->contractService->updateContract($contract, $request->validated());
 
             return redirect()->route('admin.contracts.index')
                 ->with('success', 'Contract updated successfully');

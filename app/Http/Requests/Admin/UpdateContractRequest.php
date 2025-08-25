@@ -4,14 +4,14 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateEnumRequest extends FormRequest
+class UpdateContractRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true; // Add proper authorization logic here
+        return true;
     }
 
     /**
@@ -22,7 +22,14 @@ class UpdateEnumRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|regex:/^[^\/]*$/',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
+            'value' => 'nullable|numeric|min:0',
+            'status' => 'required|in:active,inactive,expired',
+            'app_ids' => 'nullable|array',
+            'app_ids.*' => 'exists:apps,app_id',
         ];
     }
 
@@ -34,7 +41,8 @@ class UpdateEnumRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => 'Nama teknologi tidak boleh mengandung karakter garis miring (/).',
+            'end_date.after' => 'Tanggal akhir harus setelah tanggal mulai.',
+            'value.min' => 'Nilai kontrak harus berupa angka positif.',
         ];
     }
 }

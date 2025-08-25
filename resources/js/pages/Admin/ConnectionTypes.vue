@@ -64,9 +64,13 @@
               id="name"
               v-model="formData.name"
               class="form-input"
+              :class="{ 'error': hasFieldError('name') }"
               required
               placeholder="Masukkan nama tipe koneksi"
             />
+            <div v-if="hasFieldError('name')" class="error-message">
+              {{ getFieldError('name') }}
+            </div>
           </div>
 
           <div class="form-group">
@@ -77,15 +81,20 @@
                 id="color"
                 v-model="formData.color"
                 class="color-input"
+                :class="{ 'error': hasFieldError('color') }"
                 required
               />
               <input
                 type="text"
                 v-model="formData.color"
                 class="form-input color-text-input"
+                :class="{ 'error': hasFieldError('color') }"
                 placeholder="#000000"
                 pattern="^#[0-9A-Fa-f]{6}$"
               />
+            </div>
+            <div v-if="hasFieldError('color')" class="error-message">
+              {{ getFieldError('color') }}
             </div>
           </div>
 
@@ -107,6 +116,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
+import { useFormErrors } from '@/composables/useFormErrors';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
 
@@ -156,6 +166,7 @@ const formData = ref<FormData>({ name: '', color: '#000000' });
 
 const page = usePage<PageProps>();
 const { showSuccess, showError, showConfirm } = useNotification();
+const { errors, setErrors, clearErrors, getFieldError, hasFieldError } = useFormErrors();
 
 async function checkConnectionTypeUsage(id: number): Promise<any> {
   const response = await fetch(`/admin/connection-types/${id}/check`);
@@ -204,11 +215,16 @@ async function deleteConnectionType(connectionType: ConnectionType) {
 }
 
 function saveConnectionType() {
+  clearErrors(); // Clear previous errors
+
   if (isEditing.value && selectedConnectionType.value) {
     router.put(`/admin/connection-types/${selectedConnectionType.value.id}`, formData.value, {
       preserveScroll: true,
       onSuccess: () => {
         closeModal();
+      },
+      onError: (errors) => {
+        setErrors(errors);
       },
     });
   } else {
@@ -216,6 +232,9 @@ function saveConnectionType() {
       preserveScroll: true,
       onSuccess: () => {
         closeModal();
+      },
+      onError: (errors) => {
+        setErrors(errors);
       },
     });
   }
@@ -477,5 +496,19 @@ watch(() => page.props.flash, (newFlash) => {
   .color-input {
     width: 100%;
   }
+}
+
+/* Error styles */
+.form-input.error,
+.color-input.error {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  color: var(--danger-color);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
 }
 </style>

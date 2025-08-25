@@ -10,6 +10,7 @@
               id="source_app_id"
               v-model="form.source_app_id"
               class="admin-form-select"
+              :class="{ 'error': hasFieldError('source_app_id') }"
               required
               :disabled="isEditing"
             >
@@ -22,6 +23,9 @@
                 {{ app.app_name }}
               </option>
             </select>
+            <div v-if="hasFieldError('source_app_id')" class="error-message">
+              {{ getFieldError('source_app_id') }}
+            </div>
           </AdminFormField>
 
           <AdminFormField label="Target App" id="target_app_id">
@@ -29,6 +33,7 @@
               id="target_app_id"
               v-model="form.target_app_id"
               class="admin-form-select"
+              :class="{ 'error': hasFieldError('target_app_id') }"
               required
               :disabled="isEditing"
             >
@@ -42,6 +47,9 @@
                 {{ app.app_name }}
               </option>
             </select>
+            <div v-if="hasFieldError('target_app_id')" class="error-message">
+              {{ getFieldError('target_app_id') }}
+            </div>
           </AdminFormField>
           </div>
 
@@ -66,7 +74,7 @@
               >
                 <div class="connections-row">
                   <label class="admin-form-label">Connection Type</label>
-                  <select v-model="conn.connection_type_id" class="admin-form-select" required style="width:100%">
+                  <select v-model="conn.connection_type_id" class="admin-form-select" :class="{ 'error': hasFieldError(`connections.${index}.connection_type_id`) }" required style="width:100%">
                     <option value="">Pilih Connection Type</option>
                     <option
                       v-for="type in filteredConnectionTypes(index)"
@@ -76,6 +84,9 @@
                       {{ type.type_name }}
                     </option>
                   </select>
+                  <div v-if="hasFieldError(`connections.${index}.connection_type_id`)" class="error-message">
+                    {{ getFieldError(`connections.${index}.connection_type_id`) }}
+                  </div>
                   <button type="button" class="connections-remove" @click="removeConnection(index)">
                     Hapus
                   </button>
@@ -130,8 +141,10 @@ import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
+import { useFormErrors } from '@/composables/useFormErrors';
 
 const { showSuccess, showError } = useNotification();
+const { errors, setErrors, clearErrors, getFieldError, hasFieldError } = useFormErrors();
 
 const props = defineProps({
   apps: {
@@ -220,6 +233,8 @@ function validateConnections() {
 function submit() {
   if (!validateConnections()) return;
 
+  clearErrors(); // Clear previous errors
+
   const payload = {
     source_app_id: form.source_app_id,
     target_app_id: form.target_app_id,
@@ -232,6 +247,7 @@ function submit() {
         showSuccess('Koneksi berhasil diperbarui');
       },
       onError: (errors) => {
+        setErrors(errors);
         const errorMessage = typeof errors === 'object' && errors !== null 
           ? Object.values(errors).flat().join(', ')
           : 'Gagal memperbarui koneksi';
@@ -244,6 +260,7 @@ function submit() {
         showSuccess('Koneksi berhasil dibuat');
       },
       onError: (errors) => {
+        setErrors(errors);
         const errorMessage = typeof errors === 'object' && errors !== null 
           ? Object.values(errors).flat().join(', ')
           : 'Gagal membuat koneksi';
@@ -349,5 +366,20 @@ function submit() {
   border-radius: var(--radius);
   font-size: 0.875rem;
   background-color: white;
+}
+
+/* Error styles */
+.admin-form-select.error,
+.admin-form-input.error,
+.admin-form-textarea.error {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  color: var(--danger-color);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
 }
 </style>

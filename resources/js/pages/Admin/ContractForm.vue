@@ -64,8 +64,12 @@
               v-model="form.title"
               type="text"
               class="admin-form-input"
+              :class="{ 'error': hasFieldError('title') }"
               required
             />
+            <div v-if="hasFieldError('title')" class="error-message">
+              {{ getFieldError('title') }}
+            </div>
           </AdminFormField>
 
           <AdminFormField label="Nomor Kontrak" id="contract_number" :required="true">
@@ -74,8 +78,12 @@
               v-model="form.contract_number"
               type="text"
               class="admin-form-input"
+              :class="{ 'error': hasFieldError('contract_number') }"
               required
             />
+            <div v-if="hasFieldError('contract_number')" class="error-message">
+              {{ getFieldError('contract_number') }}
+            </div>
           </AdminFormField>
 
           <AdminFormField label="Tipe Mata Uang" id="currency_type" :required="true">
@@ -83,12 +91,16 @@
               id="currency_type"
               v-model="form.currency_type"
               class="admin-form-select"
+              :class="{ 'error': hasFieldError('currency_type') }"
               required
             >
               <option value="">Pilih Mata Uang</option>
               <option value="rp">Rupiah (RP)</option>
               <option value="non_rp">Mata Uang Asing (Non-RP)</option>
             </select>
+            <div v-if="hasFieldError('currency_type')" class="error-message">
+              {{ getFieldError('currency_type') }}
+            </div>
           </AdminFormField>
         </div>
       </AdminFormSection>
@@ -186,9 +198,11 @@ import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
 import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import ContractPeriodSection from '@/components/Admin/ContractPeriodSection.vue';
 import { useNotification } from '@/composables/useNotification';
+import { useFormErrors } from '@/composables/useFormErrors';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const { showSuccess, showError } = useNotification();
+const { errors, setErrors, clearErrors, getFieldError, hasFieldError } = useFormErrors();
 
 interface App {
   app_id: number;
@@ -356,6 +370,8 @@ function addMultipleContractPeriods(periods: ContractPeriod[]) {
 }
 
 function submit() {
+  clearErrors(); // Clear previous errors
+
   // Convert form data to proper types
   const submitData = {
     ...form.value,
@@ -377,6 +393,7 @@ function submit() {
         showSuccess('Contract updated successfully');
       },
       onError: (errors) => {
+        setErrors(errors);
         showError('Failed to update contract: ' + Object.values(errors).join(', '));
       },
     });
@@ -386,6 +403,7 @@ function submit() {
         showSuccess('Contract created successfully');
       },
       onError: (errors) => {
+        setErrors(errors);
         showError('Failed to create contract: ' + Object.values(errors).join(', '));
       },
     });
@@ -530,5 +548,20 @@ function submit() {
   color: #dc2626;
   margin-left: 0.25rem;
   font-weight: 600;
+}
+
+/* Error styles */
+.admin-form-input.error,
+.admin-form-select.error,
+.app-section-select.error {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  color: var(--danger-color);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
 }
 </style>

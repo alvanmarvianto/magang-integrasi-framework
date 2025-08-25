@@ -62,16 +62,20 @@
               id="name"
               v-model="formData.name"
               class="form-input"
+              :class="{ 'form-input-error': hasFieldError('name') }"
               required
               :placeholder="`Masukkan nama ${currentCategory?.title}`"
             />
+            <div v-if="hasFieldError('name')" class="form-error">
+              {{ getFieldError('name') }}
+            </div>
           </div>
 
           <div class="modal-actions">
             <button type="button" @click="closeModal" class="button-secondary">
               Batal
             </button>
-            <button type="submit" class="button-primary">
+            <button type="submit" class="button-primary" :disabled="isSubmitting">
               {{ isEditing ? 'Simpan' : 'Tambah' }}
             </button>
           </div>
@@ -119,6 +123,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { useNotification } from '@/composables/useNotification';
+import { useFormErrors } from '@/composables/useFormErrors';
 import AdminNavbar from '@/components/Admin/AdminNavbar.vue';
 import AdminTable from '@/components/Admin/AdminTable.vue';
 
@@ -195,16 +200,18 @@ const categories = computed<Category[]>(() => [
 const showModal = ref(false);
 const showUsageModal = ref(false);
 const isEditing = ref(false);
+const isSubmitting = ref(false);
 const currentCategoryName = ref<keyof TechnologyData | null>(null);
 const formData = ref<FormData>({ name: '' });
 const usageData = ref<UsageData>({ is_used: false, apps: [] });
 
+const page = usePage<PageProps>();
+const { showSuccess, showError, showConfirm } = useNotification();
+const { errors, setErrors, clearErrors, getFieldError, hasFieldError } = useFormErrors();
+
 const currentCategory = computed(() => 
   currentCategoryName.value ? categories.value.find(c => c.name === currentCategoryName.value) : null
 );
-
-const page = usePage<PageProps>();
-const { showSuccess, showError, showConfirm } = useNotification();
 
 async function checkEnumUsage(categoryName: keyof TechnologyData, value: string): Promise<UsageData> {
   const response = await fetch(`/admin/technology/${categoryName}/enum/${encodeURIComponent(value)}/check`);
@@ -261,6 +268,9 @@ async function deleteItem(categoryName: keyof TechnologyData, value: string) {
 function saveItem() {
   if (!currentCategoryName.value) return;
 
+  isSubmitting.value = true;
+  clearErrors();
+
   if (isEditing.value) {
     router.put(
       `/admin/technology/${currentCategoryName.value}/enum/${encodeURIComponent(formData.value.oldName!)}`, 
@@ -270,6 +280,12 @@ function saveItem() {
         onSuccess: () => {
           closeModal();
         },
+        onError: (validationErrors) => {
+          setErrors(validationErrors);
+        },
+        onFinish: () => {
+          isSubmitting.value = false;
+        }
       }
     );
   } else {
@@ -281,6 +297,12 @@ function saveItem() {
         onSuccess: () => {
           closeModal();
         },
+        onError: (validationErrors) => {
+          setErrors(validationErrors);
+        },
+        onFinish: () => {
+          isSubmitting.value = false;
+        }
       }
     );
   }
@@ -290,6 +312,8 @@ function closeModal() {
   showModal.value = false;
   currentCategoryName.value = null;
   formData.value = { name: '' };
+  clearErrors();
+  isSubmitting.value = false;
 }
 
 function closeUsageModal() {
@@ -435,6 +459,17 @@ watch(() => page.props.flash, (newFlash) => {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px var(--primary-color-light);
+}
+
+.form-input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+.form-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .modal-actions {

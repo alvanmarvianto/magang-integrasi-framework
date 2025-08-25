@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreAppRequest extends FormRequest
+class UpdateAppRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -80,7 +80,6 @@ class StoreAppRequest extends FormRequest
             'frameworks.*.name.regex' => 'Nama framework tidak boleh mengandung karakter garis miring (/).',
             'middlewares.*.name.regex' => 'Nama middleware tidak boleh mengandung karakter garis miring (/).',
             'third_parties.*.name.regex' => 'Nama pihak ketiga tidak boleh mengandung karakter garis miring (/).',
-            'platforms.*.name.regex' => 'Nama platform tidak boleh mengandung karakter garis miring (/).',
-        ];
+            'platforms.*.name.regex' => 'Nama platform tidak boleh mengandung karakter garis miring (/).',];
     }
-} 
+}

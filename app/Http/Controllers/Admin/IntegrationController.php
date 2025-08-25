@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AppIntegration;
 use App\Services\IntegrationService;
+use App\Http\Requests\Admin\StoreIntegrationRequest;
+use App\Http\Requests\Admin\UpdateIntegrationRequest;
+use App\Http\Requests\Admin\BulkCreateIntegrationsRequest;
+use App\Http\Requests\Admin\CheckIntegrationExistsRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
@@ -47,18 +51,9 @@ class IntegrationController extends Controller
     /**
      * Store newly created integration
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreIntegrationRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'source_app_id' => 'required|exists:apps,app_id',
-            'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
-            'connections' => 'nullable|array',
-            'connections.*.connection_type_id' => 'nullable|distinct|exists:connectiontypes,connection_type_id',
-            'connections.*.source_inbound' => 'nullable|string|max:1000',
-            'connections.*.source_outbound' => 'nullable|string|max:1000',
-            'connections.*.target_inbound' => 'nullable|string|max:1000',
-            'connections.*.target_outbound' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         try {
             $integrationDTO = $this->integrationService->createIntegration($validated);
@@ -94,18 +89,9 @@ class IntegrationController extends Controller
     /**
      * Update integration
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(UpdateIntegrationRequest $request, int $id): RedirectResponse
     {
-        $validated = $request->validate([
-            'source_app_id' => 'required|exists:apps,app_id',
-            'target_app_id' => 'required|exists:apps,app_id|different:source_app_id',
-            'connections' => 'nullable|array',
-            'connections.*.connection_type_id' => 'nullable|distinct|exists:connectiontypes,connection_type_id',
-            'connections.*.source_inbound' => 'nullable|string|max:1000',
-            'connections.*.source_outbound' => 'nullable|string|max:1000',
-            'connections.*.target_inbound' => 'nullable|string|max:1000',
-            'connections.*.target_outbound' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         $integration = AppIntegration::findOrFail($id);
         
@@ -179,18 +165,10 @@ class IntegrationController extends Controller
     /**
      * Bulk create integrations
      */
-    public function bulkCreate(Request $request): RedirectResponse
+    public function bulkCreate(BulkCreateIntegrationsRequest $request): RedirectResponse
     {
-        $request->validate([
-            'integrations' => 'required|array|min:1',
-            'integrations.*.source_app_id' => 'required|exists:apps,app_id',
-            'integrations.*.target_app_id' => 'required|exists:apps,app_id',
-            'integrations.*.connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
-            'integrations.*.direction' => 'required|in:one_way,both_ways',
-        ]);
-
         try {
-            $result = $this->integrationService->bulkCreateIntegrations($request->input('integrations'));
+            $result = $this->integrationService->bulkCreateIntegrations($request->validated('integrations'));
             
             $successMessage = "Created {$result['success_count']} integration(s)";
             if ($result['error_count'] > 0) {
@@ -210,16 +188,13 @@ class IntegrationController extends Controller
     /**
      * Check if integration exists between apps (AJAX endpoint)
      */
-    public function checkExists(Request $request)
+    public function checkExists(CheckIntegrationExistsRequest $request)
     {
-        $request->validate([
-            'source_app_id' => 'required|exists:apps,app_id',
-            'target_app_id' => 'required|exists:apps,app_id',
-        ]);
+        $validated = $request->validated();
 
         $exists = $this->integrationService->integrationExistsBetweenApps(
-            $request->input('source_app_id'),
-            $request->input('target_app_id')
+            $validated['source_app_id'],
+            $validated['target_app_id']
         );
         
         return response()->json([

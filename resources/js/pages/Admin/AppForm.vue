@@ -11,8 +11,12 @@
               v-model="form.app_name"
               type="text"
               class="admin-form-input"
+              :class="{ 'error': hasFieldError('app_name') }"
               required
             />
+            <div v-if="hasFieldError('app_name')" class="error-message">
+              {{ getFieldError('app_name') }}
+            </div>
           </AdminFormField>
 
           <AdminFormField label="Stream" id="stream_id">
@@ -20,6 +24,7 @@
               id="stream_id"
               v-model="form.stream_id"
               class="admin-form-select"
+              :class="{ 'error': hasFieldError('stream_id') }"
               required
             >
               <option value="">Pilih Stream</option>
@@ -27,6 +32,9 @@
                 {{ stream.data.stream_name }}
               </option>
             </select>
+            <div v-if="hasFieldError('stream_id')" class="error-message">
+              {{ getFieldError('stream_id') }}
+            </div>
           </AdminFormField>
 
           <AdminFormField label="Deskripsi" id="description" class="col-span-2">
@@ -214,9 +222,11 @@ import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
 import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import TechnologySection from '@/components/Admin/TechnologySection.vue';
 import { useNotification } from '@/composables/useNotification';
+import { useFormErrors } from '@/composables/useFormErrors';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const { showSuccess, showError } = useNotification();
+const { errors, setErrors, clearErrors, getFieldError, hasFieldError } = useFormErrors();
 
 // Define form type
 interface TechItem {
@@ -382,12 +392,15 @@ function removeItem(type: string, index: number) {
 }
 
 function submit() {
+  clearErrors(); // Clear previous errors
+
   if (props.app) {
     router.put(`/admin/apps/${props.app.app_id}`, form.value, {
       onSuccess: () => {
         showSuccess('Aplikasi berhasil diperbarui');
       },
       onError: (errors) => {
+        setErrors(errors);
         showError('Gagal memperbarui aplikasi: ' + Object.values(errors).join(', '));
       },
     });
@@ -397,6 +410,7 @@ function submit() {
         showSuccess('Aplikasi berhasil dibuat');
       },
       onError: (errors) => {
+        setErrors(errors);
         showError('Gagal membuat aplikasi: ' + Object.values(errors).join(', '));
       },
     });
@@ -590,5 +604,20 @@ function partnerAppName(opt: { source_app_id: number; target_app_id: number; sou
 
 .tech-section-remove i {
   font-size: 0.875rem;
+}
+
+/* Error styles */
+.admin-form-input.error,
+.admin-form-select.error,
+.admin-form-textarea.error {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.error-message {
+  color: var(--danger-color);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
 }
 </style> 

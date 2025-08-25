@@ -11,11 +11,15 @@
               v-model="form.stream_name"
               type="text"
               class="admin-form-input"
+              :class="{ 'admin-form-input-error': hasFieldError('stream_name') }"
               placeholder="Contoh: Service Provider, Master Index, etc."
               required
             />
+            <div v-if="hasFieldError('stream_name')" class="admin-form-error">
+              {{ getFieldError('stream_name') }}
+            </div>
             <p class="admin-form-help">
-              Nama stream dapat menggunakan karakter apa saja
+              Nama stream tidak boleh mengandung karakter slash (/)
             </p>
           </AdminFormField>
 
@@ -44,8 +48,12 @@
               v-model="form.description"
               rows="3"
               class="admin-form-textarea"
+              :class="{ 'admin-form-input-error': hasFieldError('description') }"
               placeholder="Deskripsi singkat tentang stream ini"
             ></textarea>
+            <div v-if="hasFieldError('description')" class="admin-form-error">
+              {{ getFieldError('description') }}
+            </div>
           </AdminFormField>
 
           <AdminFormField label="Warna" id="color">
@@ -55,14 +63,19 @@
                 v-model="form.color"
                 type="color"
                 class="color-input"
+                :class="{ 'admin-form-input-error': hasFieldError('color') }"
               />
               <input
                 v-model="form.color"
                 type="text"
                 class="admin-form-input color-text-input"
+                :class="{ 'admin-form-input-error': hasFieldError('color') }"
                 placeholder="#FF6B35"
                 pattern="^#[0-9A-Fa-f]{6}$"
               />
+            </div>
+            <div v-if="hasFieldError('color')" class="admin-form-error">
+              {{ getFieldError('color') }}
             </div>
             <p class="admin-form-help">
               Warna akan digunakan dalam diagram untuk membedakan stream
@@ -88,8 +101,10 @@ import AdminForm from '@/components/Admin/AdminForm.vue';
 import AdminFormSection from '@/components/Admin/AdminFormSection.vue';
 import AdminFormField from '@/components/Admin/AdminFormField.vue';
 import { useNotification } from '@/composables/useNotification';
+import { useFormErrors } from '@/composables/useFormErrors';
 
 const { showSuccess, showError } = useNotification();
+const { errors, setErrors, clearErrors, getFieldError, hasFieldError } = useFormErrors();
 
 interface FormData {
   stream_name: string;
@@ -129,13 +144,19 @@ onMounted(() => {
 });
 
 function submit() {
+  clearErrors();
+  
   if (props.stream) {
     router.put(`/admin/streams/${props.stream.stream_id}`, form.value, {
       onSuccess: () => {
         showSuccess('Stream berhasil diperbarui');
       },
-      onError: (errors) => {
-        showError('Gagal memperbarui stream: ' + Object.values(errors).join(', '));
+      onError: (validationErrors) => {
+        setErrors(validationErrors);
+        const errorMessages = Object.values(validationErrors).flat();
+        if (errorMessages.length > 0) {
+          showError('Gagal memperbarui stream: ' + errorMessages.join(', '));
+        }
       },
     });
   } else {
@@ -143,8 +164,12 @@ function submit() {
       onSuccess: () => {
         showSuccess('Stream berhasil dibuat');
       },
-      onError: (errors) => {
-        showError('Gagal membuat stream: ' + Object.values(errors).join(', '));
+      onError: (validationErrors) => {
+        setErrors(validationErrors);
+        const errorMessages = Object.values(validationErrors).flat();
+        if (errorMessages.length > 0) {
+          showError('Gagal membuat stream: ' + errorMessages.join(', '));
+        }
       },
     });
   }
@@ -233,5 +258,19 @@ function submit() {
   .color-input {
     width: 100%;
   }
+}
+
+/* Error styles */
+.admin-form-input-error,
+.admin-form-textarea.admin-form-input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1) !important;
+}
+
+.admin-form-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: block;
 }
 </style>

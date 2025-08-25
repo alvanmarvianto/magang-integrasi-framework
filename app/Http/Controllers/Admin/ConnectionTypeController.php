@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\ConnectionTypeService;
+use App\Http\Requests\Admin\StoreConnectionTypeRequest;
+use App\Http\Requests\Admin\UpdateConnectionTypeRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
@@ -33,12 +35,9 @@ class ConnectionTypeController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreConnectionTypeRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:connectiontypes,type_name',
-            'color' => 'required|string|regex:/^#[0-9A-F]{6}$/i',
-        ]);
+        $validated = $request->validated();
 
         try {
             $this->connectionTypeService->createConnectionType([
@@ -52,12 +51,9 @@ class ConnectionTypeController extends Controller
         }
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(UpdateConnectionTypeRequest $request, int $id): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:connectiontypes,type_name,' . $id . ',connection_type_id',
-            'color' => 'required|string|regex:/^#[0-9A-F]{6}$/i',
-        ]);
+        $validated = $request->validated();
 
         try {
             $this->connectionTypeService->updateConnectionType($id, [

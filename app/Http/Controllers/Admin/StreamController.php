@@ -7,6 +7,9 @@ use App\Services\StreamService;
 use App\Services\StreamConfigurationService;
 use App\Services\StreamLayoutService;
 use App\Services\DiagramCleanupService;
+use App\Http\Requests\Admin\StoreStreamRequest;
+use App\Http\Requests\Admin\UpdateStreamRequest;
+use App\Http\Requests\Admin\BulkUpdateStreamSortRequest;
 use App\Models\Stream;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -52,22 +55,9 @@ class StreamController extends Controller
     /**
      * Store a newly created stream
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreStreamRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'stream_name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('streams', 'stream_name')
-            ],
-            'description' => 'nullable|string|max:500',
-            'is_allowed_for_diagram' => 'boolean',
-            'sort_order' => 'nullable|integer|min:1|max:999',
-            'color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        ], [
-            'color.regex' => 'Color must be a valid hex color code (e.g., #FF6B35).',
-        ]);
+        $validated = $request->validated();
 
         try {
             $this->streamService->createStream($validated);
@@ -99,22 +89,9 @@ class StreamController extends Controller
     /**
      * Update the specified stream
      */
-    public function update(Request $request, Stream $stream): RedirectResponse
+    public function update(UpdateStreamRequest $request, Stream $stream): RedirectResponse
     {
-        $validated = $request->validate([
-            'stream_name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('streams', 'stream_name')->ignore($stream->stream_id, 'stream_id')
-            ],
-            'description' => 'nullable|string|max:500',
-            'is_allowed_for_diagram' => 'boolean',
-            'sort_order' => 'nullable|integer|min:1|max:999',
-            'color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        ], [
-            'color.regex' => 'Color must be a valid hex color code (e.g., #FF6B35).',
-        ]);
+        $validated = $request->validated();
 
         try {
             $this->streamService->updateStream($stream, $validated);
@@ -180,13 +157,9 @@ class StreamController extends Controller
     /**
      * Bulk update sort order for streams
      */
-    public function bulkUpdateSort(Request $request): RedirectResponse
+    public function bulkUpdateSort(BulkUpdateStreamSortRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'updates' => 'required|array',
-            'updates.*.stream_id' => 'required|integer|exists:streams,stream_id',
-            'updates.*.sort_order' => 'required|integer|min:1|max:999',
-        ]);
+        $validated = $request->validated();
 
         try {
             $this->streamService->bulkUpdateSort($validated['updates']);

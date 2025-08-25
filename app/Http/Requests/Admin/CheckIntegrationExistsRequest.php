@@ -4,14 +4,14 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateEnumRequest extends FormRequest
+class CheckIntegrationExistsRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true; // Add proper authorization logic here
+        return true;
     }
 
     /**
@@ -22,19 +22,8 @@ class UpdateEnumRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|regex:/^[^\/]*$/',
-        ];
-    }
-
-    /**
-     * Get custom error messages for validator errors.
-     *
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'name.regex' => 'Nama teknologi tidak boleh mengandung karakter garis miring (/).',
+            'source_app_id' => 'required|exists:apps,app_id',
+            'target_app_id' => 'required|exists:apps,app_id',
         ];
     }
 }

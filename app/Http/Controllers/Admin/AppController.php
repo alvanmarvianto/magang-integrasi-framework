@@ -7,6 +7,10 @@ use App\Models\App;
 use App\Services\AppService;
 use App\Services\AppLayoutService;
 use App\Http\Requests\Admin\StoreAppRequest;
+use App\Http\Requests\Admin\UpdateAppRequest;
+use App\Http\Requests\Admin\BulkUpdateAppsRequest;
+use App\Http\Requests\Admin\SearchAppsRequest;
+use App\Http\Requests\Admin\CheckAppNameRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -83,7 +87,7 @@ class AppController extends Controller
     /**
      * Update application
      */
-    public function update(StoreAppRequest $request, App $app): RedirectResponse
+    public function update(UpdateAppRequest $request, App $app): RedirectResponse
     {
         try {
             $appDTO = $this->appService->updateApp($app, $request->validated());
@@ -139,27 +143,17 @@ class AppController extends Controller
     /**
      * Bulk update applications
      */
-    public function bulkUpdate(Request $request): RedirectResponse
+    public function bulkUpdate(BulkUpdateAppsRequest $request): RedirectResponse
     {
-        $request->validate([
-            'apps' => 'required|array|min:1',
-            'apps.*.app_id' => 'required|exists:apps,app_id',
-            'apps.*.app_name' => 'required|string|max:255',
-            'apps.*.description' => 'nullable|string',
-            'apps.*.stream_id' => 'required|exists:streams,stream_id',
-            'apps.*.app_type' => 'required|in:cots,inhouse,outsource',
-            'apps.*.stratification' => 'required|in:strategis,kritikal,umum',
-        ]);
-
         try {
-            $success = $this->appService->bulkUpdateApps($request->input('apps'));
+            $success = $this->appService->bulkUpdateApps($request->validated('apps'));
             
             if (!$success) {
                 throw new \Exception('No applications were updated');
             }
             
             // Auto-sync app layout colors for all updated apps that have layouts
-            $appsData = $request->input('apps');
+            $appsData = $request->validated('apps');
             $appIds = array_column($appsData, 'app_id');
             $colorsSyncedTotal = $this->appLayoutService->autoSyncColorsAfterBulkOperation($appIds);
             
@@ -181,13 +175,9 @@ class AppController extends Controller
     /**
      * Search applications by name (AJAX endpoint)
      */
-    public function search(Request $request)
+    public function search(SearchAppsRequest $request)
     {
-        $request->validate([
-            'term' => 'required|string|min:1|max:255',
-        ]);
-
-        $searchResults = $this->appService->searchAppsByName($request->input('term'));
+        $searchResults = $this->appService->searchAppsByName($request->validated('term'));
         
         return response()->json([
             'results' => $searchResults,
@@ -198,17 +188,14 @@ class AppController extends Controller
     /**
      * Check if application name exists (AJAX endpoint)
      */
-    public function checkName(Request $request)
+    public function checkName(CheckAppNameRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'exclude_id' => 'nullable|integer|exists:apps,app_id',
-        ]);
+        $validated = $request->validated();
 
-        $exists = $this->appService->appExistsByName($request->input('name'));
+        $exists = $this->appService->appExistsByName($validated['name']);
         
         // If we're editing an existing app, exclude it from the check
-        if ($exists && $request->has('exclude_id')) {
+        if ($exists && isset($validated['exclude_id'])) {
             // Additional logic could be added here to exclude the current app
             // This would require modifying the service method to accept an exclude parameter
         }

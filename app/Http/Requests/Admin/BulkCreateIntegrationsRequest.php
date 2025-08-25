@@ -4,14 +4,14 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateEnumRequest extends FormRequest
+class BulkCreateIntegrationsRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true; // Add proper authorization logic here
+        return true;
     }
 
     /**
@@ -22,7 +22,11 @@ class UpdateEnumRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|regex:/^[^\/]*$/',
+            'integrations' => 'required|array|min:1',
+            'integrations.*.source_app_id' => 'required|exists:apps,app_id',
+            'integrations.*.target_app_id' => 'required|exists:apps,app_id',
+            'integrations.*.connection_type_id' => 'required|exists:connectiontypes,connection_type_id',
+            'integrations.*.direction' => 'required|in:one_way,both_ways',
         ];
     }
 
@@ -34,7 +38,7 @@ class UpdateEnumRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => 'Nama teknologi tidak boleh mengandung karakter garis miring (/).',
+            'integrations.min' => 'Harus ada minimal 1 integrasi.',
         ];
     }
 }
