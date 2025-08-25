@@ -19,79 +19,77 @@ class TechnologySeeder extends Seeder
         // Create base technologies in the technologies table
         $technologies = [
             // Vendors
-            ['type' => 'vendor', 'name' => 'PT. Praweda Ciptakarsa Informatika'],
-            ['type' => 'vendor', 'name' => 'CMA Small Systems AB'],
-            ['type' => 'vendor', 'name' => 'PT Murni Solusindo Nusantara'],
-            ['type' => 'vendor', 'name' => 'PT. Metrocom Global Solusi'],
-            ['type' => 'vendor', 'name' => 'Intellect Design Arena'],
-            ['type' => 'vendor', 'name' => 'In-House'],
-            ['type' => 'vendor', 'name' => 'Lintasarta'],
+            ['type' => 'vendors', 'name' => 'PT. Praweda Ciptakarsa Informatika'],
+            ['type' => 'vendors', 'name' => 'CMA Small Systems AB'],
+            ['type' => 'vendors', 'name' => 'PT Murni Solusindo Nusantara'],
+            ['type' => 'vendors', 'name' => 'PT. Metrocom Global Solusi'],
+            ['type' => 'vendors', 'name' => 'Intellect Design Arena'],
+            ['type' => 'vendors', 'name' => 'In-House'],
+            ['type' => 'vendors', 'name' => 'Lintasarta'],
             
             // Operating Systems
-            ['type' => 'os', 'name' => 'Oracle Solaris'],
-            ['type' => 'os', 'name' => 'Windows Server'],
-            ['type' => 'os', 'name' => 'RHEL'],
+            ['type' => 'operating_systems', 'name' => 'Oracle Solaris'],
+            ['type' => 'operating_systems', 'name' => 'Windows Server'],
+            ['type' => 'operating_systems', 'name' => 'RHEL'],
             
             // Databases
-            ['type' => 'database', 'name' => 'Oracle Database'],
-            ['type' => 'database', 'name' => 'Microsoft SQL Server'],
-            ['type' => 'database', 'name' => 'SQL Server'],
+            ['type' => 'databases', 'name' => 'Oracle Database'],
+            ['type' => 'databases', 'name' => 'Microsoft SQL Server'],
+            ['type' => 'databases', 'name' => 'SQL Server'],
             
             // Programming Languages
-            ['type' => 'language', 'name' => 'C++'],
-            ['type' => 'language', 'name' => 'Java'],
-            ['type' => 'language', 'name' => 'ASP.Net'],
-            ['type' => 'language', 'name' => 'C#'],
-            ['type' => 'language', 'name' => '.Net Programming Languages'],
+            ['type' => 'programming_languages', 'name' => 'C++'],
+            ['type' => 'programming_languages', 'name' => 'Java'],
+            ['type' => 'programming_languages', 'name' => 'ASP.Net'],
+            ['type' => 'programming_languages', 'name' => 'C#'],
+            ['type' => 'programming_languages', 'name' => '.Net Programming Languages'],
             
             // Third Parties
-            ['type' => 'third_party', 'name' => 'Jasper Studio'],
-            ['type' => 'third_party', 'name' => 'Crystal Reports'],
-            ['type' => 'third_party', 'name' => 'Jasper'],
-            ['type' => 'third_party', 'name' => 'IIS'],
-            ['type' => 'third_party', 'name' => 'Tomcat'],
-            ['type' => 'third_party', 'name' => 'SecureBackBox'],
-            ['type' => 'third_party', 'name' => 'LDAP'],
-            ['type' => 'third_party', 'name' => 'N/A'],
+            ['type' => 'third_parties', 'name' => 'Jasper Studio'],
+            ['type' => 'third_parties', 'name' => 'Crystal Reports'],
+            ['type' => 'third_parties', 'name' => 'Jasper'],
+            ['type' => 'third_parties', 'name' => 'IIS'],
+            ['type' => 'third_parties', 'name' => 'Tomcat'],
+            ['type' => 'third_parties', 'name' => 'SecureBackBox'],
+            ['type' => 'third_parties', 'name' => 'LDAP'],
             
             // Middlewares
-            ['type' => 'middleware', 'name' => 'Apache Tomcat'],
-            ['type' => 'middleware', 'name' => 'Web Logic'],
-            ['type' => 'middleware', 'name' => 'IBM WAS ND'],
-            ['type' => 'middleware', 'name' => 'Apache Kafka'],
-            ['type' => 'middleware', 'name' => 'Openshift'],
-            ['type' => 'middleware', 'name' => 'RabbitMQ'],
-            ['type' => 'middleware', 'name' => 'Jboss-EAP'],
-            ['type' => 'middleware', 'name' => 'Kafka'],
-            ['type' => 'middleware', 'name' => 'Oracle Advanced Queuing'],
-            ['type' => 'middleware', 'name' => 'Weblogic'],
-            ['type' => 'middleware', 'name' => 'IIS Server'],
-            ['type' => 'middleware', 'name' => 'N/A'],
+            ['type' => 'middlewares', 'name' => 'Apache Tomcat'],
+            ['type' => 'middlewares', 'name' => 'Web Logic'],
+            ['type' => 'middlewares', 'name' => 'IBM WAS ND'],
+            ['type' => 'middlewares', 'name' => 'Apache Kafka'],
+            ['type' => 'middlewares', 'name' => 'Openshift'],
+            ['type' => 'middlewares', 'name' => 'RabbitMQ'],
+            ['type' => 'middlewares', 'name' => 'Jboss-EAP'],
+            ['type' => 'middlewares', 'name' => 'Kafka'],
+            ['type' => 'middlewares', 'name' => 'Oracle Advanced Queuing'],
+            ['type' => 'middlewares', 'name' => 'Weblogic'],
+            ['type' => 'middlewares', 'name' => 'IIS Server'],
             
             // Frameworks
-            ['type' => 'framework', 'name' => 'JDK'],
-            ['type' => 'framework', 'name' => '.Net Framework'],
-            ['type' => 'framework', 'name' => 'R2dbc'],
-            ['type' => 'framework', 'name' => 'Springboot'],
-            ['type' => 'framework', 'name' => 'Spring Boot'],
-            ['type' => 'framework', 'name' => 'Thymeleaf'],
-            ['type' => 'framework', 'name' => 'Panacea'],
-            ['type' => 'framework', 'name' => 'ASP.NET Core'],
-            ['type' => 'framework', 'name' => 'Spring'],
-            ['type' => 'framework', 'name' => 'dotnet Core'],
-            ['type' => 'framework', 'name' => 'dotnet MVC'],
-            ['type' => 'framework', 'name' => 'Kafka'],
-            ['type' => 'framework', 'name' => 'Angular WASM'],
-            ['type' => 'framework', 'name' => 'Maven'],
-            ['type' => 'framework', 'name' => 'Api Gateway'],
+            ['type' => 'frameworks', 'name' => 'JDK'],
+            ['type' => 'frameworks', 'name' => '.Net Framework'],
+            ['type' => 'frameworks', 'name' => 'R2dbc'],
+            ['type' => 'frameworks', 'name' => 'Springboot'],
+            ['type' => 'frameworks', 'name' => 'Spring Boot'],
+            ['type' => 'frameworks', 'name' => 'Thymeleaf'],
+            ['type' => 'frameworks', 'name' => 'Panacea'],
+            ['type' => 'frameworks', 'name' => 'ASP.NET Core'],
+            ['type' => 'frameworks', 'name' => 'Spring'],
+            ['type' => 'frameworks', 'name' => 'dotnet Core'],
+            ['type' => 'frameworks', 'name' => 'dotnet MVC'],
+            ['type' => 'frameworks', 'name' => 'Kafka'],
+            ['type' => 'frameworks', 'name' => 'Angular WASM'],
+            ['type' => 'frameworks', 'name' => 'Maven'],
+            ['type' => 'frameworks', 'name' => 'Api Gateway'],
             
             // Platforms
-            ['type' => 'platform', 'name' => 'Web Based'],
-            ['type' => 'platform', 'name' => 'STP'],
-            ['type' => 'platform', 'name' => 'Desktop Based'],
-            ['type' => 'platform', 'name' => 'Microservices'],
-            ['type' => 'platform', 'name' => 'Monolithic'],
-            ['type' => 'platform', 'name' => 'Mobile based'],
+            ['type' => 'platforms', 'name' => 'Web Based'],
+            ['type' => 'platforms', 'name' => 'STP'],
+            ['type' => 'platforms', 'name' => 'Desktop Based'],
+            ['type' => 'platforms', 'name' => 'Microservices'],
+            ['type' => 'platforms', 'name' => 'Monolithic'],
+            ['type' => 'platforms', 'name' => 'Mobile based'],
         ];
 
         // Insert base technologies
@@ -120,21 +118,21 @@ class TechnologySeeder extends Seeder
     private function createSampleAppTechnologies($apps)
     {
         // Get technology IDs by type for easy reference
-        $vendors = Technology::where('type', 'vendor')->pluck('id', 'name');
-        $operatingSystems = Technology::where('type', 'os')->pluck('id', 'name');
-        $databases = Technology::where('type', 'database')->pluck('id', 'name');
-        $languages = Technology::where('type', 'language')->pluck('id', 'name');
-        $thirdParties = Technology::where('type', 'third_party')->pluck('id', 'name');
-        $middlewares = Technology::where('type', 'middleware')->pluck('id', 'name');
-        $frameworks = Technology::where('type', 'framework')->pluck('id', 'name');
-        $platforms = Technology::where('type', 'platform')->pluck('id', 'name');
+        $vendors = Technology::where('type', 'vendors')->pluck('id', 'name');
+        $operatingSystems = Technology::where('type', 'operating_systems')->pluck('id', 'name');
+        $databases = Technology::where('type', 'databases')->pluck('id', 'name');
+        $languages = Technology::where('type', 'programming_languages')->pluck('id', 'name');
+        $thirdParties = Technology::where('type', 'third_parties')->pluck('id', 'name');
+        $middlewares = Technology::where('type', 'middlewares')->pluck('id', 'name');
+        $frameworks = Technology::where('type', 'frameworks')->pluck('id', 'name');
+        $platforms = Technology::where('type', 'platforms')->pluck('id', 'name');
 
         foreach ($apps as $app) {
             // Every app gets 1 vendor
             $vendorName = fake()->randomElement($vendors->keys()->toArray());
             AppTechnology::firstOrCreate([
                 'app_id' => $app->app_id,
-                'technology_id' => $vendors[$vendorName],
+                'tech_id' => $vendors[$vendorName],
             ], [
                 'version' => fake()->optional(0.7)->numerify('v#.#.#')
             ]);
@@ -143,7 +141,7 @@ class TechnologySeeder extends Seeder
             $osName = fake()->randomElement($operatingSystems->keys()->toArray());
             AppTechnology::firstOrCreate([
                 'app_id' => $app->app_id,
-                'technology_id' => $operatingSystems[$osName],
+                'tech_id' => $operatingSystems[$osName],
             ], [
                 'version' => fake()->optional(0.8)->numerify('#.#')
             ]);
@@ -157,7 +155,7 @@ class TechnologySeeder extends Seeder
                     $usedDatabases[] = $dbName;
                     AppTechnology::firstOrCreate([
                         'app_id' => $app->app_id,
-                        'technology_id' => $databases[$dbName],
+                        'tech_id' => $databases[$dbName],
                     ], [
                         'version' => fake()->optional(0.8)->numerify('#.#')
                     ]);
@@ -173,7 +171,7 @@ class TechnologySeeder extends Seeder
                     $usedLanguages[] = $langName;
                     AppTechnology::firstOrCreate([
                         'app_id' => $app->app_id,
-                        'technology_id' => $languages[$langName],
+                        'tech_id' => $languages[$langName],
                     ], [
                         'version' => fake()->optional(0.6)->numerify('#.#')
                     ]);
@@ -189,7 +187,7 @@ class TechnologySeeder extends Seeder
                     $usedThirdParties[] = $thirdPartyName;
                     AppTechnology::firstOrCreate([
                         'app_id' => $app->app_id,
-                        'technology_id' => $thirdParties[$thirdPartyName],
+                        'tech_id' => $thirdParties[$thirdPartyName],
                     ], [
                         'version' => fake()->optional(0.5)->numerify('#.#')
                     ]);
@@ -205,7 +203,7 @@ class TechnologySeeder extends Seeder
                     $usedMiddlewares[] = $middlewareName;
                     AppTechnology::firstOrCreate([
                         'app_id' => $app->app_id,
-                        'technology_id' => $middlewares[$middlewareName],
+                        'tech_id' => $middlewares[$middlewareName],
                     ], [
                         'version' => fake()->optional(0.7)->numerify('#.#')
                     ]);
@@ -221,7 +219,7 @@ class TechnologySeeder extends Seeder
                     $usedFrameworks[] = $frameworkName;
                     AppTechnology::firstOrCreate([
                         'app_id' => $app->app_id,
-                        'technology_id' => $frameworks[$frameworkName],
+                        'tech_id' => $frameworks[$frameworkName],
                     ], [
                         'version' => fake()->optional(0.8)->numerify('#.#')
                     ]);
@@ -237,7 +235,7 @@ class TechnologySeeder extends Seeder
                     $usedPlatforms[] = $platformName;
                     AppTechnology::firstOrCreate([
                         'app_id' => $app->app_id,
-                        'technology_id' => $platforms[$platformName],
+                        'tech_id' => $platforms[$platformName],
                     ], [
                         'version' => fake()->optional(0.4)->numerify('#.#')
                     ]);
