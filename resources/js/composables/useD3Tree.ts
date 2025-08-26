@@ -207,6 +207,9 @@ export function useD3Tree(appData: any, allowedStreams: Array<{ stream_name: str
       d.data.children = d.data._children;
       d.data._children = null;
     }
+    
+    // Clear search highlight when any node is clicked
+    clearSearchHighlight();
   }
 
   function search(term: string) {
@@ -242,6 +245,20 @@ export function useD3Tree(appData: any, allowedStreams: Array<{ stream_name: str
             nodesToExpand.add(current);
             current = current.parent;
         }
+        
+        // Also expand one level down from matched nodes to show their children
+        if (d._children) {
+            nodesToExpand.add(d);
+            // Also expand the children of matched nodes
+            d._children.forEach((child: any) => {
+                nodesToExpand.add(child);
+            });
+        }
+        if (d.children) {
+            d.children.forEach((child: any) => {
+                nodesToExpand.add(child);
+            });
+        }
     });
 
     // First, collapse all nodes
@@ -268,6 +285,13 @@ export function useD3Tree(appData: any, allowedStreams: Array<{ stream_name: str
         while(current){
             nodesToHighlight.add(current);
             current = current.parent;
+        }
+        
+        // Also highlight children of matched nodes
+        if (d.children) {
+            d.children.forEach((child: any) => {
+                nodesToHighlight.add(child);
+            });
         }
     });
 
