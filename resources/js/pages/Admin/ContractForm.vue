@@ -305,6 +305,10 @@ onMounted(() => {
       // Keep the original order from backend (sorted by ID)
       contractPeriods.value = periods;
     }
+  } else {
+    // For new contracts, initialize with one empty app selection and one empty contract period
+    addAppSelection();
+    addContractPeriod();
   }
 });
 
@@ -371,6 +375,27 @@ function addMultipleContractPeriods(periods: ContractPeriod[]) {
 
 function submit() {
   clearErrors(); // Clear previous errors
+
+  // Validate that at least one app is selected
+  if (form.value.app_ids.length === 0) {
+    showError('Minimal satu aplikasi harus dipilih');
+    return;
+  }
+
+  // Validate that at least one contract period exists
+  if (contractPeriods.value.length === 0) {
+    showError('Minimal satu periode kontrak harus dibuat');
+    return;
+  }
+
+  // Validate contract periods
+  for (let i = 0; i < contractPeriods.value.length; i++) {
+    const period = contractPeriods.value[i];
+    if (!period.period_name || !period.budget_type || !period.payment_status) {
+      showError(`Periode ${i + 1}: Nama periode, tipe anggaran, dan status pembayaran wajib diisi`);
+      return;
+    }
+  }
 
   // Convert form data to proper types
   const submitData = {

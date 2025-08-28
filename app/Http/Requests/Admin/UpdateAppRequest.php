@@ -11,7 +11,7 @@ class UpdateAppRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Add proper authorization logic here
+        return true;
     }
 
     /**
@@ -53,13 +53,10 @@ class UpdateAppRequest extends FormRequest
             'platforms.*.name' => 'required|string|regex:/^[^\/]*$/',
             'platforms.*.version' => 'nullable|string',
 
-            // Informasi Modul section (each module can map to multiple integrations)
             'functions' => 'sometimes|array',
             'functions.*.function_name' => 'required_with:functions|string|max:255',
-            // Preferred: integration_ids as an array of integration IDs
             'functions.*.integration_ids' => 'required_without:functions.*.integration_id|array|min:1',
             'functions.*.integration_ids.*' => 'integer|exists:appintegrations,integration_id',
-            // Backward compatibility: single integration_id allowed if integration_ids missing
             'functions.*.integration_id' => 'nullable|integer|exists:appintegrations,integration_id',
         ];
     }

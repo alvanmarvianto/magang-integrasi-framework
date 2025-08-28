@@ -42,8 +42,7 @@ class TechnologyController extends Controller
 
     public function checkEnumUsage(string $type, string $value): JsonResponse
     {
-        $tableName = $this->technologyService->getTableName($type);
-        $apps = $this->technologyService->getAppsUsingEnum($tableName, $value);
+        $apps = $this->technologyService->getAppsUsingEnum('technologies', $value);
 
         return response()->json([
             'is_used' => count($apps) > 0,

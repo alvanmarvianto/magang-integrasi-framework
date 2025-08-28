@@ -120,14 +120,12 @@ class ContractPeriodDTO
      */
     public function getAlertStatus(): string
     {
-        // Only check periods that are not paid and are actually due
-        // Exclude: 'paid', 'not_due', 'reserved_hr', 'contract_moved'
+        // Only check periods that is not below
         $safeStatuses = ['paid', 'not_due', 'reserved_hr', 'contract_moved'];
         if (in_array($this->paymentStatus, $safeStatuses)) {
             return 'none';
         }
 
-        // Skip if no end date
         if (!$this->endDate) {
             return 'none';
         }
@@ -139,12 +137,10 @@ class ContractPeriodDTO
         $interval = $now->diff($endDate);
         $diffDays = (int) $interval->format('%a');
         
-        // If now is past end date (overdue) - invert will be 1 if now > endDate
         if ($interval->invert === 1) {
             return 'danger';
         }
 
-        // If within 2 weeks (14 days) of end date
         if ($diffDays <= 14) {
             return 'warning';
         }

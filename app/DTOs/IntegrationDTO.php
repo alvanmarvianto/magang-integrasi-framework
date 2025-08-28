@@ -4,15 +4,6 @@ namespace App\DTOs;
 
 readonly class IntegrationDTO
 {
-    /**
-     * connections: array of items
-     * - connection_type_id: int
-     * - source_inbound?: string|null
-     * - source_outbound?: string|null
-     * - target_inbound?: string|null
-     * - target_outbound?: string|null
-     * - connection_type?: ConnectionTypeDTO (optional, when present)
-     */
     public function __construct(
         public ?int $integrationId,
         public int $sourceAppId,
@@ -32,7 +23,6 @@ readonly class IntegrationDTO
                 'source_outbound' => $item['source_outbound'] ?? null,
                 'target_inbound' => $item['target_inbound'] ?? null,
                 'target_outbound' => $item['target_outbound'] ?? null,
-                // optional embedded connection_type for display
                 'connection_type' => isset($item['connection_type'])
                     ? ConnectionTypeDTO::fromArray($item['connection_type'])
                     : null,

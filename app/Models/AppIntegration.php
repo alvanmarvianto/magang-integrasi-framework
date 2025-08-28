@@ -60,7 +60,6 @@ class AppIntegration extends Pivot
      */
     protected $casts = [];
 
-    // New relation: one integration can have many connection types with per-app payloads
     public function connections(): HasMany
     {
         return $this->hasMany(AppIntegrationConnection::class, 'integration_id', 'integration_id');
@@ -108,7 +107,7 @@ class AppIntegration extends Pivot
      */
     public function startsFromSource(): bool
     {
-        return true; // Always starts from source now
+        return true;
     }
 
     /**
@@ -118,7 +117,7 @@ class AppIntegration extends Pivot
      */
     public function startsFromTarget(): bool
     {
-        return false; // Never starts from target now
+        return false;
     }
 
     /**
@@ -139,89 +138,6 @@ class AppIntegration extends Pivot
     public function getReceivingApp(): BelongsTo
     {
         return $this->targetApp();
-    }
-
-    /**
-     * Switch source and target apps.
-     *
-     * @return bool
-     */
-    public function switchSourceAndTarget(): bool
-    {
-        $originalSourceId = $this->getAttribute('source_app_id');
-        $originalTargetId = $this->getAttribute('target_app_id');
-    $result = $this->update([
-            'source_app_id' => $originalTargetId,
-            'target_app_id' => $originalSourceId,
-        ]);
-
-        // Update stream layouts after switching
-        if ($result) {
-            $this->updateStreamLayoutsAfterSwitch($originalSourceId, $originalTargetId);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Update stream layouts after switching source and target
-     *
-     * @param int $oldSourceId
-     * @param int $oldTargetId
-     * @return void
-     */
-    private function updateStreamLayoutsAfterSwitch(int $oldSourceId, int $oldTargetId): void
-    {
-        $layouts = \App\Models\StreamLayout::all();
-        
-        foreach ($layouts as $layout) {
-            $updated = false;
-            $edgesLayout = $layout->edges_layout ?? [];
-            
-            // Update edges that involve this integration
-            foreach ($edgesLayout as &$edge) {
-                // Check if this edge represents the integration by integration_id
-                $edgeIntegrationId = null;
-                
-                if (isset($edge['data']) && isset($edge['data']['integration_id'])) {
-                    $edgeIntegrationId = $edge['data']['integration_id'];
-                }
-                
-                if ($edgeIntegrationId == $this->getAttribute('integration_id')) {
-                    // Update the edge source and target (swap them)
-                    $edge['source'] = (string)$this->getAttribute('source_app_id');
-                    $edge['target'] = (string)$this->getAttribute('target_app_id');
-                    $edge['id'] = $this->getAttribute('source_app_id') . '-' . $this->getAttribute('target_app_id');
-                    
-                    // Update the edge data with fresh integration data
-                    $this->load(['sourceApp', 'targetApp']);
-                    
-                    $edge['data'] = array_merge($edge['data'], [
-                        'source_app_id' => $this->getAttribute('source_app_id'),
-                        'target_app_id' => $this->getAttribute('target_app_id'),
-                        'source_app_name' => $this->sourceApp->app_name ?? '',
-                        'target_app_name' => $this->targetApp->app_name ?? '',
-                        'sourceApp' => [
-                            'app_id' => $this->getAttribute('source_app_id'),
-                            'app_name' => $this->sourceApp->app_name ?? ''
-                        ],
-                        'targetApp' => [
-                            'app_id' => $this->getAttribute('target_app_id'),
-                            'app_name' => $this->targetApp->app_name ?? ''
-                        ]
-                    ]);
-                    
-                    $updated = true;
-                }
-            }
-            
-            // Save the updated layout if changes were made
-            if ($updated) {
-                $layout->update([
-                    'edges_layout' => $edgesLayout,
-                ]);
-            }
-        }
     }
 
     /**

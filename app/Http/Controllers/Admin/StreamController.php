@@ -13,7 +13,6 @@ use App\Http\Requests\Admin\BulkUpdateStreamSortRequest;
 use App\Models\Stream;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -62,7 +61,6 @@ class StreamController extends Controller
         try {
             $this->streamService->createStream($validated);
 
-            // Refresh diagram layouts for all streams to synchronize stream colors
             $this->refreshDiagramLayouts();
 
             return redirect()
@@ -96,7 +94,6 @@ class StreamController extends Controller
         try {
             $this->streamService->updateStream($stream, $validated);
 
-            // Refresh diagram layouts for all streams to synchronize stream colors
             $this->refreshDiagramLayouts();
 
             return redirect()
@@ -181,10 +178,8 @@ class StreamController extends Controller
     private function refreshDiagramLayouts(): void
     {
         try {
-            // Get all available streams from stream configuration service
             $streams = $this->streamConfigService->getAllowedDiagramStreams();
             
-            // First, clean up any invalid data globally
             $this->cleanupService->removeDuplicateIntegrations();
             $this->cleanupService->removeInvalidIntegrations();
  
@@ -193,25 +188,18 @@ class StreamController extends Controller
             $totalEdgesSynced = 0;
             
             foreach ($streams as $streamName) {
-                // Clean up stream layout nodes for this specific stream
                 $this->cleanupService->cleanupStreamLayout($streamName);
                 
-                // Synchronize edges layout with current AppIntegration data
                 $edgesSynced = $this->streamLayoutService->synchronizeStreamLayoutEdges($streamName);
                 $totalEdgesSynced += $edgesSynced;
                 
-                // Synchronize connection type colors in the layout
                 $colorsSynced = $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
                 $totalColorsSynced += $colorsSynced;
                 
-                // Synchronize stream colors for app nodes in the layout
                 $streamColorsSynced = $this->streamLayoutService->synchronizeStreamColors($streamName);
                 $totalStreamColorsSynced += $streamColorsSynced;
             }
-            
-            Log::info("Refreshed diagram layouts after stream change: {$totalEdgesSynced} edges, {$totalColorsSynced} connection colors, {$totalStreamColorsSynced} stream colors synchronized.");
         } catch (\Exception $e) {
-            // Log error but don't fail the main operation
             Log::error('Failed to refresh diagram layouts after stream update: ' . $e->getMessage());
         }
     }

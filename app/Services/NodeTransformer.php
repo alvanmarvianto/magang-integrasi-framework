@@ -15,21 +15,18 @@ class NodeTransformer
      */
     public function createStreamNode(string $streamName, bool $isAdmin = false, ?string $streamColor = null): DiagramNodeDTO
     {
-        // Clean up the stream name for consistent ID: remove "Stream " prefix and convert to lowercase
         $cleanStreamName = strtolower(trim($streamName));
         if (str_starts_with($cleanStreamName, 'stream ')) {
-            $cleanStreamName = substr($cleanStreamName, 7); // Remove "stream " prefix
+            $cleanStreamName = substr($cleanStreamName, 7);
         }
         $effectiveBorderColor = $streamColor ?: '#3b82f6';
         
         $nodeData = [
-            'id' => $cleanStreamName, // Keep normalized ID for stability
+            'id' => $cleanStreamName,
             'data' => [
-                // Display label should use DB casing exactly without extra prefixes/suffixes
                 'label' => $streamName,
                 'app_id' => -1,
                 'app_name' => $streamName,
-                // Keep data fields using DB value for downstream exact matches
                 'stream_name' => $streamName,
                 'lingkup' => $streamName,
                 'is_home_stream' => true,
@@ -68,7 +65,6 @@ class NodeTransformer
     {
         return $apps->map(function ($app) use ($streamName, $isAdmin, $streamColor) {
             $appStreamName = $app->stream?->stream_name ?? $streamName;
-            // Use provided stream color or get from app's stream
             $appStreamColor = $streamColor ?: ($app->stream?->color ?? '#999999');
             
         $baseData = [
@@ -81,7 +77,6 @@ class NodeTransformer
                     'app_type' => $app->getAttribute('app_type'),
                     'stream_name' => $appStreamName,
                     'lingkup' => $appStreamName,
-            // Provide explicit color hint for UI
             'color' => $appStreamColor,
                     'is_home_stream' => true,
                     'is_external' => false,
@@ -97,7 +92,6 @@ class NodeTransformer
             ];
 
             if ($isAdmin) {
-                // Ensure parentNode matches the stream parent node id, which is the cleaned stream name
                 $cleanParentId = strtolower(trim($streamName));
                 if (str_starts_with($cleanParentId, 'stream ')) {
                     $cleanParentId = substr($cleanParentId, 7);
@@ -105,7 +99,7 @@ class NodeTransformer
                 $baseData['data']['label'] .= "\nID: " . $app->getAttribute('app_id') . "\nStream: " . strtoupper($streamName);
                 $baseData['type'] = 'appNode';
                 $baseData['position'] = ['x' => 100, 'y' => 100];
-                $baseData['parentNode'] = $cleanParentId; // match createStreamNode id
+                $baseData['parentNode'] = $cleanParentId;
                 $baseData['extent'] = 'parent';
             } else {
                 $baseData['type'] = 'app';
@@ -125,7 +119,6 @@ class NodeTransformer
     {
         return $apps->map(function ($app) use ($isAdmin) {
             $appStreamName = $app->stream?->stream_name ?? 'external';
-            // Use stream color from app's stream if available
             $appStreamColor = $app->stream?->color ?? '#999999';
             
         $baseData = [
@@ -138,7 +131,6 @@ class NodeTransformer
                     'app_type' => $app->getAttribute('app_type'),
                     'stream_name' => $appStreamName,
                     'lingkup' => $appStreamName,
-            // Provide explicit color hint for UI
             'color' => $appStreamColor,
                     'is_home_stream' => false,
                     'is_external' => true,
@@ -168,17 +160,5 @@ class NodeTransformer
 
             return DiagramNodeDTO::fromArray($baseData);
         });
-    }
-
-    // When creating app nodes (home and external), ensure style contains width/height and DB border color
-    private function withAppStyle(array $style, ?string $borderColor = null): array
-    {
-        $borderColor = $borderColor ?: '#999999';
-        return array_merge($style, [
-            'width' => self::APP_WIDTH,
-            'height' => self::APP_HEIGHT,
-            'border' => '2px solid ' . $borderColor,
-            'borderRadius' => '8px',
-        ]);
     }
 }

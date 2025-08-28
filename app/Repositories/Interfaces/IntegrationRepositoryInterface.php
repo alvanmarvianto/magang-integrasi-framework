@@ -4,7 +4,6 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\AppIntegration;
 use App\DTOs\IntegrationDTO;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 interface IntegrationRepositoryInterface
@@ -40,39 +39,9 @@ interface IntegrationRepositoryInterface
     public function delete(AppIntegration $integration): bool;
 
     /**
-     * Get integrations for specific app
-     */
-    public function getIntegrationsForApp(int $appId): Collection;
-
-    /**
-     * Get integrations between two apps
-     */
-    public function getIntegrationsBetweenApps(int $sourceAppId, int $targetAppId): Collection;
-
-    /**
      * Check if integration exists between two apps
      */
     public function integrationExistsBetweenApps(int $sourceAppId, int $targetAppId): bool;
-
-    /**
-     * Get connected apps for a specific app
-     */
-    public function getConnectedAppsForApp(int $appId): Collection;
-
-    /**
-     * Get integrations for multiple apps
-     */
-    public function getIntegrationsForApps(array $appIds): Collection;
-
-    /**
-     * Remove duplicate integrations
-     */
-    public function removeDuplicateIntegrations(): int;
-
-    /**
-     * Get apps integrated with apps in specific stream
-     */
-    public function getExternalAppsConnectedToStream(array $streamAppIds): Collection;
 
     /**
      * Get all integration options for forms (cached), sorted alphabetically by label.

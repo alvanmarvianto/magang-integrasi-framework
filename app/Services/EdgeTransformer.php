@@ -11,7 +11,6 @@ class EdgeTransformer
      */
     public function transformForAdmin(Collection $integrations, ?array $savedLayout = null): Collection
     {
-        // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
         $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
     return $integrations->map(function ($integration) use ($edgesLayout) {
@@ -19,12 +18,10 @@ class EdgeTransformer
                 ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
                 : [];
             $connectionType = empty($types) ? 'direct' : implode(' / ', $types);
-            // Admin view: always render edges black, ignore connection-type colors
             $edgeColor = '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
             
-            // Find saved edge layout for this edge
             $savedEdge = collect($edgesLayout)->firstWhere('id', $edgeId);
 
             $edgeData = [
@@ -39,7 +36,6 @@ class EdgeTransformer
                 'data' => [
                     'connection_type' => strtolower($connectionType),
                     'connection_types' => array_map(fn($n) => ['name' => $n], $types),
-                    // New: detailed connections payload for sidebar rendering
                     'connections' => $integration->relationLoaded('connections')
                         ? $integration->connections->map(function ($conn) use ($integration) {
                             return [
@@ -76,7 +72,6 @@ class EdgeTransformer
                 ]
             ];
 
-            // Add handle information if available in saved layout
             if ($savedEdge) {
                 if (isset($savedEdge['sourceHandle'])) {
                     $edgeData['sourceHandle'] = $savedEdge['sourceHandle'];
@@ -84,14 +79,12 @@ class EdgeTransformer
                 if (isset($savedEdge['targetHandle'])) {
                     $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
-                // Merge saved style but enforce black stroke for admin
                 if (isset($savedEdge['style']) && is_array($savedEdge['style'])) {
                     $mergedStyle = array_merge($edgeData['style'], $savedEdge['style']);
                     $edgeData['style'] = $mergedStyle;
                 }
             }
 
-            // Always enforce black stroke and remove arrows in admin
             $edgeData['style']['stroke'] = '#000000';
             $edgeData['style']['strokeWidth'] = $edgeData['style']['strokeWidth'] ?? 2;
             unset($edgeData['markerEnd'], $edgeData['markerStart']);
@@ -105,7 +98,6 @@ class EdgeTransformer
      */
     public function transformForUser(Collection $integrations, ?array $savedLayout = null): Collection
     {
-        // Support both shapes: ['edges_layout'=>[]] or legacy ['edges'=>[]]
         $edgesLayout = $savedLayout['edges_layout'] ?? ($savedLayout['edges'] ?? []);
         
     return $integrations->map(function ($integration) use ($edgesLayout) {
@@ -113,12 +105,10 @@ class EdgeTransformer
                 ? $integration->connections->map(fn($c) => $c->connectionType?->type_name)->filter()->unique()->values()->toArray()
                 : [];
             $connectionType = empty($types) ? 'direct' : implode(' / ', $types);
-            // User view: color not enforced here; keep black if no saved style
             $edgeColor = '#000000';
 
             $edgeId = $integration->getAttribute('source_app_id') . '-' . $integration->getAttribute('target_app_id');
             
-            // Find saved edge layout for this edge
             $savedEdge = collect($edgesLayout)->firstWhere('id', $edgeId);
 
             $edgeData = [
@@ -133,7 +123,6 @@ class EdgeTransformer
                 'data' => [
                     'connection_type' => strtolower($connectionType),
                     'connection_types' => array_map(fn($n) => ['name' => $n], $types),
-                    // New: detailed connections payload for sidebar rendering
                     'connections' => $integration->relationLoaded('connections')
                         ? $integration->connections->map(function ($conn) use ($integration) {
                             return [
@@ -170,7 +159,6 @@ class EdgeTransformer
                 ],
             ];
 
-            // Add handle information if available in saved layout
             if ($savedEdge) {
                 if (isset($savedEdge['sourceHandle'])) {
                     $edgeData['sourceHandle'] = $savedEdge['sourceHandle'];
@@ -178,14 +166,12 @@ class EdgeTransformer
                 if (isset($savedEdge['targetHandle'])) {
                     $edgeData['targetHandle'] = $savedEdge['targetHandle'];
                 }
-                // Merge saved style but do not enforce saved color
                 if (isset($savedEdge['style']) && is_array($savedEdge['style'])) {
                     $mergedStyle = array_merge($edgeData['style'], $savedEdge['style']);
                     $edgeData['style'] = $mergedStyle;
                 }
             }
 
-            // Keep whatever markers/layout the saved layout has; do not force black in user view
 
             return $edgeData;
         });

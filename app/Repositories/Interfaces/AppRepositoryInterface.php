@@ -30,11 +30,6 @@ interface AppRepositoryInterface
     public function findWithRelationsFresh(int $id): ?App;
 
     /**
-     * Find app by ID and return as DTO
-     */
-    public function findAsDTO(int $id): ?AppDTO;
-
-    /**
      * Find app by ID and return as DTO bypassing cache
      */
     public function findAsDTOFresh(int $id): ?AppDTO;
@@ -55,44 +50,9 @@ interface AppRepositoryInterface
     public function delete(App $app): bool;
 
     /**
-     * Get apps by stream ID
-     */
-    public function getAppsByStreamId(int $streamId): Collection;
-
-    /**
-     * Get apps by stream name
-     */
-    public function getAppsByStreamName(string $streamName): Collection;
-
-    /**
-     * Get apps by multiple IDs
-     */
-    public function getAppsByIds(array $appIds): Collection;
-
-    /**
-     * Search apps by name
-     */
-    public function searchAppsByName(string $searchTerm): Collection;
-
-    /**
      * Get apps with integration counts
      */
     public function getAppsWithIntegrationCounts(): Collection;
-
-    /**
-     * Check if app exists by name
-     */
-    public function existsByName(string $appName): bool;
-
-    /**
-     * Get app statistics
-     */
-    public function getAppStatistics(): array;
-
-    /**
-     * Bulk update apps
-     */
-    public function bulkUpdateApps(array $appData): bool;
 
     /**
      * Get integration functions grouped by function_name for an app

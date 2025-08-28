@@ -38,10 +38,8 @@ class AuthController extends Controller
             ]);
         }
 
-        // Create a Sanctum token for the user
         $token = $user->createToken('admin-token')->plainTextToken;
 
-        // Store the token in session or return it
         if ($request->expectsJson()) {
             return response()->json([
                 'token' => $token,
@@ -49,7 +47,6 @@ class AuthController extends Controller
             ]);
         }
 
-        // For web requests, we can set the token in a secure cookie or session
         session(['sanctum_token' => $token]);
         
         return redirect()->route('admin.index');
@@ -60,13 +57,11 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Revoke the current user's token
         $user = Auth::guard('sanctum')->user();
         if ($user) {
             $user->currentAccessToken()->delete();
         }
 
-        // Clear session token
         session()->forget('sanctum_token');
 
         if ($request->expectsJson()) {

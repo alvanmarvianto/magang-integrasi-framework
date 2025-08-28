@@ -48,12 +48,10 @@ class AppService
     ): array {
         $paginatedApps = $this->appRepository->getPaginatedApps($search, $perPage, $sortBy, $sortDesc);
         
-        // Convert the paginated app models to DTOs
         $appDTOs = $paginatedApps->map(function ($app) {
             return AppDTO::fromModel($app);
         });
         
-        // Create pagination data structure that matches Laravel's default pagination
         $paginationData = [
             'data' => $appDTOs->map(fn($dto) => $dto->toArray())->all(),
             'meta' => [
@@ -78,13 +76,11 @@ class AppService
      */
     public function getFormData(?int $appId = null): array
     {
-        // For edit operations, use fresh data to bypass cache
         $appDTO = $appId ? $this->appRepository->findAsDTOFresh($appId) : null;
         
         $technologyOptions = $this->getTechnologyOptions();
         $integrationOptions = $this->integrationRepository->getIntegrationOptions();
 
-        // Prepare app payload, and enrich with integration_functions for edit mode
         $appPayload = $appDTO ? $appDTO->toArray() : null;
         if ($appId && $appPayload !== null) {
             $grouped = $this->appRepository->getIntegrationFunctionsGrouped($appId);
@@ -99,7 +95,6 @@ class AppService
                 } elseif (is_array($streamDto)) {
                     $data = $streamDto;
                 } else {
-                    // Fallback for stdClass or other objects
                     $data = [
                         'stream_id' => $streamDto->stream_id ?? null,
                         'stream_name' => $streamDto->stream_name ?? null,
@@ -111,7 +106,6 @@ class AppService
             'appTypes' => $this->getAppTypes(),
             'stratifications' => $this->getStratifications(),
             'technologyOptions' => $technologyOptions,
-            // Individual technology arrays for frontend compatibility
             'vendors' => $technologyOptions['vendors'] ?? [],
             'operatingSystems' => $technologyOptions['operating_systems'] ?? [],
             'databases' => $technologyOptions['databases'] ?? [],
@@ -120,7 +114,6 @@ class AppService
             'middlewares' => $technologyOptions['middlewares'] ?? [],
             'thirdParties' => $technologyOptions['third_parties'] ?? [],
             'platforms' => $technologyOptions['platforms'] ?? [],
-            // Integration options for Informasi Modul section
             'integrationOptions' => $integrationOptions,
         ];
     }
@@ -133,11 +126,9 @@ class AppService
         $appDTO = $this->buildAppDTOFromValidatedData($validatedData);
         $app = $this->appRepository->createWithTechnology($appDTO);
 
-        // Persist function mappings if provided
         if (!empty($validatedData['functions']) && is_array($validatedData['functions'])) {
             $this->appRepository->replaceIntegrationFunctions($app->app_id, $validatedData['functions']);
             
-            // Auto-sync app layout colors after creating integration functions
             $this->appLayoutService->autoSyncColorsAfterAppOperation($app->app_id);
         }
         
@@ -152,21 +143,17 @@ class AppService
         $appDTO = $this->buildAppDTOFromValidatedData($validatedData, $app->app_id);
         $updateResult = $this->appRepository->updateWithTechnology($app, $appDTO);
 
-        // Persist function mappings if provided (replace existing)
         if (array_key_exists('functions', $validatedData)) {
             $this->appRepository->replaceIntegrationFunctions($app->app_id, $validatedData['functions'] ?? []);
             
-            // Auto-sync app layout colors after updating integration functions
             $this->appLayoutService->autoSyncColorsAfterAppOperation($app->app_id);
         }
         
-        // Reload the app with fresh data (bypassing cache)
         $updatedApp = $this->appRepository->findWithRelationsFresh($app->app_id);
         
         return AppDTO::fromModel($updatedApp);
     }
 
-    // Integration functions persistence is delegated to the repository
 
     /**
      * Delete app and its related data
@@ -177,39 +164,10 @@ class AppService
         $deleted = $this->appRepository->delete($app);
         
         if ($deleted) {
-            // Remove app from all stream layouts
             $this->streamLayoutRepository->removeAppFromLayouts($appId);
         }
         
         return $deleted;
-    }
-
-    /**
-     * Get apps by stream name
-     */
-    public function getAppsByStreamName(string $streamName): array
-    {
-        $apps = $this->appRepository->getAppsByStreamName($streamName);
-        
-        return $apps->map(fn($app) => AppDTO::fromModel($app))->toArray();
-    }
-
-    /**
-     * Search apps by name
-     */
-    public function searchAppsByName(string $searchTerm): array
-    {
-        $apps = $this->appRepository->searchAppsByName($searchTerm);
-        
-        return $apps->map(fn($app) => AppDTO::fromModel($app))->toArray();
-    }
-
-    /**
-     * Get app statistics
-     */
-    public function getAppStatistics(): array
-    {
-        return $this->appRepository->getAppStatistics();
     }
 
     /**
@@ -230,22 +188,6 @@ class AppService
             
             return $data;
         })->toArray();
-    }
-
-    /**
-     * Check if app exists by name
-     */
-    public function appExistsByName(string $appName): bool
-    {
-        return $this->appRepository->existsByName($appName);
-    }
-
-    /**
-     * Bulk update apps
-     */
-    public function bulkUpdateApps(array $appsData): bool
-    {
-        return $this->appRepository->bulkUpdateApps($appsData);
     }
 
     /**
@@ -287,7 +229,6 @@ class AppService
     {
         $technologyComponents = [];
 
-        // Extract technology components from validated data
         $technologyMapping = [
             'vendors' => 'vendors',
             'operating_systems' => 'operating_systems',
@@ -307,7 +248,6 @@ class AppService
                         $validatedData[$dataKey]
                     );
                 } else {
-                    // Include empty arrays to signal deletion of all components of this type
                     $technologyComponents[$dtoKey] = [];
                 }
             }
@@ -332,14 +272,12 @@ class AppService
     {
         $links = [];
         
-        // Previous link
         $links[] = [
             'url' => $paginator->previousPageUrl(),
             'label' => '&laquo; Previous',
             'active' => false,
         ];
         
-        // Page number links
         foreach (range(1, $paginator->lastPage()) as $page) {
             $links[] = [
                 'url' => $paginator->url($page),
@@ -348,7 +286,6 @@ class AppService
             ];
         }
         
-        // Next link
         $links[] = [
             'url' => $paginator->nextPageUrl(),
             'label' => 'Next &raquo;',

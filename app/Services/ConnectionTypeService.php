@@ -35,7 +35,6 @@ class ConnectionTypeService
         $connectionTypeDTO = ConnectionTypeDTO::fromArray($data);
         $connectionType = $this->connectionTypeRepository->create($connectionTypeDTO);
         
-        // Refresh diagram layouts after creating connection type
         $this->refreshDiagramLayouts();
         
         return ConnectionTypeDTO::fromModel($connectionType);
@@ -59,10 +58,8 @@ class ConnectionTypeService
         
     $this->connectionTypeRepository->update($connectionType, $connectionTypeDTO);
         
-    // Refresh diagram layouts after updating connection type (edges + colors)
     $this->refreshDiagramLayouts();
         
-    // Re-fetch the updated model to return an accurate DTO
     $refetched = $this->connectionTypeRepository->findById($id);
     return ConnectionTypeDTO::fromModel($refetched);
     }
@@ -78,7 +75,6 @@ class ConnectionTypeService
             throw new \Exception("Connection type not found");
         }
 
-        // Check if connection type is being used
         if ($this->connectionTypeRepository->isBeingUsed($id)) {
             throw new \Exception("Cannot delete connection type that is being used by integrations");
         }
@@ -114,23 +110,13 @@ class ConnectionTypeService
     }
 
     /**
-     * Get connection type statistics
-     */
-    public function getStatistics(): array
-    {
-        return $this->connectionTypeRepository->getConnectionTypeStatistics();
-    }
-
-    /**
      * Refresh diagram layouts for all streams to synchronize connection type colors
      */
     private function refreshDiagramLayouts(): void
     {
         try {
-            // Get all available streams from stream configuration service
             $streams = $this->streamConfigService->getAllowedDiagramStreams();
             
-            // First, clean up any invalid data globally
             $this->cleanupService->removeDuplicateIntegrations();
             $this->cleanupService->removeInvalidIntegrations();
  
@@ -138,20 +124,16 @@ class ConnectionTypeService
             $totalEdgesSynced = 0;
             
             foreach ($streams as $streamName) {
-                // Clean up stream layout nodes for this specific stream
                 $this->cleanupService->cleanupStreamLayout($streamName);
                 
-                // Synchronize edges layout with current AppIntegration data
                 $edgesSynced = $this->streamLayoutService->synchronizeStreamLayoutEdges($streamName);
                 
-                // Synchronize connection type colors in the layout
                 $colorsSynced = $this->streamLayoutService->synchronizeConnectionTypeColors($streamName);
                 
                 $totalEdgesSynced += $edgesSynced;
                 $totalColorsSynced += $colorsSynced;        
             }
         } catch (\Exception $e) {
-            // Log error but don't fail the main operation
             Log::error('Failed to refresh diagram layouts after connection type update: ' . $e->getMessage());
         }
     }

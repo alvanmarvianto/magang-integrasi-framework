@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\ConnectionTypeService;
 use App\Http\Requests\Admin\StoreConnectionTypeRequest;
 use App\Http\Requests\Admin\UpdateConnectionTypeRequest;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
 use Inertia\Inertia;
@@ -21,7 +20,6 @@ class ConnectionTypeController extends Controller
     {
         $connectionTypes = $this->connectionTypeService->getAllConnectionTypes();
         
-        // Transform data for frontend
         $transformedConnectionTypes = $connectionTypes->map(function ($connectionType) {
             return [
                 'id' => $connectionType->connection_type_id,

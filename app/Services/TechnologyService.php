@@ -32,16 +32,7 @@ class TechnologyService
             'platforms' => 'platforms',
         ];
     }
-
-    /**
-     * Get table name for technology type (legacy compatibility)
-     */
-    public function getTableName(string $type): string
-    {
-        // This method is kept for backward compatibility but will use new structure
-        return 'technologies'; // All technologies are now in one table
-    }
-
+    
     /**
      * Get enum values from technologies table by type
      */
@@ -63,14 +54,8 @@ class TechnologyService
      */
     public function getTechnologyData(string $type, int $appId): Collection
     {
-        // For backward compatibility, handle old table names
-        if (str_starts_with($type, 'technology_')) {
-            $techType = str_replace('technology_', '', $type);
-            $techType = str_replace('_', '_', $techType); // Keep underscores for exact mapping
-        } else {
             $typeMapping = $this->getTypeMapping();
             $techType = $typeMapping[$type] ?? $type;
-        }
 
         $appTechnologies = AppTechnology::with('technology')
             ->where('app_id', $appId)
@@ -92,11 +77,6 @@ class TechnologyService
      */
     public function getAppByCondition(string $techType, string $name): Collection
     {
-        // Handle legacy table name format
-        if (str_starts_with($techType, 'technology_')) {
-            $techType = str_replace('technology_', '', $techType);
-        }
-
         $technology = Technology::where('type', $techType)
             ->where('name', $name)
             ->first();
@@ -130,7 +110,6 @@ class TechnologyService
      */
     public function getAppsByAttribute(string $attribute, string $value): Collection
     {
-        /** @var \Illuminate\Database\Eloquent\Collection $apps */
         $apps = App::with('stream')->where($attribute, $value)->get();
 
         return $apps->map(function ($app) use ($value) {
@@ -256,21 +235,6 @@ class TechnologyService
     }
 
     /**
-     * Legacy method for backward compatibility
-     */
-    public function isEnumValueInUse(string $tableName, string $value): bool
-    {
-        // Extract type from old table name
-        $techType = str_replace('technology_', '', $tableName);
-        
-        $technology = Technology::where('type', $techType)
-            ->where('name', $value)
-            ->first();
-            
-        return $technology ? $this->isTechnologyInUse($technology->id) : false;
-    }
-
-    /**
      * Get apps using specific technology
      */
     public function getAppsUsingEnum(string $tableName, string $value): array
@@ -323,34 +287,10 @@ class TechnologyService
     }
 
     /**
-     * Get technology components for multiple apps as DTOs
-     */
-    public function getTechnologyComponentsForApps(array $appIds, string $type): Collection
-    {
-        $typeMapping = $this->getTypeMapping();
-        $techType = $typeMapping[$type] ?? $type;
-        
-        $appTechnologies = AppTechnology::with('technology')
-            ->whereIn('app_id', $appIds)
-            ->whereHas('technology', function ($query) use ($techType) {
-                $query->where('type', $techType);
-            })
-            ->get();
-
-        return $appTechnologies->map(function ($appTech) {
-            return TechnologyComponentDTO::fromModel(
-                $appTech->technology,
-                $appTech->version
-            );
-        });
-    }
-
-    /**
      * Get app technology data by app ID
      */
     public function getAppTechnologyData(int $appId): AppTechnologyDataDTO
     {
-        // Get app data using AppRepository
         $appRepository = app(AppRepositoryInterface::class);
         $app = $appRepository->findAsDTOFresh($appId);
         
@@ -405,7 +345,6 @@ class TechnologyService
             throw new \InvalidArgumentException("Invalid technology type: {$type}");
         }
 
-        // Get apps based on type
         if (in_array($type, ['app_type', 'stratification'])) {
             $apps = $this->getAppsByAttribute($type, $name);
         } else {

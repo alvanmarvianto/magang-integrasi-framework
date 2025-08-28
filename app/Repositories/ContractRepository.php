@@ -20,16 +20,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     }
 
     /**
-     * Get all contracts
-     */
-    public function getAll(): Collection
-    {
-        return $this->handleCacheOperation('contracts.all', function () {
-            return $this->model->all();
-        });
-    }
-
-    /**
      * Get paginated contracts with optional search and sorting
      */
     public function getPaginatedContracts(
@@ -38,7 +28,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         string $sortBy = 'title',
         bool $sortDesc = false
     ): LengthAwarePaginator {
-        // Validate parameters
         $this->validatePaginationParams($perPage);
         
         if ($search !== null) {
@@ -131,16 +120,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     }
 
     /**
-     * Find contract by ID
-     */
-    public function findById(int $id): ?Contract
-    {
-        return $this->handleCacheOperation("contracts.{$id}", function () use ($id) {
-            return $this->model->find($id);
-        });
-    }
-
-    /**
      * Find contract by ID with relationships
      */
     public function findByIdWithRelations(int $id): ?Contract
@@ -157,7 +136,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
     {
         $contract = $this->model->create($data);
         
-        // Clear related caches
         $this->clearAllContractCaches(null);
         
         return $contract;
@@ -171,10 +149,8 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         $result = $contract->update($data);
         
         if ($result) {
-            // Clear all contract-related caches comprehensively
             $this->clearAllContractCaches($contract->id);
             
-            // Also clear contract period caches since they're loaded with contracts
             Cache::forget("contract_periods.contract.{$contract->id}");
             Cache::forget("contract_periods.contract.{$contract->id}.with_relations");
         }
@@ -192,7 +168,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         $result = $contract->delete();
         
         if ($result) {
-            // Clear all contract-related caches systematically
             $this->clearAllContractCaches($contractId);
         }
         
@@ -204,40 +179,33 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
      */
     private function clearAllContractCaches(?int $contractId = null, ?int $appId = null): void
     {
-        // Clear specific contract caches
         if ($contractId) {
             Cache::forget("contracts.{$contractId}");
             Cache::forget("contracts.{$contractId}.with_relations");
             
-            // Clear contract period caches for this contract
             Cache::forget("contract_periods.contract.{$contractId}");
             Cache::forget("contract_periods.contract.{$contractId}.with_relations");
         }
         
-        // Clear app-specific contract caches
         if ($appId) {
             Cache::forget("contracts.app.{$appId}");
             Cache::forget("contracts.app.{$appId}.with_relations");
             Cache::forget("contracts.app.{$appId}.with_apps");
         }
         
-        // Clear general contract caches
         Cache::forget('contracts.all');
         Cache::forget('contracts.all.with_relations');
         Cache::forget('contracts.all_with_apps');
         Cache::forget('contracts.statistics');
-        Cache::forget('contractss.statistics'); // plural form
+        Cache::forget('contractss.statistics');
         
-        // Clear general contract period caches that might be affected
         Cache::forget('contract_periods.all');
         Cache::forget('contract_periods.all.with_relations');
         Cache::forget('contract_periods.active');
         
-        // Clear currency-specific caches
         Cache::forget('contracts.currency.rp');
         Cache::forget('contracts.currency.non_rp');
         
-        // Clear app-related caches since contract counts may have changed
         if ($appId) {
             Cache::forget("app.{$appId}");
             Cache::forget("app.{$appId}.with_relations");
@@ -248,15 +216,12 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
         Cache::forget('apps.statistics');
         Cache::forget('apps.with_integration_counts');
         
-        // Clear stream-related caches
         Cache::forget('stream.apps');
         Cache::forget('stream.name_apps');
         
-        // Clear technology-related caches as they might be affected
         Cache::forget('technology.components');
         Cache::forget('technology.mappings');
         
-        // Clear any search caches that might exist for this app
         if ($appId) {
             for ($i = 1; $i <= 10; $i++) {
                 Cache::forget("apps.search.{$i}");
@@ -264,15 +229,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
             }
         }
     }
-
-    /**
-     * Check if contract exists by ID
-     */
-    public function existsById(int $id): bool
-    {
-        return $this->model->where('id', $id)->exists();
-    }
-
     /**
      * Get contract statistics
      */
@@ -292,28 +248,6 @@ class ContractRepository extends BaseRepository implements ContractRepositoryInt
                     ->count('app_id'),
             ];
         }, CacheConfig::STATISTICS_TTL);
-    }
-
-    /**
-     * Get contracts by currency type
-     */
-    public function getByCurrencyType(string $currencyType): Collection
-    {
-        return $this->handleCacheOperation("contracts.currency.{$currencyType}", function () use ($currencyType) {
-            return $this->model->where('currency_type', $currencyType)->get();
-        });
-    }
-
-    /**
-     * Search contracts by title or contract number
-     */
-    public function searchContracts(string $query): Collection
-    {
-        // Don't cache search results as they can be highly variable
-        return $this->model->where('title', 'like', "%{$query}%")
-            ->orWhere('contract_number', 'like', "%{$query}%")
-            ->with(['apps'])
-            ->get();
     }
 
     /**

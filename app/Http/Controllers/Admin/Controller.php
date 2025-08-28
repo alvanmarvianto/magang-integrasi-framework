@@ -11,7 +11,6 @@ class Controller extends BaseController
 {
     public function index(): Response
     {
-        // Get the first allowed stream by priority (sort_order)
         $firstAllowedStream = Stream::allowedForDiagram()
             ->orderedByPriority()
             ->value('stream_name');

@@ -9,11 +9,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface ContractRepositoryInterface
 {
     /**
-     * Get all contracts
-     */
-    public function getAll(): Collection;
-
-    /**
      * Get all contracts with relationships
      */
     public function getAllWithRelations(): Collection;
@@ -27,11 +22,6 @@ interface ContractRepositoryInterface
      * Get contracts by app ID with relationships
      */
     public function getByAppIdWithRelations(int $appId): Collection;
-
-    /**
-     * Find contract by ID
-     */
-    public function findById(int $id): ?Contract;
 
     /**
      * Find contract by ID with relationships
@@ -54,19 +44,9 @@ interface ContractRepositoryInterface
     public function delete(Contract $contract): bool;
 
     /**
-     * Check if contract exists by ID
-     */
-    public function existsById(int $id): bool;
-
-    /**
      * Get contract statistics
      */
     public function getContractStatistics(): array;
-
-    /**
-     * Get contracts by currency type
-     */
-    public function getByCurrencyType(string $currencyType): Collection;
 
     /**
      * Get paginated contracts with optional search and sorting
@@ -77,9 +57,4 @@ interface ContractRepositoryInterface
         string $sortBy = 'app_name',
         bool $sortDesc = false
     ): LengthAwarePaginator;
-
-    /**
-     * Search contracts by title or contract number
-     */
-    public function searchContracts(string $query): Collection;
 }

@@ -14,8 +14,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use InvalidArgumentException;
-use Illuminate\Support\Collection as BaseCollection;
 
 class AppRepository extends BaseRepository implements AppRepositoryInterface
 {
@@ -81,7 +79,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         string $sortBy = 'app_name',
         bool $sortDesc = false
     ): LengthAwarePaginator {
-        // Validate parameters
         $this->validatePaginationParams($perPage);
         
         if ($search !== null) {
@@ -151,23 +148,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         ])->find($id);
     }
 
-    public function findAsDTO(int $id): ?AppDTO
-    {
-        $this->validateId($id);
-        
-        try {
-            $app = $this->findWithRelations($id);
-            return $app ? AppDTO::fromModel($app) : null;
-        } catch (\Exception $e) {
-            Log::error('Failed to find app as DTO', [
-                'id' => $id,
-                'exception' => $e->getMessage()
-            ]);
-            
-            throw RepositoryException::entityNotFound('app', $id);
-        }
-    }
-
     /**
      * Find app by ID and return as DTO with fresh data (bypassing cache)
      */
@@ -190,7 +170,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
 
     public function createWithTechnology(AppDTO $appData): App
     {
-        // Validate required fields
         $this->validateNotEmpty($appData->appName, 'appName');
         $this->validateId($appData->streamId);
 
@@ -230,7 +209,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
 
     public function updateWithTechnology(App $app, AppDTO $appData): bool
     {
-        // Validate required fields
         $this->validateNotEmpty($appData->appName, 'appName');
         $this->validateId($appData->streamId);
 
@@ -253,7 +231,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                 }
 
                 if ($updated) {
-                    // Clear all app-related caches comprehensively
                     $this->clearAllAppCaches($app->app_id);
                 }
 
@@ -276,20 +253,16 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
     private function clearAllAppCaches(int $appId): void
     {
         try {
-            // Clear the basic entity cache
             $this->clearEntityCache($this->getEntityName(), $appId);
             
-            // Clear specific app-related cache keys
             $keysToForget = [
                 "app.{$appId}",
                 "app.{$appId}.with_relations", 
                 "app.{$appId}.with_apps",
                 "app.exists.{$appId}",
-                // Clear general app caches that might include this app
                 "apps.all",
                 "apps.statistics",
                 "apps.with_integration_counts",
-                // Clear stream-related caches since apps belong to streams
                 "stream.apps",
                 "stream.name_apps"
             ];
@@ -298,7 +271,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
                 Cache::forget($key);
             }
             
-            // Clear any search result caches (limited scope)
             for ($i = 1; $i <= 20; $i++) {
                 Cache::forget("apps.search.{$i}");
             }
@@ -331,91 +303,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
         }
     }
 
-    public function getAppsByStreamId(int $streamId): Collection
-    {
-        $this->validateId($streamId);
-        
-        $cacheKey = $this->buildCacheKey('stream', 'apps', $streamId);
-        
-        return $this->handleCacheOperation(
-            $cacheKey,
-            fn() => App::where('stream_id', $streamId)
-                ->with('stream')
-                ->orderBy('app_name')
-                ->get()
-        );
-    }
-
-    public function getAppsByStreamName(string $streamName): Collection
-    {
-        $this->validateNotEmpty($streamName, 'streamName');
-        
-        $cacheKey = $this->buildCacheKey('stream', 'name_apps', $streamName);
-        
-        return $this->handleCacheOperation(
-            $cacheKey,
-            fn() => App::whereHas('stream', function ($query) use ($streamName) {
-                $query->where('stream_name', $streamName);
-            })->with('stream')->orderBy('app_name')->get()
-        );
-    }
-
-    public function getAppsByIds(array $appIds): Collection
-    {
-        if (empty($appIds)) {
-            return new Collection();
-        }
-
-        // Validate all IDs are positive integers
-        foreach ($appIds as $id) {
-            $this->validateId($id);
-        }
-
-        try {
-            return App::whereIn('app_id', $appIds)
-                ->with('stream')
-                ->orderBy('app_name')
-                ->get();
-        } catch (\Exception $e) {
-            Log::error('Failed to get apps by IDs', [
-                'appIds' => $appIds,
-                'exception' => $e->getMessage()
-            ]);
-            
-            throw new RepositoryException('Failed to get apps by IDs: ' . $e->getMessage());
-        }
-    }
-
-    public function searchAppsByName(string $searchTerm): Collection
-    {
-        $this->validateNotEmpty($searchTerm, 'searchTerm');
-
-        if (strlen($searchTerm) < 2) {
-            throw new InvalidArgumentException('Search term must be at least 2 characters');
-        }
-
-        try {
-            $cacheKey = $this->buildCacheKey('apps', 'search', $searchTerm);
-            
-            return $this->handleCacheOperation(
-                $cacheKey,
-                fn() => App::where('app_name', 'like', "%{$searchTerm}%")
-                    ->with('stream')
-                    ->orderBy('app_name')
-                    ->limit(20)
-                    ->get(),
-                CacheConfig::getTTL('search')
-            );
-        } catch (\Exception $e) {
-            Log::error('Failed to search apps by name', [
-                'searchTerm' => $searchTerm,
-                'exception' => $e->getMessage()
-            ]);
-            
-            throw new RepositoryException('Failed to search apps: ' . $e->getMessage());
-        }
-    }
-
     public function getAppsWithIntegrationCounts(): Collection
     {
         $cacheKey = $this->buildCacheKey('apps', 'with_integration_counts');
@@ -436,76 +323,6 @@ class AppRepository extends BaseRepository implements AppRepositoryInterface
             },
             CacheConfig::getTTL('statistics')
         );
-    }
-
-    public function existsByName(string $appName): bool
-    {
-        $this->validateNotEmpty($appName, 'appName');
-        
-        $cacheKey = $this->buildCacheKey('app', 'exists', $appName);
-        
-        return $this->handleCacheOperation(
-            $cacheKey,
-            fn() => App::where('app_name', $appName)->exists()
-        );
-    }
-
-    public function getAppStatistics(): array
-    {
-        $cacheKey = $this->buildCacheKey('apps', 'statistics');
-        
-        return $this->handleCacheOperation(
-            $cacheKey,
-            function () {
-                $apps = App::with('stream')->get();
-                
-                return [
-                    'total_apps' => $apps->count(),
-                    'apps_by_type' => $apps->groupBy('app_type')->map(fn($group) => $group->count())->toArray(),
-                    'apps_by_stratification' => $apps->groupBy('stratification')->map(fn($group) => $group->count())->toArray(),
-                    'apps_by_stream' => $apps->groupBy('stream.stream_name')->map(fn($group) => $group->count())->toArray(),
-                    'apps_with_description' => $apps->whereNotNull('description')->count(),
-                    'apps_without_description' => $apps->whereNull('description')->count(),
-                ];
-            },
-            CacheConfig::getTTL('statistics')
-        );
-    }
-
-    public function bulkUpdateApps(array $appData): bool
-    {
-        if (empty($appData)) {
-            return false;
-        }
-
-        try {
-            return DB::transaction(function () use ($appData) {
-                $updated = 0;
-                
-                foreach ($appData as $data) {
-                    if (isset($data['app_id'])) {
-                        $this->validateId($data['app_id']);
-                        
-                        $app = App::find($data['app_id']);
-                        if ($app) {
-                            $appDTO = AppDTO::fromArray($data);
-                            if ($this->updateWithTechnology($app, $appDTO)) {
-                                $updated++;
-                            }
-                        }
-                    }
-                }
-
-                return $updated > 0;
-            });
-        } catch (\Exception $e) {
-            Log::error('Failed to bulk update apps', [
-                'appDataCount' => count($appData),
-                'exception' => $e->getMessage()
-            ]);
-            
-            throw RepositoryException::updateFailed('bulk apps', 'multiple', $e->getMessage());
-        }
     }
 
     public function getIntegrationFunctionsGrouped(int $appId): array

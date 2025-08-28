@@ -7,8 +7,6 @@ use App\Models\AppIntegration;
 use App\Services\IntegrationService;
 use App\Http\Requests\Admin\StoreIntegrationRequest;
 use App\Http\Requests\Admin\UpdateIntegrationRequest;
-use App\Http\Requests\Admin\BulkCreateIntegrationsRequest;
-use App\Http\Requests\Admin\CheckIntegrationExistsRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
@@ -128,77 +126,5 @@ class IntegrationController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to delete integration: ' . $e->getMessage()]);
         }
-    }
-
-    /**
-     * Display integration statistics
-     */
-    public function statistics(): Response
-    {
-        $statistics = $this->integrationService->getIntegrationStatistics();
-        $connectionTypes = $this->integrationService->getConnectionTypes();
-        
-        return Inertia::render('Admin/IntegrationStatistics', [
-            'statistics' => $statistics,
-            'connection_types' => $connectionTypes,
-        ]);
-    }
-
-    /**
-     * Remove duplicate integrations
-     */
-    public function removeDuplicates(): RedirectResponse
-    {
-        try {
-            $removedCount = $this->integrationService->removeDuplicateIntegrations();
-            
-            if ($removedCount === 0) {
-                return back()->with('info', 'No duplicate integrations found');
-            }
-            
-            return back()->with('success', "Removed {$removedCount} duplicate integration(s)");
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to remove duplicates: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Bulk create integrations
-     */
-    public function bulkCreate(BulkCreateIntegrationsRequest $request): RedirectResponse
-    {
-        try {
-            $result = $this->integrationService->bulkCreateIntegrations($request->validated('integrations'));
-            
-            $successMessage = "Created {$result['success_count']} integration(s)";
-            if ($result['error_count'] > 0) {
-                $successMessage .= ", {$result['error_count']} failed";
-            }
-            
-            return redirect()
-                ->route('admin.integrations.index')
-                ->with('success', $successMessage);
-        } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->withErrors(['error' => 'Failed to create integrations: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Check if integration exists between apps (AJAX endpoint)
-     */
-    public function checkExists(CheckIntegrationExistsRequest $request)
-    {
-        $validated = $request->validated();
-
-        $exists = $this->integrationService->integrationExistsBetweenApps(
-            $validated['source_app_id'],
-            $validated['target_app_id']
-        );
-        
-        return response()->json([
-            'exists' => $exists,
-        ]);
     }
 }

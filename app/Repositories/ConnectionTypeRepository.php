@@ -13,24 +13,6 @@ use Illuminate\Support\Facades\Cache;
 
 class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
 {
-    public function getAll(): Collection
-    {
-        $cacheKey = CacheConfig::buildKey('connection_types', 'all');
-        $cacheTTL = CacheConfig::getTTL('default');
-        
-        return Cache::remember(
-            $cacheKey,
-            $cacheTTL,
-            function() {
-                try {
-                    return ConnectionType::orderBy('type_name')->get();
-                } catch (\Exception $e) {
-                    throw RepositoryException::createFailed('connection types list', $e->getMessage());
-                }
-            }
-        );
-    }
-
     public function getAllWithUsageCounts(): Collection
     {
         $cacheKey = CacheConfig::buildKey('connection_types', 'all_with_usage');
@@ -73,28 +55,6 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
                     return ConnectionType::find($id);
                 } catch (\Exception $e) {
                     throw RepositoryException::entityNotFound('connection type', $id);
-                }
-            }
-        );
-    }
-
-    public function findByName(string $name): ?ConnectionType
-    {
-        if (empty(trim($name))) {
-            throw new \InvalidArgumentException('Name cannot be empty');
-        }
-
-        $cacheKey = CacheConfig::buildKey('connection_type', 'name', $name);
-        $cacheTTL = CacheConfig::getTTL('default');
-
-        return Cache::remember(
-            $cacheKey,
-            $cacheTTL,
-            function() use ($name) {
-                try {
-                    return ConnectionType::where('type_name', $name)->first();
-                } catch (\Exception $e) {
-                    throw RepositoryException::entityNotFound('connection type', $name);
                 }
             }
         );
@@ -159,73 +119,6 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
         }
     }
 
-    public function existsByName(string $name): bool
-    {
-        $cacheKey = CacheConfig::buildKey('connection_type', 'exists', $name);
-        $cacheTTL = CacheConfig::getTTL('default');
-        
-        return Cache::remember(
-            $cacheKey,
-            $cacheTTL,
-            fn() => ConnectionType::where('type_name', $name)->exists()
-        );
-    }
-
-    public function getConnectionTypeStatistics(): array
-    {
-        $cacheKey = CacheConfig::buildKey('connection_types', 'statistics');
-        $cacheTTL = CacheConfig::getTTL('statistics');
-        
-        return Cache::remember(
-            $cacheKey,
-            $cacheTTL,
-            function () {
-                try {
-                    $connectionTypes = ConnectionType::withCount('appIntegrationConnections')->get();
-                    
-                    return [
-                        'total_connection_types' => $connectionTypes->count(),
-                        'used_connection_types' => $connectionTypes->where('app_integration_connections_count', '>', 0)->count(),
-                        'unused_connection_types' => $connectionTypes->where('app_integration_connections_count', 0)->count(),
-                        'total_integrations' => $connectionTypes->sum('app_integration_connections_count'),
-                        'average_integrations_per_type' => $connectionTypes->count() > 0 
-                            ? round($connectionTypes->sum('app_integration_connections_count') / $connectionTypes->count(), 2)
-                            : 0,
-                        'most_used_types' => $connectionTypes
-                            ->sortByDesc('app_integration_connections_count')
-                            ->take(5)
-                            ->map(function ($type) {
-                                return [
-                                    'connection_type_id' => $type->connection_type_id,
-                                    'type_name' => $type->type_name,
-                                    'usage_count' => $type->app_integration_connections_count,
-                                ];
-                            })
-                            ->values()
-                            ->toArray(),
-                    ];
-                } catch (\Exception $e) {
-                    throw RepositoryException::createFailed('connection type statistics', $e->getMessage());
-                }
-            }
-        );
-    }
-
-    public function getMostUsedConnectionTypes(int $limit = 10): Collection
-    {
-        $cacheKey = CacheConfig::buildKey('connection_types', 'most_used', $limit);
-        $cacheTTL = CacheConfig::getTTL('default');
-        
-        return Cache::remember(
-            $cacheKey,
-            $cacheTTL,
-            fn() => ConnectionType::withCount('appIntegrationConnections')
-                ->orderByDesc('app_integration_connections_count')
-                ->limit($limit)
-                ->get()
-        );
-    }
-
     public function isBeingUsed(int $id): bool
     {
         $cacheKey = CacheConfig::buildKey('connection_type', 'is_used', $id);
@@ -282,19 +175,15 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
 
     private function clearConnectionTypeCache(): void
     {
-        // Clear main cache keys using CacheConfig
         Cache::forget(CacheConfig::buildKey('connection_types', 'all'));
         Cache::forget(CacheConfig::buildKey('connection_types', 'all_with_usage'));
         Cache::forget(CacheConfig::buildKey('connection_types', 'statistics'));
         
-        // Clear most used cache for common limits
         for ($i = 5; $i <= 20; $i += 5) {
             Cache::forget(CacheConfig::buildKey('connection_types', 'most_used', $i));
         }
 
-        // Clear diagram-related caches for all streams since connection types affect colors
         try {
-            // Get stream names from database instead of hardcoded list
             $streams = Stream::pluck('stream_name')->toArray();
             foreach ($streams as $streamName) {
                 Cache::forget("diagram_data.{$streamName}");
@@ -302,7 +191,7 @@ class ConnectionTypeRepository implements ConnectionTypeRepositoryInterface
                 Cache::forget("stream_layout.{$streamName}");
             }
         } catch (\Exception $e) {
-            // Stream table might not be available, continue without diagram cache clearing
+
         }
     }
 }

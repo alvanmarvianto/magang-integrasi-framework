@@ -11,7 +11,7 @@ class UpdateEnumRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Add proper authorization logic here
+        return true;
     }
 
     /**

@@ -23,7 +23,6 @@ abstract class BaseRepository
                 'repository' => static::class
             ]);
             
-            // Try direct execution, if that fails too, throw RepositoryException
             try {
                 return $callback();
             } catch (\Exception $directException) {
@@ -39,20 +38,16 @@ abstract class BaseRepository
     {
         try {
             if ($identifier !== null) {
-                // Clear specific entity cache
                 Cache::forget("{$entity}.{$identifier}");
                 Cache::forget("{$entity}.{$identifier}.with_relations");
                 Cache::forget("{$entity}.{$identifier}.with_apps");
             }
             
-            // Clear general entity caches
             Cache::forget("{$entity}.all");
             Cache::forget("{$entity}.all_with_apps");
             Cache::forget("{$entity}.statistics");
-            Cache::forget("{$entity}s.statistics"); // plural form
+            Cache::forget("{$entity}s.statistics");
             
-            // Clear all cache keys that start with this entity
-            // This will clear pagination, search results, etc.
             $this->clearCacheByPattern($entity);
             
         } catch (\Exception $e) {
@@ -62,7 +57,6 @@ abstract class BaseRepository
                 'repository' => static::class
             ]);
             
-            // For critical operations, we might want to throw an exception
             throw RepositoryException::cacheOperationFailed('clear', $entity, $e->getMessage());
         }
     }
@@ -74,17 +68,15 @@ abstract class BaseRepository
     protected function clearCacheByPattern(string $pattern): void
     {
         try {
-            // Clear specific known cache keys that might contain stale data
             $keysToForget = [
-                // App-specific caches
                 'app.all',
                 'apps.all',
                 'apps.statistics', 
                 'apps.with_integration_counts',
-                // Stream-related app caches
+                
                 'stream.apps',
                 'stream.name_apps',
-                // Technology-related caches
+                
                 'technology.components',
                 'technology.mappings'
             ];
@@ -148,7 +140,6 @@ abstract class BaseRepository
         
         $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
         
-        // Handle special sorting cases (like joins)
         $this->applySortingLogic($query, $sortBy, $direction);
     }
 
@@ -166,14 +157,6 @@ abstract class BaseRepository
     protected function buildCacheKey(string $entity, string $operation, ...$params): string
     {
         return CacheConfig::buildKey($entity, $operation, ...$params);
-    }
-    
-    /**
-     * Get TTL for cache operation
-     */
-    protected function getCacheTTL(string $entity, string $operation): int
-    {
-        return CacheConfig::getTTLForOperation($entity, $operation);
     }
 
     /**

@@ -55,43 +55,7 @@ class StreamService
                 ['apps_count' => $stream->apps_count]
             ));
     }
-
-    /**
-     * Get all streams with apps as DTOs
-     */
-    public function getAllStreamsWithApps(): Collection
-    {
-        $streams = $this->streamRepository->getAllWithApps();
-        return $streams->map(fn($stream) => StreamDTO::fromModel($stream));
-    }
-
-    /**
-     * Find stream by ID and return as DTO
-     */
-    public function findStreamById(int $id): ?StreamDTO
-    {
-        $stream = $this->streamRepository->findById($id);
-        return $stream ? StreamDTO::fromModel($stream) : null;
-    }
-
-    /**
-     * Find stream by name and return as DTO
-     */
-    public function findStreamByName(string $name): ?StreamDTO
-    {
-        $stream = $this->streamRepository->findByName($name);
-        return $stream ? StreamDTO::fromModel($stream) : null;
-    }
-
-    /**
-     * Find stream by name with apps and return as DTO
-     */
-    public function findStreamByNameWithApps(string $name): ?StreamDTO
-    {
-        $stream = $this->streamRepository->findByNameWithApps($name);
-        return $stream ? StreamDTO::fromModel($stream) : null;
-    }
-
+    
     /**
      * Create new stream
      */
@@ -143,40 +107,7 @@ class StreamService
         
         return $result;
     }
-
-    /**
-     * Get streams by multiple names
-     */
-    public function getStreamsByNames(array $names): Collection
-    {
-        $streams = $this->streamRepository->getStreamsByNames($names);
-        return $streams->map(fn($stream) => StreamDTO::fromModel($stream));
-    }
-
-    /**
-     * Check if stream exists by name
-     */
-    public function streamExistsByName(string $name): bool
-    {
-        return $this->streamRepository->existsByName($name);
-    }
-
-    /**
-     * Get stream statistics
-     */
-    public function getStreamStatistics(): array
-    {
-        return $this->streamRepository->getStreamStatistics();
-    }
-
-    /**
-     * Get allowed streams for diagram operations
-     */
-    public function getAllowedDiagramStreams(): array
-    {
-        return $this->streamConfigService->getAllowedDiagramStreams();
-    }
-
+    
     /**
      * Get allowed streams with details for UI components
      */
@@ -188,27 +119,6 @@ class StreamService
     public function getAllStreamsWithDetails(): array
     {
         return $this->streamConfigService->getAllStreamsWithDetails()->toArray();
-    }
-
-    /**
-     * Validate if stream is allowed for diagram operations
-     */
-    public function isStreamAllowedForDiagram(string $streamName): bool
-    {
-        return $this->streamConfigService->isStreamAllowed($streamName);
-    }
-
-    /**
-     * Get stream options for forms
-     */
-    public function getStreamOptionsForForms(): array
-    {
-        return $this->getAllStreams()
-            ->map(fn($streamDTO) => [
-                'value' => $streamDTO->streamId,
-                'label' => $streamDTO->streamName,
-            ])
-            ->toArray();
     }
 
     /**
@@ -258,7 +168,6 @@ class StreamService
                 }
             }
 
-            // Clear stream configuration cache after bulk update
             $this->streamConfigService->clearCache();
             
             return true;
@@ -278,7 +187,6 @@ class StreamService
         
         $streamChildren = [];
         foreach ($allowedStreams as $allowedStream) {
-            // Find the corresponding stream with apps
             $streamWithApps = $streams->firstWhere('stream_name', $allowedStream->stream_name);
             
             if (!$streamWithApps) {
@@ -295,7 +203,6 @@ class StreamService
                     ),
                 ];
                 
-                // Only add "Modul" option if the app is marked as a function app
                 if ($app->is_module) {
                     $appSubNodes[] = HierarchyNodeDTO::createUrl(
                         'Modul',

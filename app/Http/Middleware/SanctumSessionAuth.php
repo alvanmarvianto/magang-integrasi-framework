@@ -17,21 +17,16 @@ class SanctumSessionAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if there's a token in the session
         $token = session('sanctum_token');
         
         if ($token) {
-            // Find the token in the database
             $accessToken = PersonalAccessToken::findToken($token);
             
             if ($accessToken && $accessToken->tokenable) {
-                // Set the user in the sanctum guard
                 Auth::guard('sanctum')->setUser($accessToken->tokenable);
                 
-                // Set the token in the request header so Sanctum can authenticate
                 $request->headers->set('Authorization', 'Bearer ' . $token);
             } elseif (!$accessToken) {
-                // Token not found in database, clear session
                 session()->forget('sanctum_token');
             }
         }

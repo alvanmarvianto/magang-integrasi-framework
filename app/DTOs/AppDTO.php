@@ -71,7 +71,6 @@ readonly class AppDTO
     {
         $components = [];
         
-        // Use the new technology relationship structure
         if ($app->relationLoaded('appTechnologies') && $app->appTechnologies) {
             $groupedTechnologies = $app->appTechnologies->groupBy(function ($appTech) {
                 return $appTech->technology->type;

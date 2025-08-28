@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Services\DiagramService;
 use App\Services\DiagramCleanupService;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -58,13 +57,11 @@ class DiagramController extends Controller
     public function showAppLayout(int $appId): Response
     {
         try {
-            // Get the app to validate it exists
             $app = \App\Models\App::with('stream')->find($appId);
             if (!$app) {
                 abort(404, 'App not found');
             }
 
-            // Get the app layout diagram data for user view
             $diagramData = $this->diagramService->getAppLayoutVueFlowData($appId, true);
             $diagramArray = $diagramData->toArray();
 

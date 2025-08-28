@@ -20,10 +20,8 @@ class TechnologyController extends Controller
 
     public function index(): Response
     {
-        // Get all available technology enums using DTOs
         $allTechnologies = $this->technologyService->getAllTechnologyTypes();
         
-        // Get app type and stratification enums from the apps table
         $appTypes = $this->getEnumValues('apps', 'app_type');
         $stratifications = $this->getEnumValues('apps', 'stratification');
         

@@ -9,7 +9,6 @@ use App\Http\Requests\Admin\StoreContractRequest;
 use App\Http\Requests\Admin\UpdateContractRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 

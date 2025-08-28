@@ -59,16 +59,6 @@ class StreamConfigurationService
     }
 
     /**
-     * Get stream configuration by name
-     */
-    public function getStreamConfiguration(string $streamName): ?Stream
-    {
-        return Cache::remember("stream_config_{$streamName}", 3600, function () use ($streamName) {
-            return Stream::where('stream_name', $streamName)->first();
-        });
-    }
-
-    /**
      * Clear the allowed streams cache
      */
     public function clearCache(): void
@@ -83,21 +73,5 @@ class StreamConfigurationService
             Cache::forget("stream_allowed_{$streamName}");
             Cache::forget("stream_config_{$streamName}");
         }
-    }
-
-    /**
-     * Legacy compatibility - get hardcoded streams
-     * @deprecated Use getAllowedDiagramStreams() instead
-     */
-    public function getLegacyAllowedStreams(): array
-    {
-        return [
-            'sp',
-            'mi', 
-            'ssk',
-            'moneter',
-            'market',
-            'middleware'
-        ];
     }
 }

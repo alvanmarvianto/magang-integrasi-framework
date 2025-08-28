@@ -85,7 +85,6 @@ class IntegrationService
      */
     public function createIntegration(array $validatedData): IntegrationDTO
     {
-        // Check for existing integrations to prevent duplicates
         if ($this->integrationRepository->integrationExistsBetweenApps(
             $validatedData['source_app_id'],
             $validatedData['target_app_id']
@@ -96,7 +95,6 @@ class IntegrationService
         $integrationDTO = IntegrationDTO::fromArray($validatedData);
         $integration = $this->integrationRepository->create($integrationDTO);
         
-        // Update stream layouts after creating integration
         $this->streamLayoutService->updateStreamLayoutsForIntegration($integration);
         
         return IntegrationDTO::fromModel($integration);
@@ -114,7 +112,6 @@ class IntegrationService
         
         $this->integrationRepository->update($integration, $integrationDTO);
         
-        // Update stream layouts after updating integration
         $updatedIntegration = $this->integrationRepository->findWithRelations($integration->integration_id);
         $this->streamLayoutService->updateStreamLayoutsForIntegration($updatedIntegration);
         
@@ -126,125 +123,11 @@ class IntegrationService
      */
     public function deleteIntegration(AppIntegration $integration): bool
     {
-        // Remove integration from all stream layouts before deleting
         $this->streamLayoutService->removeIntegrationFromLayouts($integration);
         
         return $this->integrationRepository->delete($integration);
     }
-
-    /**
-     * Get integrations for a specific app
-     */
-    public function getIntegrationsForApp(int $appId): array
-    {
-        $integrations = $this->integrationRepository->getIntegrationsForApp($appId);
-        
-        return $integrations->map(fn($integration) => IntegrationDTO::fromModel($integration)->toArray())->toArray();
-    }
-
-    /**
-     * Get connected apps for a specific app
-     */
-    public function getConnectedAppsForApp(int $appId): array
-    {
-        $connectedApps = $this->integrationRepository->getConnectedAppsForApp($appId);
-        
-        return $connectedApps->map(fn($app) => AppDTO::fromModel($app)->toArray())->toArray();
-    }
-
-    /**
-     * Get integrations between two specific apps
-     */
-    public function getIntegrationsBetweenApps(int $sourceAppId, int $targetAppId): array
-    {
-        $integrations = $this->integrationRepository->getIntegrationsBetweenApps($sourceAppId, $targetAppId);
-        
-        return $integrations->map(fn($integration) => IntegrationDTO::fromModel($integration)->toArray())->toArray();
-    }
-
-    /**
-     * Get external apps connected to a stream
-     */
-    public function getExternalAppsConnectedToStream(array $streamAppIds): array
-    {
-        $externalApps = $this->integrationRepository->getExternalAppsConnectedToStream($streamAppIds);
-        
-        return $externalApps->map(fn($app) => AppDTO::fromModel($app)->toArray())->toArray();
-    }
-
-    /**
-     * Check if integration exists between apps
-     */
-    public function integrationExistsBetweenApps(int $sourceAppId, int $targetAppId): bool
-    {
-        return $this->integrationRepository->integrationExistsBetweenApps($sourceAppId, $targetAppId);
-    }
-
-    /**
-     * Remove duplicate integrations
-     */
-    public function removeDuplicateIntegrations(): int
-    {
-        return $this->integrationRepository->removeDuplicateIntegrations();
-    }
-
-    /**
-     * Get connection types with usage statistics
-     */
-    public function getConnectionTypes(): array
-    {
-        return [
-            'connectionTypes' => ConnectionType::withCount('appIntegrations')->get()
-                ->map(fn($type) => array_merge(
-                    ConnectionTypeDTO::fromModel($type)->toArray(),
-                    ['usage_count' => $type->app_integrations_count]
-                ))
-        ];
-    }
-
-    /**
-     * Get integration statistics
-     */
-    public function getIntegrationStatistics(): array
-    {
-    // Get all integrations for statistics
-    $allIntegrations = AppIntegration::with('connections.connectionType')->get();
-        
-        return [
-            'total_integrations' => $allIntegrations->count(),
-            'integrations_by_connection_type' => $allIntegrations->flatMap(function ($i) {
-                return $i->connections->pluck('connection_type_id');
-            })->filter()->countBy()->toArray(),
-            'most_connected_apps' => $this->getMostConnectedApps(),
-        ];
-    }
-
-    /**
-     * Bulk create integrations
-     */
-    public function bulkCreateIntegrations(array $integrationsData): array
-    {
-        $created = [];
-        $errors = [];
-
-        foreach ($integrationsData as $index => $data) {
-            try {
-                $integrationDTO = $this->createIntegration($data);
-                $created[] = $integrationDTO->toArray();
-            } catch (\Exception $e) {
-                $errors[$index] = $e->getMessage();
-            }
-        }
-
-        return [
-            'created' => $created,
-            'errors' => $errors,
-            'total_processed' => count($integrationsData),
-            'success_count' => count($created),
-            'error_count' => count($errors),
-        ];
-    }
-
+    
     /**
      * Get apps for selection dropdown
      */
@@ -270,8 +153,6 @@ class IntegrationService
             ->toArray();
     }
 
-    // Direction options removed in new model
-
     /**
      * Extract pagination metadata
      */
@@ -289,29 +170,6 @@ class IntegrationService
     }
 
     /**
-     * Get most connected apps
-     */
-    private function getMostConnectedApps(): array
-    {
-        $appsWithCounts = $this->appRepository->getAppsWithIntegrationCounts();
-        
-        return $appsWithCounts
-            ->sortByDesc('total_integrations')
-            ->take(10)
-            ->map(function ($app) {
-                return [
-                    'app_id' => $app->app_id,
-                    'app_name' => $app->app_name,
-                    'total_integrations' => $app->total_integrations,
-                    'outgoing_integrations' => $app->integrations_count,
-                    'incoming_integrations' => $app->integrated_by_count,
-                ];
-            })
-            ->values()
-            ->toArray();
-    }
-
-    /**
      * Get app integration data for app integration page
      */
     public function getAppIntegrationData(int $appId): AppIntegrationDataDTO
@@ -323,16 +181,13 @@ class IntegrationService
             throw new \Exception("App with ID {$appId} not found");
         }
 
-        // Check if the app belongs to an allowed stream using database-driven approach
         $allowedStreams = $this->streamConfigService->getAllowedDiagramStreams();
         if (!$app->stream || !in_array($app->stream->stream_name, $allowedStreams)) {
             throw new \Exception('Access to this app integration is not allowed');
         }
 
-        // Get app as DTO
         $appDTO = AppDTO::fromModel($app);
 
-        // Get integrations data
         $integrations = $this->getAppIntegrationsForDisplay($app);
 
         return AppIntegrationDataDTO::fromAppWithIntegrations($appDTO, $integrations);
@@ -343,10 +198,8 @@ class IntegrationService
      */
     private function getAppIntegrationsForDisplay(App $app): Collection
     {
-    // Load relationships if not already loaded (no pivot connectionType in new model)
     $app->loadMissing(['integrations.stream', 'integratedBy.stream']);
 
-        // Get outgoing integrations
         $integrations = $app->integrations->map(function ($integration) {
             return [
                 'app_id' => $integration->app_id,
@@ -357,7 +210,6 @@ class IntegrationService
             ];
         });
 
-        // Get incoming integrations
         $integratedBy = $app->integratedBy->map(function ($integration) {
             return [
                 'app_id' => $integration->app_id,
@@ -368,10 +220,8 @@ class IntegrationService
             ];
         });
 
-        // Combine and filter
         return $integrations
             ->concat($integratedBy)
-            // No connection type detail on this screen for new model
             ->unique('app_name')
             ->values();
     }

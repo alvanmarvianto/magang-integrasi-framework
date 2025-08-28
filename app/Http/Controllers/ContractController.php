@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Services\ContractService;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -45,14 +44,12 @@ class ContractController extends Controller
             $contractData = $this->contractService->getContractForUser($appId, $contractId);
 
             if (!$contractData) {
-                // Contract not found, but let's check if the app exists
                 $appInfo = $this->contractService->getAppInfo($appId);
                 
                 if (!$appInfo) {
                     abort(404, 'Application not found');
                 }
                 
-                // Get all contracts for this app to show in sidebar
                 $allContracts = $this->contractService->getContractsByAppId($appId);
                 
                 return Inertia::render('Contract/App', [
@@ -68,12 +65,10 @@ class ContractController extends Controller
                 'allContracts' => $contractData['allContracts']->map(fn($c) => $c->toArray())->toArray(),
             ]);
         } catch (\Exception $e) {
-            // If there's an exception, try to gracefully handle it
             try {
                 $appInfo = $this->contractService->getAppInfo($appId);
                 
                 if (!$appInfo) {
-                    // App doesn't exist, render contract page with app not found error
                     return Inertia::render('Contract/App', [
                         'contract' => null,
                         'app' => null,
@@ -82,7 +77,6 @@ class ContractController extends Controller
                     ]);
                 }
                 
-                // Get all contracts for this app if possible
                 $allContracts = $this->contractService->getContractsByAppId($appId);
                 
                 return Inertia::render('Contract/App', [
@@ -92,7 +86,6 @@ class ContractController extends Controller
                     'error' => 'Failed to retrieve contract: ' . $e->getMessage(),
                 ]);
             } catch (\Exception $fallbackException) {
-                // Complete fallback - render with app not found error
                 return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => null,
@@ -109,11 +102,9 @@ class ContractController extends Controller
     public function redirectToFirstContract(int $appId): RedirectResponse|Response
     {
         try {
-            // Check if app has contracts
             $hasContracts = $this->contractService->appHasContracts($appId);
             
             if (!$hasContracts) {
-                // If no contracts, render the contract page with empty data
                 $appInfo = $this->contractService->getAppInfo($appId);
                 
                 if (!$appInfo) {
@@ -138,12 +129,10 @@ class ContractController extends Controller
                 'contract_id' => $firstContract->id
             ]);
         } catch (\Exception $e) {
-            // If there's an exception, try to gracefully handle it
             try {
                 $appInfo = $this->contractService->getAppInfo($appId);
                 
                 if (!$appInfo) {
-                    // App doesn't exist, render contract page with app not found error
                     return Inertia::render('Contract/App', [
                         'contract' => null,
                         'app' => null,
@@ -152,7 +141,6 @@ class ContractController extends Controller
                     ]);
                 }
                 
-                // App exists but there was another error
                 return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => $appInfo->toArray(),
@@ -160,7 +148,6 @@ class ContractController extends Controller
                     'error' => 'Failed to retrieve contracts: ' . $e->getMessage(),
                 ]);
             } catch (\Exception $fallbackException) {
-                // Complete fallback - render with app not found error
                 return Inertia::render('Contract/App', [
                     'contract' => null,
                     'app' => null,
