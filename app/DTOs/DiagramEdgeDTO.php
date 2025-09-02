@@ -10,7 +10,6 @@ readonly class DiagramEdgeDTO
         public string $target,
         public string $label,
         public string $connectionType,
-        public string $direction,
         public string $color = '#000000',
         public bool $animated = false,
         public ?array $style = null,
@@ -25,7 +24,6 @@ readonly class DiagramEdgeDTO
             target: $data['target'],
             label: $data['label'] ?? '',
             connectionType: $data['connection_type'] ?? '',
-            direction: $data['direction'] ?? 'one_way',
             color: $data['color'] ?? '#000000',
             animated: $data['animated'] ?? false,
             style: $data['style'] ?? null,
@@ -45,9 +43,7 @@ readonly class DiagramEdgeDTO
             target: (string) $integration->targetAppId,
             label: $label,
             connectionType: $integration->connectionType?->typeName ?? '',
-            direction: $integration->direction,
             color: $color,
-            animated: $integration->isBidirectional()
         );
     }
 
@@ -59,7 +55,6 @@ readonly class DiagramEdgeDTO
             'target' => $this->target,
             'label' => $this->label,
             'connection_type' => $this->connectionType,
-            'direction' => $this->direction,
             'color' => $this->color,
             'animated' => $this->animated,
         ];
@@ -73,10 +68,5 @@ readonly class DiagramEdgeDTO
         }
 
         return $data;
-    }
-
-    public function isBidirectional(): bool
-    {
-        return $this->direction === 'both_ways';
     }
 }

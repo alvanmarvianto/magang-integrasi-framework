@@ -3,14 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Services\TechnologyService;
-use App\Http\Controllers\Traits\HandlesTechnologyEnums;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TechnologyController extends Controller
-{
-    use HandlesTechnologyEnums;
-    
+{    
     protected TechnologyService $technologyService;
 
     public function __construct(TechnologyService $technologyService)
@@ -18,12 +15,28 @@ class TechnologyController extends Controller
         $this->technologyService = $technologyService;
     }
 
+    /**
+     * Get app type enum values
+     */
+    private function getAppTypes(): array
+    {
+        return ['cots', 'inhouse', 'outsource'];
+    }
+
+    /**
+     * Get stratification enum values
+     */
+    private function getStratifications(): array
+    {
+        return ['strategis', 'kritikal', 'umum'];
+    }
+
     public function index(): Response
     {
         $allTechnologies = $this->technologyService->getAllTechnologyTypes();
         
-        $appTypes = $this->getEnumValues('apps', 'app_type');
-        $stratifications = $this->getEnumValues('apps', 'stratification');
+        $appTypes = $this->getAppTypes();
+        $stratifications = $this->getStratifications();
         
         return Inertia::render('Technology/Index', [
             'technologies' => [
@@ -45,7 +58,6 @@ class TechnologyController extends Controller
     {
         try {
             $appTechnologyData = $this->technologyService->getAppTechnologyData($appId);
-            
             return Inertia::render('Technology/App', [
                 'app' => [
                     'app_id' => $appTechnologyData->appId,
